@@ -1,0 +1,252 @@
+# Plan de Implementación: I4G Integration Tracker Dashboard
+
+## Resumen
+
+Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 3 capas (Datos/Negocio/Presentación). Se construye desde la base (modelos, constantes, utilidades) hacia las capas superiores, integrando tests property-based para las 18 propiedades de correctitud. El proxy Node.js existente no requiere modificaciones mayores.
+
+## Tareas
+
+- [ ] 1. Estructura del proyecto, configuración de tooling y constantes base
+  - [ ] 1.1 Crear estructura de directorios y archivos base del Dashboard
+    - Crear `index.html` como entry point con HTML semántico, atributos ARIA y carga de CSS/JS
+    - Crear directorios `css/`, `js/data/`, `js/business/`, `js/presentation/`, `tests/unit/`, `tests/property/`
+    - Crear `package.json` del dashboard con dependencias de desarrollo: `vitest`, `fast-check`
+    - _Requerimientos: 18.1, 10.6_
+  - [ ] 1.2 Crear tokens de diseño y CSS base
+    - Crear `css/tokens.css` con CSS Custom Properties: paleta de colores por severidad (rojo Critical, naranja High, amarillo Medium, azul Low), colores de estado (gris No Iniciado, azul En Progreso, verde Completado, rojo Bloqueado), escala tipográfica (5 niveles h1-h4 y body), espaciado base 8px, y tokens semánticos (primary, secondary, success, warning, error)
+    - Crear `css/base.css` con reset, tipografía base, utilidades, focus ring para accesibilidad, y transiciones CSS ≤300ms
+    - Crear `css/dark.css` con override de tokens para modo oscuro, contraste mínimo 4.5:1 (AA)
+    - Crear `css/print.css` con hoja de impresión A4: ocultar elementos interactivos, expandir datos, preservar colores de estado
+    - _Requerimientos: 17.1, 17.4, 17.7, 17.8, 17.9, 10.1_
+  - [ ] 1.3 Definir constantes y modelos de datos compartidos
+    - Crear `js/constants.js` con: `INTEGRATION_TRACKS` (14 tracks con número, nombre y severidad), `STATUS_MAP` (mapeo estados Jira → Dashboard), `REGION_MAP` (mapeo empresa → región), y configuración del Circuit Breaker (5 fallos, 30s reset)
+    - _Requerimientos: 1.4, 8.3, 8.5, 9.1_
+
+- [ ] 2. Capa de Datos — API Client, Caché y Datos Offline
+  - [ ] 2.1 Implementar `js/data/cache.js` — Caché en memoria con TTL
+    - Implementar `Cache` con métodos `set(key, data)`, `get(key, maxAgeMs)`, `clear()`
+    - `get` retorna `null` si el dato ha expirado según TTL
+    - _Requerimientos: 18.3_
+  - [ ]* 2.2 Escribir property test para Caché (Property 16)
+    - **Property 16: Caché respeta TTL**
+    - Para cualquier dato almacenado con un TTL dado, `Cache.get` retorna el dato si el tiempo transcurrido < TTL, y `null` si ≥ TTL
+    - **Valida: Requerimiento 18.3**
+  - [ ] 2.3 Implementar `js/data/offline-data.js` — Datos hardcodeados de fallback
+    - Exportar array de objetos con estructura idéntica a la respuesta de `/api/raw` del Proxy
+    - Incluir datos representativos de ~5 empresas con tracks en distintos estados (completado, en progreso, bloqueado, no iniciado)
+    - _Requerimientos: 7.3, 7.5_
+  - [ ] 2.4 Implementar `js/data/api-client.js` — Cliente HTTP con resiliencia
+    - Implementar `login()` que abre ventana del Proxy para OAuth 2.0
+    - Implementar `logout()` que cierra sesión y limpia caché
+    - Implementar `checkAuth()` que verifica estado de autenticación vía `/auth/status`
+    - Implementar `fetchRawIssues()` con retry (3 intentos, backoff exponencial 1s/2s/4s), timeout 10s, y Circuit Breaker (5 fallos → abierto, fallback a offline, reset 30s)
+    - Implementar `onConnectionChange(callback)` para notificar cambios de estado de conexión
+    - _Requerimientos: 1.1, 1.7, 7.1, 7.2, 7.4, 7.6, 18.2_
+  - [ ]* 2.5 Escribir property test para Circuit Breaker (Property 15)
+    - **Property 15: Circuit Breaker se activa tras 5 fallos consecutivos**
+    - Para cualquier secuencia de llamadas, si 5 consecutivas fallan, el CB se abre y retorna datos offline sin contactar al Proxy. Tras período de reset, permite un intento de prueba
+    - **Valida: Requerimiento 18.2**
+  - [ ]* 2.6 Escribir unit tests para `api-client.js`
+    - Test login abre URL correcta, logout limpia estado, fetchRawIssues retorna datos, error 500 activa retry
+    - _Requerimientos: 1.1, 7.1, 7.6, 18.2_
+
+- [ ] 3. Checkpoint — Verificar que la capa de datos funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 4. Capa de Negocio — Transformador de datos Jira → Modelo
+  - [ ] 4.1 Implementar `js/business/transformer.js` — Transformación jerárquica
+    - Implementar `parseCompanySummary(summary)` que extrae nombre y año del patrón `"[Nombre] - [Año]"`. Si no coincide, usa summary completo como nombre y año `null`
+    - Implementar `parseTrackNumber(summary)` que extrae número de track del prefijo `"XX."` (01-14). Retorna `null` si no coincide o está fuera de rango
+    - Implementar `mapJiraStatus(jiraStatus)` que mapea estados Jira al `DashboardStatus` simplificado. Estados desconocidos mapean a "No Iniciado"
+    - Implementar `calculateTrackProgress(subtasks)` que calcula `(closedSubtasks / totalSubtasks) * 100`. Lista vacía retorna 0
+    - Implementar `transformJiraData(rawIssues)` que construye el `DashboardModel` jerárquico: Theme → Company, Epic → TrackStatus, Sub-task → Subtask. Épicas sin match van a `others`
+    - _Requerimientos: 1.2, 1.3, 1.4, 1.5, 1.6, 8.1, 8.2, 8.3, 8.4, 8.5_
+  - [ ]* 4.2 Escribir property test — Transformación jerárquica (Property 1)
+    - **Property 1: Transformación jerárquica preserva todos los issues**
+    - Para cualquier conjunto válido de issues Jira, `transformJiraData` produce un modelo donde cada Theme → Company, cada Epic válida → TrackStatus correcto, cada Sub-task → bajo su Epic padre, y la suma total de subtasks es igual a la entrada
+    - **Valida: Requerimientos 1.2, 1.5, 8.1**
+  - [ ]* 4.3 Escribir property test — Round-trip Company summary (Property 2)
+    - **Property 2: Round-trip de parseo de Company summary**
+    - Para cualquier nombre (sin " - ") y año (2000-2099), construir `"[nombre] - [año]"` y aplicar `parseCompanySummary` retorna los valores originales
+    - **Valida: Requerimientos 1.3, 8.2**
+  - [ ]* 4.4 Escribir property test — Mapeo Track por prefijo (Property 3)
+    - **Property 3: Mapeo de Track por prefijo numérico**
+    - Para cualquier n entre 1-14, construir summary `"XX. [sufijo]"` y aplicar `parseTrackNumber` retorna n. Para prefijos inválidos o fuera de rango, retorna `null`
+    - **Valida: Requerimientos 1.4, 8.3, 8.4**
+  - [ ]* 4.5 Escribir property test — Cálculo de progreso (Property 4)
+    - **Property 4: Cálculo de progreso de Track**
+    - Para cualquier lista de subtareas con estados aleatorios, `calculateTrackProgress` retorna `(completadas / total) * 100`. Lista vacía retorna 0
+    - **Valida: Requerimiento 1.6**
+  - [ ]* 4.6 Escribir property test — Mapeo de estados (Property 5)
+    - **Property 5: Mapeo de estados Jira es total y determinístico**
+    - Para cualquier estado Jira del conjunto conocido, `mapJiraStatus` retorna el DashboardStatus correspondiente y es idempotente
+    - **Valida: Requerimiento 8.5**
+  - [ ]* 4.7 Escribir property test — Round-trip serialización (Property 6)
+    - **Property 6: Round-trip de serialización del modelo**
+    - Para cualquier `DashboardModel` válido, `JSON.stringify` → `JSON.parse` produce un objeto deep-equal al original
+    - **Valida: Requerimiento 8.6**
+
+- [ ] 5. Capa de Negocio — Filtros, KPIs y Alertas
+  - [ ] 5.1 Implementar `js/business/filters.js` — Motor de filtros AND
+    - Implementar `applyFilters(model, filters)` que aplica todos los filtros activos con lógica AND
+    - Implementar `filterByYear(companies, year)`, `filterBySeverity(tracks, severity)`, `filterByRegion(companies, region)`, `filterByStatus(companies, status)`
+    - Filtro `null` no restringe resultados en esa dimensión
+    - _Requerimientos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+  - [ ]* 5.2 Escribir property test — Filtros AND (Property 7)
+    - **Property 7: Filtros AND — intersección correcta**
+    - Para cualquier modelo y combinación de filtros, `applyFilters` retorna solo empresas que cumplen TODOS los filtros activos, sin excluir ninguna que los cumpla. Filtro `null` no restringe
+    - **Valida: Requerimientos 3.2, 3.4, 3.6, 3.8**
+  - [ ]* 5.3 Escribir property test — Opciones de año (Property 8)
+    - **Property 8: Filtro de año extrae opciones correctas**
+    - Para cualquier modelo, las opciones de año disponibles son exactamente los años únicos presentes en las empresas
+    - **Valida: Requerimiento 3.3**
+  - [ ] 5.4 Implementar `js/business/kpis.js` — Calculador de métricas
+    - Implementar `calculateKPIs(model)` que retorna: totalActiveCompanies, globalCompletionPercent (promedio de progreso de todos los tracks), blockedTracksCount, criticalInProgressCount
+    - Implementar `calculateYearSummary(model)` con tabla por año: cantidad de empresas, promedio de completitud por severidad
+    - Implementar `calculateSeverityChart(model)` con datos para gráfico de barras por severidad y año
+    - _Requerimientos: 4.1, 4.2, 4.3, 4.4_
+  - [ ]* 5.5 Escribir property test — KPIs correctos (Property 9)
+    - **Property 9: KPIs son matemáticamente correctos**
+    - Para cualquier modelo, `calculateKPIs` retorna valores matemáticamente correctos: totalActiveCompanies = número de empresas, globalCompletionPercent = promedio de progreso, blockedTracksCount = tracks con subtarea Bloqueado, criticalInProgressCount = tracks Critical en progreso
+    - **Valida: Requerimientos 4.1, 4.2, 4.3, 4.4**
+  - [ ] 5.6 Implementar `js/business/alerts.js` — Detector de tracks demorados
+    - Implementar `detectDelayedTracks(model)` que identifica tracks con severidad Critical/High que tengan al menos una subtarea Blocked o Rechazado
+    - Cada alerta incluye: companyId, companyName, trackNumber, trackName, severity, blockingSubtask
+    - _Requerimientos: 6.1, 6.2, 6.3_
+  - [ ]* 5.7 Escribir property test — Alertas tracks demorados (Property 10)
+    - **Property 10: Detección de alertas — tracks demorados**
+    - Para cualquier modelo, `detectDelayedTracks` retorna una alerta por cada track Critical/High con subtarea Blocked/Rechazado. El conteo es exacto
+    - **Valida: Requerimientos 6.1, 6.2, 6.3**
+
+- [ ] 6. Capa de Negocio — Utilidades de presentación
+  - [ ] 6.1 Implementar función de sanitización de entrada del usuario
+    - Neutralizar caracteres peligrosos HTML (`<`, `>`, `"`, `'`, `&`). Idempotente para strings seguros
+    - Implementar función de determinación de color de celda por estado del track
+    - Implementar función de generación de contenido de tooltip (nombre track, porcentaje, subtareas completadas/totales)
+    - Implementar función de ordenamiento de empresas por año descendente (estable)
+    - Implementar función de agrupación de empresas por región con métricas agregadas
+    - Implementar máquina de estados de vista: loading → loaded/empty/error
+    - _Requerimientos: 18.4, 2.2, 2.3, 2.4, 9.1, 9.4, 17.6_
+  - [ ]* 6.2 Escribir property test — Ordenamiento por año (Property 11)
+    - **Property 11: Ordenamiento de empresas por año descendente**
+    - Para cualquier lista de empresas, después de ordenar, los años están en orden descendente. Para mismo año, el orden relativo es estable
+    - **Valida: Requerimiento 2.4**
+  - [ ]* 6.3 Escribir property test — Color determinístico (Property 12)
+    - **Property 12: Código de color de celda es determinístico por estado**
+    - Para cualquier celda, el color es determinístico: gris=No Iniciado, azul=En Progreso, verde=Completado, rojo=Bloqueado. Severidad: rojo=Critical, naranja=High, amarillo=Medium, azul=Low
+    - **Valida: Requerimientos 2.2, 10.1**
+  - [ ]* 6.4 Escribir property test — Tooltip info requerida (Property 13)
+    - **Property 13: Tooltip contiene información requerida**
+    - Para cualquier celda con track asociado, el tooltip incluye: nombre del track, porcentaje de completitud, y subtareas completadas/totales (formato "X/Y")
+    - **Valida: Requerimiento 2.3**
+  - [ ]* 6.5 Escribir property test — Agrupación por región (Property 14)
+    - **Property 14: Agrupación por región y métricas regionales**
+    - Para cualquier modelo, agrupar por región produce una partición completa (cada empresa en exactamente una región), y las métricas agregadas son matemáticamente correctas
+    - **Valida: Requerimientos 9.1, 9.4**
+  - [ ]* 6.6 Escribir property test — Sanitización (Property 17)
+    - **Property 17: Sanitización de entrada del usuario**
+    - Para cualquier string, la sanitización neutraliza `<`, `>`, `"`, `'`, `&`. Para strings sin caracteres peligrosos, es idempotente
+    - **Valida: Requerimiento 18.4**
+  - [ ]* 6.7 Escribir property test — Máquina de estados de vista (Property 18)
+    - **Property 18: Máquina de estados de vista**
+    - Para cualquier secuencia de eventos (inicio carga, datos recibidos, error, datos vacíos), el Estado_Vista transiciona correctamente: loading durante carga, loaded con datos, empty sin datos, error al fallar. Transiciones determinísticas
+    - **Valida: Requerimiento 17.6**
+
+- [ ] 7. Checkpoint — Verificar que toda la capa de negocio funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 8. Capa de Presentación — Router, Header y Componentes reutilizables
+  - [ ] 8.1 Implementar `js/presentation/router.js` — Navegación hash-based
+    - Rutas: `#/` → Matriz, `#/region` → Vista por Región, `#/alerts` → Panel de Alertas, `#/company/:id` → Detalle de Empresa
+    - Rutas no reconocidas redirigen a `#/`
+    - _Requerimientos: 10.4_
+  - [ ] 8.2 Implementar `js/presentation/components.js` — Componentes reutilizables
+    - Implementar: Tooltip (posicional, contenido dinámico), Badge (severidad/estado con color e ícono), Spinner (indicador de carga), ProgressBar (barra de progreso con color por severidad), EmptyState (estado vacío con mensaje), ErrorState (estado de error con botón reintentar), Modal (contenedor modal genérico)
+    - Todos los componentes con HTML semántico y atributos ARIA
+    - _Requerimientos: 17.1, 17.6, 17.7, 10.5, 10.6_
+  - [ ] 8.3 Implementar `js/presentation/header.js` — Header con estado de conexión
+    - Renderizar header con: título "I4G Integration Tracker", botón "Connect Jira" o indicador "Conectado", indicador numérico de alertas activas, toggle modo oscuro
+    - Manejar banner "Modo Offline - Datos de ejemplo" cuando está en Modo_Offline
+    - Manejar notificación "Conexión perdida" cuando se pierde conexión en Modo_Live
+    - _Requerimientos: 1.8, 7.2, 7.4, 7.5, 10.3, 6.3, 17.8_
+  - [ ] 8.4 Crear `css/components.css` y `css/layout.css`
+    - Estilos de componentes reutilizables (botones, tarjetas, tablas, tooltips, badges, modales)
+    - Layout grid, header, navegación
+    - Breakpoints responsivos: 768px, 1024px, 1440px
+    - Paleta color-blind safe combinando color con segundo canal visual (íconos/etiquetas)
+    - _Requerimientos: 17.1, 17.4, 17.5, 17.7, 10.2_
+
+- [ ] 9. Capa de Presentación — Vista Matriz de Integración (vista principal)
+  - [ ] 9.1 Implementar `js/presentation/matrix-view.js`
+    - Renderizar tabla Empresas_Adquiridas (filas) × 14 Tracks (columnas)
+    - Celdas con código de color por estado (gris/azul/verde/rojo)
+    - Encabezados de columna con número y nombre abreviado del track, indicador visual de severidad
+    - Empresas ordenadas por año descendente
+    - Tooltip al hover con nombre track, porcentaje, subtareas completadas/totales
+    - Click en fila expande detalle de tracks con lista de subtareas y estados individuales
+    - _Requerimientos: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
+  - [ ] 9.2 Implementar `js/presentation/kpi-panel.js` — Panel de resumen y KPIs
+    - Renderizar métricas en parte superior: total empresas activas, % completitud global, tracks bloqueados, tracks críticos en progreso
+    - Renderizar tabla resumen por año con columnas: año, cantidad empresas, % completitud promedio por severidad
+    - Renderizar gráfico de barras "Actividades Completadas por Severidad" por año
+    - Recalcular al cambiar filtros
+    - _Requerimientos: 4.1, 4.2, 4.3, 4.4, 17.2, 17.3_
+  - [ ] 9.3 Implementar filtros en la vista principal
+    - Renderizar controles de filtro: Severidad (Critical/High/Medium/Low/Todas), Año (opciones dinámicas), Región (Americas/EMEA & New Markets/Todas), Estado (No Iniciado/En Progreso/Completado/Bloqueado/Todos)
+    - Aplicar filtros con lógica AND y actualizar Matriz + KPIs en tiempo real
+    - _Requerimientos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+  - [ ] 9.4 Crear `css/views.css` — Estilos específicos por vista
+    - Estilos para matriz, celdas de estado, tooltips, filas expandibles, panel KPIs, gráficos, filtros
+    - _Requerimientos: 17.2, 17.3_
+
+- [ ] 10. Capa de Presentación — Vistas secundarias
+  - [ ] 10.1 Implementar `js/presentation/detail-view.js` — Vista de detalle por empresa
+    - Mostrar 14 tracks con: nombre, severidad, % completitud, subtareas por estado, assignee principal
+    - Barra de progreso visual por track con color según severidad
+    - Expandir track para listar subtareas con summary, estado, assignee
+    - Subtareas con estado "Bloqueado" resaltadas en rojo
+    - _Requerimientos: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - [ ] 10.2 Implementar `js/presentation/region-view.js` — Vista por región
+    - Agrupar empresas por región (Americas, EMEA & New Markets) con separadores visuales
+    - Mostrar nombre del ITX_Manager como encabezado de grupo
+    - Mostrar métricas agregadas por región: % completitud promedio, tracks bloqueados
+    - _Requerimientos: 9.1, 9.2, 9.3, 9.4_
+  - [ ] 10.3 Implementar `js/presentation/alerts-view.js` — Panel de alertas
+    - Listar tracks demorados con: empresa, track, severidad, subtarea bloqueante
+    - Click en alerta navega a vista de detalle de la empresa con track expandido
+    - _Requerimientos: 6.1, 6.2, 6.4_
+
+- [ ] 11. Integración y Bootstrap de la aplicación
+  - [ ] 11.1 Implementar `js/app.js` — Bootstrap e inicialización
+    - Inicializar router, cargar datos offline por defecto, renderizar vista principal
+    - Manejar flujo Connect Jira → autenticación → carga datos live → re-render
+    - Manejar flujo Desconectar → limpiar datos → volver a offline
+    - Conectar event bus entre capas: cambios de filtros → recalcular KPIs/alertas → re-render
+    - Detectar preferencia de modo oscuro del sistema operativo y aplicar tema
+    - Implementar lazy loading para vistas no críticas (región, alertas)
+    - _Requerimientos: 7.1, 7.2, 7.3, 7.6, 17.8, 18.1, 18.5_
+  - [ ] 11.2 Completar `index.html` con estructura semántica final
+    - Integrar todos los CSS (tokens, base, components, layout, views, dark, print)
+    - Integrar todos los JS con carga diferida donde corresponda
+    - Estructura semántica: header, nav, main, aside, footer con atributos ARIA
+    - _Requerimientos: 10.3, 10.6_
+
+- [ ] 12. Generadores custom de fast-check y tests de integración
+  - [ ]* 12.1 Crear `tests/property/generators.js` — Generadores custom de fast-check
+    - Generadores para: companyNameArb, yearArb, themeSummaryArb, trackNumberArb, epicSummaryArb, jiraStatusArb, severityArb, regionArb, subtaskArb, dashboardModelArb
+    - Reutilizables por todos los archivos de property tests
+  - [ ]* 12.2 Escribir tests de integración `tests/integration/proxy-integration.test.js`
+    - Test de integración con el Proxy: verificar que `/api/raw` retorna datos válidos, `/health` retorna status ok, `/auth/status` retorna estado de autenticación
+    - _Requerimientos: 1.1, 8.1_
+
+- [ ] 13. Checkpoint final — Verificar que toda la aplicación funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notas
+
+- Las tareas marcadas con `*` son opcionales y pueden omitirse para un MVP más rápido
+- Cada tarea referencia los requerimientos específicos para trazabilidad
+- Los checkpoints aseguran validación incremental
+- Los property tests validan las 18 propiedades de correctitud universales definidas en el diseño
+- Los unit tests validan ejemplos específicos y edge cases
+- El proxy existente en `proxy/` no requiere modificaciones mayores; la implementación se centra en el Dashboard cliente
