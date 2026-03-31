@@ -1,0 +1,87 @@
+/* ==========================================================================
+   Dark Mode — Token overrides for dark theme
+   Activated by OS preference (prefers-color-scheme) or manual toggle via
+   [data-theme="dark"] on <html>. Minimum contrast 4.5:1 (WCAG AA).
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* --- Background & Surface --- */
+    --color-bg-primary:   #121212;
+    --color-bg-secondary: #1E1E1E;
+    --color-bg-surface:   #252525;
+    --color-bg-hover:     #1A3A5C;
+
+    /* --- Text (contrast ≥ 4.5:1 on dark bg) --- */
+    --color-text-primary:   #E0E0E0;
+    --color-text-secondary: #B0B0B0;
+    --color-text-disabled:  #616161;
+    --color-text-inverse:   #121212;
+
+    /* --- Borders --- */
+    --color-border:       #424242;
+    --color-border-focus: #64B5F6;
+
+    /* --- Severity Colors (lightened for dark bg contrast) --- */
+    --color-severity-critical: #EF5350;
+    --color-severity-high:     #FFA726;
+    --color-severity-medium:   #FFEE58;
+    --color-severity-low:      #42A5F5;
+
+    /* --- Status Colors (lightened for dark bg contrast) --- */
+    --color-status-not-started: #BDBDBD;
+    --color-status-in-progress: #42A5F5;
+    --color-status-completed:   #66BB6A;
+    --color-status-blocked:     #EF5350;
+    --color-status-rejected:    #AB47BC;
+
+    /* --- Semantic Tokens --- */
+    --color-primary:   #64B5F6;
+    --color-secondary: #90A4AE;
+    --color-success:   #66BB6A;
+    --color-warning:   #FFA726;
+    --color-error:     #EF5350;
+
+    /* --- Shadows (stronger on dark) --- */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Manual dark mode toggle via data attribute */
+:root[data-theme="dark"] {
+  --color-bg-primary:   #121212;
+  --color-bg-secondary: #1E1E1E;
+  --color-bg-surface:   #252525;
+  --color-bg-hover:     #1A3A5C;
+
+  --color-text-primary:   #E0E0E0;
+  --color-text-secondary: #B0B0B0;
+  --color-text-disabled:  #616161;
+  --color-text-inverse:   #121212;
+
+  --color-border:       #424242;
+  --color-border-focus: #64B5F6;
+
+  --color-severity-critical: #EF5350;
+  --color-severity-high:     #FFA726;
+  --color-severity-medium:   #FFEE58;
+  --color-severity-low:      #42A5F5;
+
+  --color-status-not-started: #BDBDBD;
+  --color-status-in-progress: #42A5F5;
+  --color-status-completed:   #66BB6A;
+  --color-status-blocked:     #EF5350;
+  --color-status-rejected:    #AB47BC;
+
+  --color-primary:   #64B5F6;
+  --color-secondary: #90A4AE;
+  --color-success:   #66BB6A;
+  --color-warning:   #FFA726;
+  --color-error:     #EF5350;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+}

@@ -1,0 +1,87 @@
+/* ==========================================================================
+   Print Stylesheet — A4 optimized
+   Hides interactive elements, expands data, preserves status colors.
+   Req 17.9
+   ========================================================================== */
+
+@page {
+  size: A4 landscape;
+  margin: 1.5cm;
+}
+
+/* Hide interactive / non-printable elements */
+.skip-link,
+nav,
+button,
+.header-actions,
+#alerts-panel,
+#app-footer,
+.filter-bar,
+.tooltip,
+.modal,
+.spinner,
+[role="navigation"],
+[aria-hidden="true"] {
+  display: none !important;
+}
+
+/* Ensure all expandable rows are visible */
+details,
+[data-expanded] {
+  display: block !important;
+}
+
+details > summary {
+  list-style: none;
+}
+
+/* Preserve status colors for the matrix */
+.status-not-started { background-color: #9E9E9E !important; }
+.status-in-progress { background-color: #1976D2 !important; }
+.status-completed   { background-color: #2E7D32 !important; }
+.status-blocked     { background-color: #C62828 !important; }
+
+/* Preserve severity colors */
+.severity-critical { color: #D32F2F !important; }
+.severity-high     { color: #EF6C00 !important; }
+.severity-medium   { color: #F9A825 !important; }
+.severity-low      { color: #1565C0 !important; }
+
+/* Typography adjustments for print */
+body {
+  font-size: 10pt;
+  color: #000 !important;
+  background: #fff !important;
+}
+
+h1 { font-size: 16pt; }
+h2 { font-size: 14pt; }
+h3 { font-size: 12pt; }
+
+/* Tables: ensure they don't break across pages */
+table {
+  page-break-inside: auto;
+}
+
+tr {
+  page-break-inside: avoid;
+  page-break-after: auto;
+}
+
+thead {
+  display: table-header-group;
+}
+
+/* Links: show URL after link text */
+a[href]::after {
+  content: " (" attr(href) ")";
+  font-size: 8pt;
+  color: #666;
+}
+
+/* Ensure full width */
+main {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+}

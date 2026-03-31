@@ -6,19 +6,19 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
 
 ## Tareas
 
-- [ ] 1. Estructura del proyecto, configuración de tooling y constantes base
-  - [ ] 1.1 Crear estructura de directorios y archivos base del Dashboard
+- [x] 1. Estructura del proyecto, configuración de tooling y constantes base
+  - [x] 1.1 Crear estructura de directorios y archivos base del Dashboard
     - Crear `index.html` como entry point con HTML semántico, atributos ARIA y carga de CSS/JS
     - Crear directorios `css/`, `js/data/`, `js/business/`, `js/presentation/`, `tests/unit/`, `tests/property/`
     - Crear `package.json` del dashboard con dependencias de desarrollo: `vitest`, `fast-check`
     - _Requerimientos: 18.1, 10.6_
-  - [ ] 1.2 Crear tokens de diseño y CSS base
+  - [x] 1.2 Crear tokens de diseño y CSS base
     - Crear `css/tokens.css` con CSS Custom Properties: paleta de colores por severidad (rojo Critical, naranja High, amarillo Medium, azul Low), colores de estado (gris No Iniciado, azul En Progreso, verde Completado, rojo Bloqueado), escala tipográfica (5 niveles h1-h4 y body), espaciado base 8px, y tokens semánticos (primary, secondary, success, warning, error)
     - Crear `css/base.css` con reset, tipografía base, utilidades, focus ring para accesibilidad, y transiciones CSS ≤300ms
     - Crear `css/dark.css` con override de tokens para modo oscuro, contraste mínimo 4.5:1 (AA)
     - Crear `css/print.css` con hoja de impresión A4: ocultar elementos interactivos, expandir datos, preservar colores de estado
     - _Requerimientos: 17.1, 17.4, 17.7, 17.8, 17.9, 10.1_
-  - [ ] 1.3 Definir constantes y modelos de datos compartidos
+  - [x] 1.3 Definir constantes y modelos de datos compartidos
     - Crear `js/constants.js` con: `INTEGRATION_TRACKS` (14 tracks con número, nombre y severidad), `STATUS_MAP` (mapeo estados Jira → Dashboard), `REGION_MAP` (mapeo empresa → región), y configuración del Circuit Breaker (5 fallos, 30s reset)
     - _Requerimientos: 1.4, 8.3, 8.5, 9.1_
 
