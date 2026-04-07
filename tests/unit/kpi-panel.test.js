@@ -71,7 +71,7 @@ describe('kpi-panel', () => {
     expect(yearTable).not.toBeNull();
   });
 
-  it('renders severity bar chart when data exists', () => {
+  it('renders severity dot chart when data exists', () => {
     const model = makeModel([
       makeCompany('C1', 'A', 2024, [makeTrack(1, 'En Progreso', 50, 'Critical')]),
     ]);
@@ -81,7 +81,7 @@ describe('kpi-panel', () => {
     expect(chart).not.toBeNull();
   });
 
-  it('renders chart bars with severity colors', () => {
+  it('renders chart dots with severity colors', () => {
     const model = makeModel([
       makeCompany('C1', 'A', 2024, [
         makeTrack(1, 'En Progreso', 50, 'Critical'),
@@ -90,11 +90,11 @@ describe('kpi-panel', () => {
     ]);
     renderKPIPanel(container, model);
 
-    const bars = container.querySelectorAll('.chart-bar');
-    expect(bars.length).toBeGreaterThan(0);
+    const dots = container.querySelectorAll('.chart-dot');
+    expect(dots.length).toBeGreaterThan(0);
 
-    const classNames = Array.from(bars).map(b => b.className);
-    expect(classNames.some(c => c.includes('chart-bar--critical'))).toBe(true);
+    const classNames = Array.from(dots).map(d => d.className);
+    expect(classNames.some(c => c.includes('chart-dot--critical'))).toBe(true);
   });
 
   it('updateKPIPanel re-renders with new data', () => {

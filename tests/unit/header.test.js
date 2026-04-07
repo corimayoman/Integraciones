@@ -6,8 +6,6 @@ import {
   renderHeader,
   updateConnectionStatus,
   updateAlertCount,
-  showOfflineBanner,
-  hideOfflineBanner,
 } from '../../js/presentation/header.js';
 
 describe('header', () => {
@@ -32,32 +30,30 @@ describe('header', () => {
     it('renders title', () => {
       renderHeader(container, defaultOpts);
       const title = container.querySelector('.app-title');
-      expect(title.textContent).toBe('I4G Integration Tracker');
+      expect(title.textContent).toBe('AMS Integration Tracker');
     });
 
-    it('renders Connect Jira button when offline', () => {
+    it('renders Conectar Jira button when offline', () => {
       renderHeader(container, { ...defaultOpts, isLive: false });
       const btn = container.querySelector('.header-connect-btn');
-      expect(btn.textContent).toBe('Connect Jira');
+      expect(btn.textContent).toBe('Conectar Jira');
     });
 
-    it('renders Conectado button when live', () => {
+    it('renders Desconectar button when live', () => {
       renderHeader(container, { ...defaultOpts, isLive: true });
       const btn = container.querySelector('.header-connect-btn');
-      expect(btn.textContent).toBe('Conectado');
+      expect(btn.textContent).toBe('Desconectar');
     });
 
-    it('calls onConnect when Connect Jira clicked', () => {
+    it('calls onConnect when button clicked offline', () => {
       renderHeader(container, defaultOpts);
-      const btn = container.querySelector('.header-connect-btn');
-      btn.click();
+      container.querySelector('.header-connect-btn').click();
       expect(defaultOpts.onConnect).toHaveBeenCalledOnce();
     });
 
-    it('calls onDisconnect when Conectado clicked', () => {
+    it('calls onDisconnect when button clicked live', () => {
       renderHeader(container, { ...defaultOpts, isLive: true });
-      const btn = container.querySelector('.header-connect-btn');
-      btn.click();
+      container.querySelector('.header-connect-btn').click();
       expect(defaultOpts.onDisconnect).toHaveBeenCalledOnce();
     });
 
@@ -82,33 +78,42 @@ describe('header', () => {
       expect(badge.textContent).toBe('5');
     });
 
-    it('shows offline banner when not live', () => {
+    it('shows LED offline indicator when not live', () => {
       renderHeader(container, { ...defaultOpts, isLive: false });
-      const banner = container.querySelector('.offline-banner');
-      expect(banner.style.display).not.toBe('none');
-      expect(banner.textContent).toContain('Modo Offline');
+      const led = container.querySelector('.led');
+      expect(led.classList.contains('led--offline')).toBe(true);
+      const label = container.querySelector('.led-label');
+      expect(label.textContent).toBe('Offline');
     });
 
-    it('hides offline banner when live', () => {
+    it('shows LED online indicator when live', () => {
       renderHeader(container, { ...defaultOpts, isLive: true });
-      const banner = container.querySelector('.offline-banner');
-      expect(banner.style.display).toBe('none');
+      const led = container.querySelector('.led');
+      expect(led.classList.contains('led--online')).toBe(true);
+      const label = container.querySelector('.led-label');
+      expect(label.textContent).toBe('Live');
     });
   });
 
   describe('updateConnectionStatus', () => {
-    it('updates button text to Conectado when live', () => {
+    it('updates LED to online', () => {
       renderHeader(container, defaultOpts);
       updateConnectionStatus(true);
-      const btn = container.querySelector('.header-connect-btn');
-      expect(btn.textContent).toBe('Conectado');
+      const led = container.querySelector('.led');
+      expect(led.classList.contains('led--online')).toBe(true);
     });
 
-    it('updates button text to Connect Jira when offline', () => {
+    it('updates LED to offline', () => {
       renderHeader(container, { ...defaultOpts, isLive: true });
       updateConnectionStatus(false);
-      const btn = container.querySelector('.header-connect-btn');
-      expect(btn.textContent).toBe('Connect Jira');
+      const led = container.querySelector('.led');
+      expect(led.classList.contains('led--offline')).toBe(true);
+    });
+
+    it('updates button text', () => {
+      renderHeader(container, defaultOpts);
+      updateConnectionStatus(true);
+      expect(container.querySelector('.header-connect-btn').textContent).toBe('Desconectar');
     });
   });
 
@@ -126,20 +131,6 @@ describe('header', () => {
       updateAlertCount(0);
       const badge = container.querySelector('.header-alert-badge');
       expect(badge.style.display).toBe('none');
-    });
-  });
-
-  describe('showOfflineBanner / hideOfflineBanner', () => {
-    it('toggles offline banner visibility', () => {
-      renderHeader(container, { ...defaultOpts, isLive: true });
-      const banner = container.querySelector('.offline-banner');
-      expect(banner.style.display).toBe('none');
-
-      showOfflineBanner();
-      expect(banner.style.display).not.toBe('none');
-
-      hideOfflineBanner();
-      expect(banner.style.display).toBe('none');
     });
   });
 });

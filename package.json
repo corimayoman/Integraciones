@@ -1,7 +1,7 @@
 {
   "name": "i4g-integration-tracker",
   "version": "1.0.0",
-  "description": "I4G Integration Tracker Dashboard — visualización del estado de integración de empresas adquiridas",
+  "description": "AMS Integration Tracker Dashboard — visualización del estado de integración de empresas adquiridas",
   "type": "module",
   "scripts": {
     "test": "vitest --run",

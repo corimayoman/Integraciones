@@ -181,15 +181,23 @@ function buildCompanyRow(company) {
 
     if (track) {
       const colorClass = getCellColor(track.status);
-      td.classList.add(`matrix-cell--${colorClass}`);
       td.setAttribute('tabindex', '0');
+
+      // Status dot instead of colored background
+      const dot = document.createElement('span');
+      dot.className = `matrix-dot matrix-dot--${colorClass}`;
+      dot.setAttribute('aria-label', track.status);
+      td.appendChild(dot);
 
       // Tooltip
       const tooltipContent = getTooltipContent(track);
       const tooltip = createTooltip(tooltipContent, td);
       td.appendChild(tooltip);
     } else {
-      td.classList.add('matrix-cell--empty');
+      // Empty cell — no track data
+      const dot = document.createElement('span');
+      dot.className = 'matrix-dot matrix-dot--empty';
+      td.appendChild(dot);
     }
 
     row.appendChild(td);

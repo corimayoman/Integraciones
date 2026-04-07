@@ -17,6 +17,21 @@ import {
 } from '../constants.js';
 
 /**
+ * Extract company name from an Initiative summary.
+ * Expected pattern: "[Company] - IST & Security Integration - Plan"
+ * or similar patterns with " - " separator.
+ *
+ * @param {string} summary
+ * @returns {string | null}
+ */
+export function extractCompanyNameFromInitiative(summary) {
+  if (!summary) return null;
+  const dashIndex = summary.indexOf(' - ');
+  if (dashIndex === -1) return null;
+  return summary.slice(0, dashIndex).trim() || null;
+}
+
+/**
  * Extract company name and year from a Theme summary.
  * Expected pattern: "[Name] - [Year]"
  * If no match, returns full summary as name and year = null.
@@ -110,23 +125,65 @@ export function determineTrackStatus(subtasks) {
 export function transformJiraData(rawIssues) {
   // Classify issues by type
   const themes = [];
+  const initiatives = [];
   const epics = [];
   const subtasks = [];
 
   for (const issue of rawIssues) {
     const type = issue.fields.issuetype.name;
     if (type === 'Theme') themes.push(issue);
+    else if (type === 'Initiative') initiatives.push(issue);
     else if (type === 'Epic') epics.push(issue);
     else if (type === 'Sub-task') subtasks.push(issue);
   }
 
-  // Index epics by parent key (Theme key)
-  const epicsByParent = new Map();
+  // Build Initiative → Theme mapping.
+  // In real Jira: Theme → Initiative → Epic → Sub-task
+  // Initiatives have parent.key pointing to a Theme.
+  const initiativeToThemeKey = new Map();
+  for (const init of initiatives) {
+    const parentKey = init.fields.parent?.key;
+    if (parentKey) {
+      initiativeToThemeKey.set(init.key, parentKey);
+    }
+  }
+
+  // Index epics by their resolved Theme key.
+  // Epic.parent.key → Initiative key → Theme key
+  // Also support direct Epic → Theme parent (for offline data compatibility)
+  const epicsByThemeKey = new Map();
+  const themeKeySet = new Set(themes.map(t => t.key));
+
   for (const epic of epics) {
     const parentKey = epic.fields.parent?.key;
     if (!parentKey) continue;
-    if (!epicsByParent.has(parentKey)) epicsByParent.set(parentKey, []);
-    epicsByParent.get(parentKey).push(epic);
+
+    let themeKey = null;
+
+    if (themeKeySet.has(parentKey)) {
+      // Direct parent is a Theme (offline data case)
+      themeKey = parentKey;
+    } else if (initiativeToThemeKey.has(parentKey)) {
+      // Parent is an Initiative → resolve to Theme
+      themeKey = initiativeToThemeKey.get(parentKey);
+    } else {
+      // Try to match by extracting company name from Epic's parent summary
+      // and finding the Theme with that company name
+      const parentSummary = epic.fields.parent?.fields?.summary ?? '';
+      const companyName = extractCompanyNameFromInitiative(parentSummary);
+      if (companyName) {
+        const matchingTheme = themes.find(t => {
+          const { name } = parseCompanySummary(t.fields.summary);
+          return name === companyName;
+        });
+        if (matchingTheme) themeKey = matchingTheme.key;
+      }
+    }
+
+    if (themeKey) {
+      if (!epicsByThemeKey.has(themeKey)) epicsByThemeKey.set(themeKey, []);
+      epicsByThemeKey.get(themeKey).push(epic);
+    }
   }
 
   // Index subtasks by parent key (Epic key)
@@ -142,7 +199,7 @@ export function transformJiraData(rawIssues) {
   const companies = themes.map((theme) => {
     const { name, year } = parseCompanySummary(theme.fields.summary);
     const region = REGION_MAP[name] ?? DEFAULT_REGION;
-    const companyEpics = epicsByParent.get(theme.key) ?? [];
+    const companyEpics = epicsByThemeKey.get(theme.key) ?? [];
 
     const tracks = [];
     const others = [];

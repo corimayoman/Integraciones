@@ -1,10 +1,8 @@
 /**
- * Header — I4G Integration Tracker
+ * Header — AMS Integration Tracker
  *
- * Renders header with connection status, alert count, dark mode toggle,
- * and offline/connection-lost banners.
- *
- * Validates: Requirements 1.8, 7.2, 7.4, 7.5, 10.3, 6.3, 17.8
+ * Renders header with LED connection indicator, alert count, dark mode toggle.
+ * No more ugly banners — just a clean LED dot next to the title.
  *
  * @module header
  */
@@ -19,27 +17,17 @@ let connectBtn = null;
 let alertBadge = null;
 
 /** @type {HTMLElement|null} */
-let offlineBanner = null;
+let ledIndicator = null;
 
 /** @type {HTMLElement|null} */
-let connectionLostBanner = null;
+let ledLabel = null;
 
 /**
  * Render the header into the given container.
- *
- * @param {HTMLElement} container - The #app-header element
- * @param {{
- *   isLive: boolean,
- *   alertCount: number,
- *   onConnect: () => void,
- *   onDisconnect: () => void,
- *   onToggleDarkMode: () => void
- * }} options
  */
 export function renderHeader(container, { isLive, alertCount, onConnect, onDisconnect, onToggleDarkMode }) {
   headerContainer = container;
 
-  // Find or create header-content div
   let headerContent = container.querySelector('.header-content');
   if (!headerContent) {
     headerContent = document.createElement('div');
@@ -47,16 +35,41 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
     container.appendChild(headerContent);
   }
 
-  // Clear existing content
   headerContent.textContent = '';
 
-  // Title
+  // Remove old banners if they exist
+  const oldBanner = container.querySelector('.offline-banner');
+  if (oldBanner) oldBanner.remove();
+  const oldLost = container.querySelector('.connection-lost-banner');
+  if (oldLost) oldLost.remove();
+
+  // Left side: title + LED indicator
+  const leftGroup = document.createElement('div');
+  leftGroup.className = 'header-left';
+
   const title = document.createElement('h1');
   title.className = 'app-title';
-  title.textContent = 'I4G Integration Tracker';
-  headerContent.appendChild(title);
+  title.textContent = 'AMS Integration Tracker';
+  leftGroup.appendChild(title);
 
-  // Actions container
+  // LED connection indicator
+  const ledContainer = document.createElement('div');
+  ledContainer.className = 'header-led';
+  ledContainer.setAttribute('role', 'status');
+
+  ledIndicator = document.createElement('span');
+  ledIndicator.className = isLive ? 'led led--online' : 'led led--offline';
+  ledContainer.appendChild(ledIndicator);
+
+  ledLabel = document.createElement('span');
+  ledLabel.className = 'led-label';
+  ledLabel.textContent = isLive ? 'Live' : 'Offline';
+  ledContainer.appendChild(ledLabel);
+
+  leftGroup.appendChild(ledContainer);
+  headerContent.appendChild(leftGroup);
+
+  // Right side: actions
   const actions = document.createElement('div');
   actions.className = 'header-actions';
   actions.setAttribute('aria-label', 'Acciones del header');
@@ -66,22 +79,19 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
   alertBadge.className = 'header-alert-badge';
   alertBadge.setAttribute('aria-label', `${alertCount} alertas activas`);
   alertBadge.textContent = String(alertCount);
-  if (alertCount === 0) {
-    alertBadge.style.display = 'none';
-  }
+  if (alertCount === 0) alertBadge.style.display = 'none';
   actions.appendChild(alertBadge);
 
   // Connect/Disconnect button
   connectBtn = document.createElement('button');
   connectBtn.type = 'button';
+  connectBtn.className = 'btn header-connect-btn';
   if (isLive) {
-    connectBtn.className = 'btn btn--secondary header-connect-btn header-connect-btn--connected';
-    connectBtn.textContent = 'Conectado';
+    connectBtn.textContent = 'Desconectar';
     connectBtn.setAttribute('aria-label', 'Desconectar de Jira');
     connectBtn.addEventListener('click', onDisconnect);
   } else {
-    connectBtn.className = 'btn btn--primary header-connect-btn';
-    connectBtn.textContent = 'Connect Jira';
+    connectBtn.textContent = 'Conectar Jira';
     connectBtn.setAttribute('aria-label', 'Conectar con Jira');
     connectBtn.addEventListener('click', onConnect);
   }
@@ -90,63 +100,32 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
   // Dark mode toggle
   const darkToggle = document.createElement('button');
   darkToggle.type = 'button';
-  darkToggle.className = 'btn btn--secondary header-dark-toggle';
+  darkToggle.className = 'btn header-dark-toggle';
   darkToggle.setAttribute('aria-label', 'Alternar modo oscuro');
   darkToggle.textContent = '🌙';
   darkToggle.addEventListener('click', onToggleDarkMode);
   actions.appendChild(darkToggle);
 
   headerContent.appendChild(actions);
-
-  // Offline banner (hidden by default)
-  offlineBanner = container.querySelector('.offline-banner');
-  if (!offlineBanner) {
-    offlineBanner = document.createElement('div');
-    offlineBanner.className = 'offline-banner';
-    offlineBanner.setAttribute('role', 'status');
-    offlineBanner.textContent = 'Modo Offline - Datos de ejemplo';
-    offlineBanner.style.display = 'none';
-    container.appendChild(offlineBanner);
-  }
-
-  // Connection lost banner (hidden by default)
-  connectionLostBanner = container.querySelector('.connection-lost-banner');
-  if (!connectionLostBanner) {
-    connectionLostBanner = document.createElement('div');
-    connectionLostBanner.className = 'connection-lost-banner';
-    connectionLostBanner.setAttribute('role', 'alert');
-    connectionLostBanner.textContent = 'Conexión perdida';
-    connectionLostBanner.style.display = 'none';
-    container.appendChild(connectionLostBanner);
-  }
-
-  // Show offline banner if not live
-  if (!isLive) {
-    offlineBanner.style.display = '';
-  }
 }
 
 /**
- * Update the connection status indicator in the header.
- * @param {boolean} isLive
+ * Update the connection status LED indicator.
  */
 export function updateConnectionStatus(isLive) {
-  if (!connectBtn) return;
-
-  if (isLive) {
-    connectBtn.className = 'btn btn--secondary header-connect-btn header-connect-btn--connected';
-    connectBtn.textContent = 'Conectado';
-    hideOfflineBanner();
-    hideConnectionLostBanner();
-  } else {
-    connectBtn.className = 'btn btn--primary header-connect-btn';
-    connectBtn.textContent = 'Connect Jira';
+  if (ledIndicator) {
+    ledIndicator.className = isLive ? 'led led--online' : 'led led--offline';
+  }
+  if (ledLabel) {
+    ledLabel.textContent = isLive ? 'Live' : 'Offline';
+  }
+  if (connectBtn) {
+    connectBtn.textContent = isLive ? 'Desconectar' : 'Conectar Jira';
   }
 }
 
 /**
  * Update the alert count badge.
- * @param {number} count
  */
 export function updateAlertCount(count) {
   if (!alertBadge) return;
@@ -155,38 +134,8 @@ export function updateAlertCount(count) {
   alertBadge.style.display = count > 0 ? '' : 'none';
 }
 
-/**
- * Show the offline mode banner.
- */
-export function showOfflineBanner() {
-  if (offlineBanner) {
-    offlineBanner.style.display = '';
-  }
-}
-
-/**
- * Hide the offline mode banner.
- */
-export function hideOfflineBanner() {
-  if (offlineBanner) {
-    offlineBanner.style.display = 'none';
-  }
-}
-
-/**
- * Show the "Conexión perdida" banner.
- */
-export function showConnectionLostBanner() {
-  if (connectionLostBanner) {
-    connectionLostBanner.style.display = '';
-  }
-}
-
-/**
- * Hide the "Conexión perdida" banner.
- */
-export function hideConnectionLostBanner() {
-  if (connectionLostBanner) {
-    connectionLostBanner.style.display = 'none';
-  }
-}
+// Keep these for backward compatibility but they're no-ops now
+export function showOfflineBanner() { updateConnectionStatus(false); }
+export function hideOfflineBanner() {}
+export function showConnectionLostBanner() { updateConnectionStatus(false); }
+export function hideConnectionLostBanner() {}

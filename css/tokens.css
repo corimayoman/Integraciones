@@ -1,61 +1,65 @@
 /* ==========================================================================
-   Design Tokens — I4G Integration Tracker
-   CSS Custom Properties for colors, typography, spacing, and semantic roles.
-   Color-blind safe palette: always pair color with a second visual channel.
+   Design Tokens — AMS Integration Tracker
+   Refined palette: softer, professional tones with good contrast.
+   Color-blind safe: always pair color with a second visual channel.
    ========================================================================== */
 
 :root {
-  /* --- Severity Colors (color-blind safe: always used with icon/label) --- */
-  --color-severity-critical: #D32F2F;   /* Red */
-  --color-severity-high:     #EF6C00;   /* Orange */
-  --color-severity-medium:   #F9A825;   /* Yellow */
-  --color-severity-low:      #1565C0;   /* Blue */
+  /* --- Brand --- */
+  --color-brand:       #0F4C81;   /* Deep blue — Globant-inspired */
+  --color-brand-light: #E8F0FE;
 
-  /* --- Status Colors --- */
-  --color-status-not-started: #9E9E9E;  /* Gray */
-  --color-status-in-progress: #1976D2;  /* Blue */
-  --color-status-completed:   #2E7D32;  /* Green */
-  --color-status-blocked:     #C62828;  /* Red */
-  --color-status-rejected:    #6A1B9A;  /* Purple */
+  /* --- Severity Colors (more distinct, especially High vs Medium) --- */
+  --color-severity-critical: #DC3545;   /* Bright red */
+  --color-severity-high:     #E67E22;   /* Distinct orange */
+  --color-severity-medium:   #3498DB;   /* Blue (was goldenrod — too close to orange) */
+  --color-severity-low:      #6C757D;   /* Gray-blue */
+
+  /* --- Status Colors (softer tones) --- */
+  --color-status-not-started: #95A5A6;  /* Cool gray */
+  --color-status-in-progress: #2E86C1;  /* Calm blue */
+  --color-status-completed:   #27AE60;  /* Fresh green */
+  --color-status-blocked:     #C0392B;  /* Muted red */
+  --color-status-rejected:    #8E44AD;  /* Soft purple */
 
   /* --- Semantic Tokens --- */
-  --color-primary:   #1565C0;
-  --color-secondary: #546E7A;
-  --color-success:   #2E7D32;
-  --color-warning:   #EF6C00;
-  --color-error:     #C62828;
+  --color-primary:   #0F4C81;
+  --color-secondary: #5D6D7E;
+  --color-success:   #27AE60;
+  --color-warning:   #D4740A;
+  --color-error:     #C0392B;
 
   /* --- Background & Surface --- */
-  --color-bg-primary:   #FFFFFF;
-  --color-bg-secondary: #F5F5F5;
+  --color-bg-primary:   #FAFBFC;
+  --color-bg-secondary: #F0F2F5;
   --color-bg-surface:   #FFFFFF;
-  --color-bg-hover:     #E3F2FD;
+  --color-bg-hover:     #E8F0FE;
 
   /* --- Text --- */
-  --color-text-primary:   #212121;
-  --color-text-secondary: #616161;
-  --color-text-disabled:  #9E9E9E;
+  --color-text-primary:   #1A1A2E;
+  --color-text-secondary: #5D6D7E;
+  --color-text-disabled:  #AEB6BF;
   --color-text-inverse:   #FFFFFF;
 
   /* --- Borders --- */
-  --color-border:       #E0E0E0;
-  --color-border-focus: #1565C0;
+  --color-border:       #D5DBDB;
+  --color-border-focus: #0F4C81;
 
   /* --- Typographic Scale (5 levels) --- */
-  --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
-  --font-size-h1:   2rem;      /* 32px */
-  --font-size-h2:   1.5rem;    /* 24px */
-  --font-size-h3:   1.25rem;   /* 20px */
-  --font-size-h4:   1rem;      /* 16px */
-  --font-size-body: 0.875rem;  /* 14px */
-  --font-size-small: 0.75rem;  /* 12px */
+  --font-size-h1:   1.75rem;   /* 28px */
+  --font-size-h2:   1.375rem;  /* 22px */
+  --font-size-h3:   1.125rem;  /* 18px */
+  --font-size-h4:   0.9375rem; /* 15px */
+  --font-size-body: 0.8125rem; /* 13px */
+  --font-size-small: 0.6875rem;/* 11px */
 
   --font-weight-regular: 400;
   --font-weight-medium:  500;
-  --font-weight-bold:    700;
+  --font-weight-bold:    600;
 
-  --line-height-tight:  1.25;
+  --line-height-tight:  1.3;
   --line-height-normal: 1.5;
 
   /* --- Spacing (8px base unit) --- */
@@ -74,12 +78,12 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* --- Shadows --- */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.16);
+  /* --- Shadows (subtle) --- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
 
-  /* --- Transitions (max 300ms per Req 17.7) --- */
+  /* --- Transitions (max 300ms) --- */
   --transition-fast:   150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow:   300ms ease;

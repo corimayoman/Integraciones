@@ -80,7 +80,7 @@ describe('matrix-view', () => {
     expect(headerCells.length).toBe(14);
   });
 
-  it('applies status color class to cells', () => {
+  it('applies status dot class to cells', () => {
     const model = makeModel([
       makeCompany('C1', 'Test', 2024, [
         makeTrack(1, 'Completado', 100),
@@ -89,13 +89,11 @@ describe('matrix-view', () => {
     ]);
     renderMatrixView(container, model);
 
-    const cells = container.querySelectorAll('.matrix-cell');
-    const classNames = Array.from(cells).map(c => c.className);
+    const dots = container.querySelectorAll('.matrix-dot');
+    const classNames = Array.from(dots).map(d => d.className);
 
-    // Track 1 should have completed class
-    expect(classNames[0]).toContain('status-completed');
-    // Track 2 should have blocked class
-    expect(classNames[1]).toContain('status-blocked');
+    expect(classNames.some(c => c.includes('status-completed'))).toBe(true);
+    expect(classNames.some(c => c.includes('status-blocked'))).toBe(true);
   });
 
   it('expands detail row on click', () => {

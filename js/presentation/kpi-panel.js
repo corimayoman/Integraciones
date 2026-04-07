@@ -175,68 +175,73 @@ function buildSeverityChart(chartData) {
   // Legend
   const legend = document.createElement('div');
   legend.className = 'chart-legend';
-  const severityColors = {
-    Critical: 'var(--color-severity-critical)',
-    High: 'var(--color-severity-high)',
-    Medium: 'var(--color-severity-medium)',
-    Low: 'var(--color-severity-low)',
-  };
-  for (const [sev, color] of Object.entries(severityColors)) {
+  const severityMeta = [
+    { name: 'Critical', cssVar: 'var(--color-severity-critical)' },
+    { name: 'High', cssVar: 'var(--color-severity-high)' },
+    { name: 'Medium', cssVar: 'var(--color-severity-medium)' },
+    { name: 'Low', cssVar: 'var(--color-severity-low)' },
+  ];
+  for (const sev of severityMeta) {
     const item = document.createElement('span');
     item.className = 'chart-legend__item';
 
     const swatch = document.createElement('span');
-    swatch.className = 'chart-legend__swatch';
-    swatch.style.backgroundColor = color;
+    swatch.className = 'chart-legend__dot';
+    swatch.style.backgroundColor = sev.cssVar;
     item.appendChild(swatch);
 
     const label = document.createElement('span');
-    label.textContent = sev;
+    label.textContent = sev.name;
     item.appendChild(label);
 
     legend.appendChild(item);
   }
   section.appendChild(legend);
 
-  // Chart area — one group per year
-  const chartArea = document.createElement('div');
-  chartArea.className = 'chart-area';
+  // Dot grid — one row per year, one dot per severity
+  const grid = document.createElement('div');
+  grid.className = 'chart-dot-grid';
 
   for (let i = 0; i < chartData.years.length; i++) {
-    const yearGroup = document.createElement('div');
-    yearGroup.className = 'chart-year-group';
+    const row = document.createElement('div');
+    row.className = 'chart-dot-row';
 
-    const yearLabel = document.createElement('div');
-    yearLabel.className = 'chart-year-label';
+    const yearLabel = document.createElement('span');
+    yearLabel.className = 'chart-dot-year';
     yearLabel.textContent = String(chartData.years[i]);
-    yearGroup.appendChild(yearLabel);
+    row.appendChild(yearLabel);
 
-    const barsContainer = document.createElement('div');
-    barsContainer.className = 'chart-bars';
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'chart-dots';
 
     for (const serie of chartData.series) {
-      const barWrapper = document.createElement('div');
-      barWrapper.className = 'chart-bar-wrapper';
+      const val = serie.values[i];
+      const dotWrapper = document.createElement('div');
+      dotWrapper.className = 'chart-dot-item';
 
-      const bar = document.createElement('div');
-      bar.className = `chart-bar chart-bar--${serie.severity.toLowerCase()}`;
-      bar.style.width = `${serie.values[i]}%`;
-      bar.setAttribute('role', 'img');
-      bar.setAttribute('aria-label', `${serie.severity}: ${serie.values[i]}%`);
-      barWrapper.appendChild(bar);
+      const dot = document.createElement('span');
+      dot.className = `chart-dot chart-dot--${serie.severity.toLowerCase()}`;
+      // Size the dot based on completion (min 8px, max 24px)
+      const size = Math.max(8, Math.round((val / 100) * 24));
+      dot.style.width = `${size}px`;
+      dot.style.height = `${size}px`;
+      // Full opacity when 100%, partial when less
+      dot.style.opacity = val === 0 ? '0.2' : String(Math.max(0.4, val / 100));
+      dot.setAttribute('title', `${serie.severity}: ${val}%`);
+      dotWrapper.appendChild(dot);
 
       const valLabel = document.createElement('span');
-      valLabel.className = 'chart-bar-value';
-      valLabel.textContent = `${serie.values[i]}%`;
-      barWrapper.appendChild(valLabel);
+      valLabel.className = 'chart-dot-value';
+      valLabel.textContent = `${val}%`;
+      dotWrapper.appendChild(valLabel);
 
-      barsContainer.appendChild(barWrapper);
+      dotsContainer.appendChild(dotWrapper);
     }
 
-    yearGroup.appendChild(barsContainer);
-    chartArea.appendChild(yearGroup);
+    row.appendChild(dotsContainer);
+    grid.appendChild(row);
   }
 
-  section.appendChild(chartArea);
+  section.appendChild(grid);
   return section;
 }
