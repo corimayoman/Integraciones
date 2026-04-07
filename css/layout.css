@@ -1,0 +1,231 @@
+/* ==========================================================================
+   Layout — I4G Integration Tracker
+   Grid, header, navigation, main content, aside, footer.
+   Responsive breakpoints: 768px, 1024px, 1440px.
+   Color-blind safe palette combining color with icons/labels.
+   Validates: Requirements 17.1, 17.4, 17.5, 17.7, 10.2
+   ========================================================================== */
+
+/* --- App Layout Grid --- */
+.app-layout {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+/* --- Header (sticky) --- */
+#app-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-dropdown);
+  background-color: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.app-title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.header-connect-btn--connected {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.header-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 var(--space-1);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-inverse);
+  background-color: var(--color-error);
+  border-radius: var(--radius-full);
+}
+
+.header-dark-toggle {
+  font-size: var(--font-size-h4);
+  padding: var(--space-1) var(--space-2);
+}
+
+/* --- Offline / Connection Lost Banners --- */
+.offline-banner,
+.connection-lost-banner {
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+}
+
+.offline-banner {
+  background-color: var(--color-severity-medium);
+  color: var(--color-text-primary);
+}
+
+.connection-lost-banner {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+}
+
+/* --- Navigation (horizontal tabs) --- */
+#app-nav {
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  list-style: none;
+}
+
+.nav-tab {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+  text-decoration: none;
+  display: block;
+}
+
+.nav-tab:hover {
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.nav-tab--active,
+.nav-tab[aria-current="page"] {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* --- Main Content Area --- */
+#main-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--space-4);
+  width: 100%;
+}
+
+/* --- Aside Panel (Alerts) --- */
+#alerts-panel {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-4);
+  width: 100%;
+}
+
+/* --- Footer --- */
+#app-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  .header-content {
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .app-title {
+    font-size: var(--font-size-h4);
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 var(--space-2);
+  }
+
+  .nav-tab {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-small);
+  }
+
+  #main-content {
+    padding: var(--space-2);
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .header-content {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  #main-content {
+    padding: var(--space-3);
+  }
+}
+
+/* Desktop (1024px - 1439px) */
+@media (min-width: 1024px) {
+  .app-title {
+    font-size: var(--font-size-h2);
+  }
+
+  #main-content {
+    padding: var(--space-4) var(--space-5);
+  }
+}
+
+/* Wide Desktop (≥ 1440px) */
+@media (min-width: 1440px) {
+  .header-content,
+  #main-content,
+  #alerts-panel,
+  .nav-tabs {
+    max-width: 1440px;
+  }
+}

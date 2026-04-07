@@ -22,8 +22,8 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Crear `js/constants.js` con: `INTEGRATION_TRACKS` (14 tracks con número, nombre y severidad), `STATUS_MAP` (mapeo estados Jira → Dashboard), `REGION_MAP` (mapeo empresa → región), y configuración del Circuit Breaker (5 fallos, 30s reset)
     - _Requerimientos: 1.4, 8.3, 8.5, 9.1_
 
-- [ ] 2. Capa de Datos — API Client, Caché y Datos Offline
-  - [ ] 2.1 Implementar `js/data/cache.js` — Caché en memoria con TTL
+- [x] 2. Capa de Datos — API Client, Caché y Datos Offline
+  - [x] 2.1 Implementar `js/data/cache.js` — Caché en memoria con TTL
     - Implementar `Cache` con métodos `set(key, data)`, `get(key, maxAgeMs)`, `clear()`
     - `get` retorna `null` si el dato ha expirado según TTL
     - _Requerimientos: 18.3_
@@ -31,11 +31,11 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - **Property 16: Caché respeta TTL**
     - Para cualquier dato almacenado con un TTL dado, `Cache.get` retorna el dato si el tiempo transcurrido < TTL, y `null` si ≥ TTL
     - **Valida: Requerimiento 18.3**
-  - [ ] 2.3 Implementar `js/data/offline-data.js` — Datos hardcodeados de fallback
+  - [x] 2.3 Implementar `js/data/offline-data.js` — Datos hardcodeados de fallback
     - Exportar array de objetos con estructura idéntica a la respuesta de `/api/raw` del Proxy
     - Incluir datos representativos de ~5 empresas con tracks en distintos estados (completado, en progreso, bloqueado, no iniciado)
     - _Requerimientos: 7.3, 7.5_
-  - [ ] 2.4 Implementar `js/data/api-client.js` — Cliente HTTP con resiliencia
+  - [x] 2.4 Implementar `js/data/api-client.js` — Cliente HTTP con resiliencia
     - Implementar `login()` que abre ventana del Proxy para OAuth 2.0
     - Implementar `logout()` que cierra sesión y limpia caché
     - Implementar `checkAuth()` que verifica estado de autenticación vía `/auth/status`
@@ -50,11 +50,11 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Test login abre URL correcta, logout limpia estado, fetchRawIssues retorna datos, error 500 activa retry
     - _Requerimientos: 1.1, 7.1, 7.6, 18.2_
 
-- [ ] 3. Checkpoint — Verificar que la capa de datos funciona correctamente
+- [x] 3. Checkpoint — Verificar que la capa de datos funciona correctamente
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Capa de Negocio — Transformador de datos Jira → Modelo
-  - [ ] 4.1 Implementar `js/business/transformer.js` — Transformación jerárquica
+- [x] 4. Capa de Negocio — Transformador de datos Jira → Modelo
+  - [x] 4.1 Implementar `js/business/transformer.js` — Transformación jerárquica
     - Implementar `parseCompanySummary(summary)` que extrae nombre y año del patrón `"[Nombre] - [Año]"`. Si no coincide, usa summary completo como nombre y año `null`
     - Implementar `parseTrackNumber(summary)` que extrae número de track del prefijo `"XX."` (01-14). Retorna `null` si no coincide o está fuera de rango
     - Implementar `mapJiraStatus(jiraStatus)` que mapea estados Jira al `DashboardStatus` simplificado. Estados desconocidos mapean a "No Iniciado"
@@ -86,8 +86,8 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Para cualquier `DashboardModel` válido, `JSON.stringify` → `JSON.parse` produce un objeto deep-equal al original
     - **Valida: Requerimiento 8.6**
 
-- [ ] 5. Capa de Negocio — Filtros, KPIs y Alertas
-  - [ ] 5.1 Implementar `js/business/filters.js` — Motor de filtros AND
+- [x] 5. Capa de Negocio — Filtros, KPIs y Alertas
+  - [x] 5.1 Implementar `js/business/filters.js` — Motor de filtros AND
     - Implementar `applyFilters(model, filters)` que aplica todos los filtros activos con lógica AND
     - Implementar `filterByYear(companies, year)`, `filterBySeverity(tracks, severity)`, `filterByRegion(companies, region)`, `filterByStatus(companies, status)`
     - Filtro `null` no restringe resultados en esa dimensión
@@ -100,7 +100,7 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - **Property 8: Filtro de año extrae opciones correctas**
     - Para cualquier modelo, las opciones de año disponibles son exactamente los años únicos presentes en las empresas
     - **Valida: Requerimiento 3.3**
-  - [ ] 5.4 Implementar `js/business/kpis.js` — Calculador de métricas
+  - [x] 5.4 Implementar `js/business/kpis.js` — Calculador de métricas
     - Implementar `calculateKPIs(model)` que retorna: totalActiveCompanies, globalCompletionPercent (promedio de progreso de todos los tracks), blockedTracksCount, criticalInProgressCount
     - Implementar `calculateYearSummary(model)` con tabla por año: cantidad de empresas, promedio de completitud por severidad
     - Implementar `calculateSeverityChart(model)` con datos para gráfico de barras por severidad y año
@@ -109,7 +109,7 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - **Property 9: KPIs son matemáticamente correctos**
     - Para cualquier modelo, `calculateKPIs` retorna valores matemáticamente correctos: totalActiveCompanies = número de empresas, globalCompletionPercent = promedio de progreso, blockedTracksCount = tracks con subtarea Bloqueado, criticalInProgressCount = tracks Critical en progreso
     - **Valida: Requerimientos 4.1, 4.2, 4.3, 4.4**
-  - [ ] 5.6 Implementar `js/business/alerts.js` — Detector de tracks demorados
+  - [x] 5.6 Implementar `js/business/alerts.js` — Detector de tracks demorados
     - Implementar `detectDelayedTracks(model)` que identifica tracks con severidad Critical/High que tengan al menos una subtarea Blocked o Rechazado
     - Cada alerta incluye: companyId, companyName, trackNumber, trackName, severity, blockingSubtask
     - _Requerimientos: 6.1, 6.2, 6.3_
@@ -118,8 +118,8 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Para cualquier modelo, `detectDelayedTracks` retorna una alerta por cada track Critical/High con subtarea Blocked/Rechazado. El conteo es exacto
     - **Valida: Requerimientos 6.1, 6.2, 6.3**
 
-- [ ] 6. Capa de Negocio — Utilidades de presentación
-  - [ ] 6.1 Implementar función de sanitización de entrada del usuario
+- [x] 6. Capa de Negocio — Utilidades de presentación
+  - [x] 6.1 Implementar función de sanitización de entrada del usuario
     - Neutralizar caracteres peligrosos HTML (`<`, `>`, `"`, `'`, `&`). Idempotente para strings seguros
     - Implementar función de determinación de color de celda por estado del track
     - Implementar función de generación de contenido de tooltip (nombre track, porcentaje, subtareas completadas/totales)
@@ -152,32 +152,32 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Para cualquier secuencia de eventos (inicio carga, datos recibidos, error, datos vacíos), el Estado_Vista transiciona correctamente: loading durante carga, loaded con datos, empty sin datos, error al fallar. Transiciones determinísticas
     - **Valida: Requerimiento 17.6**
 
-- [ ] 7. Checkpoint — Verificar que toda la capa de negocio funciona correctamente
+- [x] 7. Checkpoint — Verificar que toda la capa de negocio funciona correctamente
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 8. Capa de Presentación — Router, Header y Componentes reutilizables
-  - [ ] 8.1 Implementar `js/presentation/router.js` — Navegación hash-based
+- [x] 8. Capa de Presentación — Router, Header y Componentes reutilizables
+  - [x] 8.1 Implementar `js/presentation/router.js` — Navegación hash-based
     - Rutas: `#/` → Matriz, `#/region` → Vista por Región, `#/alerts` → Panel de Alertas, `#/company/:id` → Detalle de Empresa
     - Rutas no reconocidas redirigen a `#/`
     - _Requerimientos: 10.4_
-  - [ ] 8.2 Implementar `js/presentation/components.js` — Componentes reutilizables
+  - [x] 8.2 Implementar `js/presentation/components.js` — Componentes reutilizables
     - Implementar: Tooltip (posicional, contenido dinámico), Badge (severidad/estado con color e ícono), Spinner (indicador de carga), ProgressBar (barra de progreso con color por severidad), EmptyState (estado vacío con mensaje), ErrorState (estado de error con botón reintentar), Modal (contenedor modal genérico)
     - Todos los componentes con HTML semántico y atributos ARIA
     - _Requerimientos: 17.1, 17.6, 17.7, 10.5, 10.6_
-  - [ ] 8.3 Implementar `js/presentation/header.js` — Header con estado de conexión
+  - [x] 8.3 Implementar `js/presentation/header.js` — Header con estado de conexión
     - Renderizar header con: título "I4G Integration Tracker", botón "Connect Jira" o indicador "Conectado", indicador numérico de alertas activas, toggle modo oscuro
     - Manejar banner "Modo Offline - Datos de ejemplo" cuando está en Modo_Offline
     - Manejar notificación "Conexión perdida" cuando se pierde conexión en Modo_Live
     - _Requerimientos: 1.8, 7.2, 7.4, 7.5, 10.3, 6.3, 17.8_
-  - [ ] 8.4 Crear `css/components.css` y `css/layout.css`
+  - [x] 8.4 Crear `css/components.css` y `css/layout.css`
     - Estilos de componentes reutilizables (botones, tarjetas, tablas, tooltips, badges, modales)
     - Layout grid, header, navegación
     - Breakpoints responsivos: 768px, 1024px, 1440px
     - Paleta color-blind safe combinando color con segundo canal visual (íconos/etiquetas)
     - _Requerimientos: 17.1, 17.4, 17.5, 17.7, 10.2_
 
-- [ ] 9. Capa de Presentación — Vista Matriz de Integración (vista principal)
-  - [ ] 9.1 Implementar `js/presentation/matrix-view.js`
+- [x] 9. Capa de Presentación — Vista Matriz de Integración (vista principal)
+  - [x] 9.1 Implementar `js/presentation/matrix-view.js`
     - Renderizar tabla Empresas_Adquiridas (filas) × 14 Tracks (columnas)
     - Celdas con código de color por estado (gris/azul/verde/rojo)
     - Encabezados de columna con número y nombre abreviado del track, indicador visual de severidad
@@ -185,39 +185,39 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Tooltip al hover con nombre track, porcentaje, subtareas completadas/totales
     - Click en fila expande detalle de tracks con lista de subtareas y estados individuales
     - _Requerimientos: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
-  - [ ] 9.2 Implementar `js/presentation/kpi-panel.js` — Panel de resumen y KPIs
+  - [x] 9.2 Implementar `js/presentation/kpi-panel.js` — Panel de resumen y KPIs
     - Renderizar métricas en parte superior: total empresas activas, % completitud global, tracks bloqueados, tracks críticos en progreso
     - Renderizar tabla resumen por año con columnas: año, cantidad empresas, % completitud promedio por severidad
     - Renderizar gráfico de barras "Actividades Completadas por Severidad" por año
     - Recalcular al cambiar filtros
     - _Requerimientos: 4.1, 4.2, 4.3, 4.4, 17.2, 17.3_
-  - [ ] 9.3 Implementar filtros en la vista principal
+  - [x] 9.3 Implementar filtros en la vista principal
     - Renderizar controles de filtro: Severidad (Critical/High/Medium/Low/Todas), Año (opciones dinámicas), Región (Americas/EMEA & New Markets/Todas), Estado (No Iniciado/En Progreso/Completado/Bloqueado/Todos)
     - Aplicar filtros con lógica AND y actualizar Matriz + KPIs en tiempo real
     - _Requerimientos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
-  - [ ] 9.4 Crear `css/views.css` — Estilos específicos por vista
+  - [x] 9.4 Crear `css/views.css` — Estilos específicos por vista
     - Estilos para matriz, celdas de estado, tooltips, filas expandibles, panel KPIs, gráficos, filtros
     - _Requerimientos: 17.2, 17.3_
 
-- [ ] 10. Capa de Presentación — Vistas secundarias
-  - [ ] 10.1 Implementar `js/presentation/detail-view.js` — Vista de detalle por empresa
+- [x] 10. Capa de Presentación — Vistas secundarias
+  - [x] 10.1 Implementar `js/presentation/detail-view.js` — Vista de detalle por empresa
     - Mostrar 14 tracks con: nombre, severidad, % completitud, subtareas por estado, assignee principal
     - Barra de progreso visual por track con color según severidad
     - Expandir track para listar subtareas con summary, estado, assignee
     - Subtareas con estado "Bloqueado" resaltadas en rojo
     - _Requerimientos: 5.1, 5.2, 5.3, 5.4, 5.5_
-  - [ ] 10.2 Implementar `js/presentation/region-view.js` — Vista por región
+  - [x] 10.2 Implementar `js/presentation/region-view.js` — Vista por región
     - Agrupar empresas por región (Americas, EMEA & New Markets) con separadores visuales
     - Mostrar nombre del ITX_Manager como encabezado de grupo
     - Mostrar métricas agregadas por región: % completitud promedio, tracks bloqueados
     - _Requerimientos: 9.1, 9.2, 9.3, 9.4_
-  - [ ] 10.3 Implementar `js/presentation/alerts-view.js` — Panel de alertas
+  - [x] 10.3 Implementar `js/presentation/alerts-view.js` — Panel de alertas
     - Listar tracks demorados con: empresa, track, severidad, subtarea bloqueante
     - Click en alerta navega a vista de detalle de la empresa con track expandido
     - _Requerimientos: 6.1, 6.2, 6.4_
 
-- [ ] 11. Integración y Bootstrap de la aplicación
-  - [ ] 11.1 Implementar `js/app.js` — Bootstrap e inicialización
+- [x] 11. Integración y Bootstrap de la aplicación
+  - [x] 11.1 Implementar `js/app.js` — Bootstrap e inicialización
     - Inicializar router, cargar datos offline por defecto, renderizar vista principal
     - Manejar flujo Connect Jira → autenticación → carga datos live → re-render
     - Manejar flujo Desconectar → limpiar datos → volver a offline
@@ -225,21 +225,21 @@ Implementación incremental del Dashboard I4G en vanilla JS con arquitectura de 
     - Detectar preferencia de modo oscuro del sistema operativo y aplicar tema
     - Implementar lazy loading para vistas no críticas (región, alertas)
     - _Requerimientos: 7.1, 7.2, 7.3, 7.6, 17.8, 18.1, 18.5_
-  - [ ] 11.2 Completar `index.html` con estructura semántica final
+  - [x] 11.2 Completar `index.html` con estructura semántica final
     - Integrar todos los CSS (tokens, base, components, layout, views, dark, print)
     - Integrar todos los JS con carga diferida donde corresponda
     - Estructura semántica: header, nav, main, aside, footer con atributos ARIA
     - _Requerimientos: 10.3, 10.6_
 
-- [ ] 12. Generadores custom de fast-check y tests de integración
-  - [ ]* 12.1 Crear `tests/property/generators.js` — Generadores custom de fast-check
+- [x] 12. Generadores custom de fast-check y tests de integración
+  - [x]* 12.1 Crear `tests/property/generators.js` — Generadores custom de fast-check
     - Generadores para: companyNameArb, yearArb, themeSummaryArb, trackNumberArb, epicSummaryArb, jiraStatusArb, severityArb, regionArb, subtaskArb, dashboardModelArb
     - Reutilizables por todos los archivos de property tests
-  - [ ]* 12.2 Escribir tests de integración `tests/integration/proxy-integration.test.js`
+  - [x]* 12.2 Escribir tests de integración `tests/integration/proxy-integration.test.js`
     - Test de integración con el Proxy: verificar que `/api/raw` retorna datos válidos, `/health` retorna status ok, `/auth/status` retorna estado de autenticación
     - _Requerimientos: 1.1, 8.1_
 
-- [ ] 13. Checkpoint final — Verificar que toda la aplicación funciona correctamente
+- [x] 13. Checkpoint final — Verificar que toda la aplicación funciona correctamente
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notas

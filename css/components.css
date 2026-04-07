@@ -1,0 +1,411 @@
+/* ==========================================================================
+   Component Styles — I4G Integration Tracker
+   Buttons, cards, tables, tooltips, badges, modals, progress bars,
+   spinners, empty/error states, filter controls.
+   Validates: Requirements 17.1, 17.4, 17.7, 10.2
+   ========================================================================== */
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #0D47A1;
+}
+
+.btn--secondary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-hover);
+}
+
+.btn--danger {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  border-color: var(--color-error);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: #B71C1C;
+}
+
+.btn--sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-small);
+}
+
+/* --- Cards --- */
+.card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.card__title {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-medium);
+}
+
+.card__body {
+  font-size: var(--font-size-body);
+}
+
+/* --- Tables --- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table tr:hover td {
+  background-color: var(--color-bg-hover);
+}
+
+/* --- Tooltips --- */
+.tooltip {
+  position: absolute;
+  z-index: var(--z-tooltip);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-normal);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  white-space: pre-line;
+  pointer-events: none;
+  max-width: 250px;
+}
+
+/* --- Badges (severity + status) --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.badge__icon {
+  font-size: 0.625rem;
+}
+
+/* Severity badges */
+.badge--severity-critical {
+  background-color: var(--color-severity-critical);
+  color: var(--color-text-inverse);
+}
+
+.badge--severity-high {
+  background-color: var(--color-severity-high);
+  color: var(--color-text-inverse);
+}
+
+.badge--severity-medium {
+  background-color: var(--color-severity-medium);
+  color: var(--color-text-primary);
+}
+
+.badge--severity-low {
+  background-color: var(--color-severity-low);
+  color: var(--color-text-inverse);
+}
+
+/* Status badges */
+.badge--status-not-started {
+  background-color: var(--color-status-not-started);
+  color: var(--color-text-inverse);
+}
+
+.badge--status-in-progress {
+  background-color: var(--color-status-in-progress);
+  color: var(--color-text-inverse);
+}
+
+.badge--status-completed {
+  background-color: var(--color-status-completed);
+  color: var(--color-text-inverse);
+}
+
+.badge--status-blocked {
+  background-color: var(--color-status-blocked);
+  color: var(--color-text-inverse);
+}
+
+.badge--status-rejected {
+  background-color: var(--color-status-rejected);
+  color: var(--color-text-inverse);
+}
+
+
+/* --- Modals --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  background-color: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-5);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.modal__title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+}
+
+.modal__close {
+  background: none;
+  border: none;
+  font-size: var(--font-size-h3);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: var(--space-1);
+}
+
+.modal__close:hover {
+  color: var(--color-text-primary);
+}
+
+/* --- Progress Bars --- */
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
+}
+
+.progress-bar__fill--severity-critical {
+  background-color: var(--color-severity-critical);
+}
+
+.progress-bar__fill--severity-high {
+  background-color: var(--color-severity-high);
+}
+
+.progress-bar__fill--severity-medium {
+  background-color: var(--color-severity-medium);
+}
+
+.progress-bar__fill--severity-low {
+  background-color: var(--color-severity-low);
+}
+
+.progress-bar__label {
+  position: absolute;
+  right: 0;
+  top: -1.25rem;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+/* --- Spinners --- */
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner__circle {
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner--sm .spinner__circle {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner--md .spinner__circle {
+  width: 32px;
+  height: 32px;
+}
+
+.spinner--lg .spinner__circle {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Empty State --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.empty-state__icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
+}
+
+.empty-state__message {
+  font-size: var(--font-size-h4);
+  max-width: 400px;
+}
+
+/* --- Error State --- */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.error-state__icon {
+  font-size: 3rem;
+  color: var(--color-error);
+  margin-bottom: var(--space-4);
+}
+
+.error-state__message {
+  font-size: var(--font-size-h4);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  max-width: 400px;
+}
+
+.error-state__retry {
+  margin-top: var(--space-2);
+}
+
+/* --- Filter Controls --- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter-group__label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.filter-group__select {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.filter-group__select:focus {
+  border-color: var(--color-border-focus);
+}

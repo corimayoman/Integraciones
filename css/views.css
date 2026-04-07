@@ -1,0 +1,666 @@
+/* ==========================================================================
+   View Styles — I4G Integration Tracker
+   Matrix table, KPI panel, bar chart, filter bar integration,
+   expandable rows, and responsive layouts.
+   Validates: Requirements 17.2, 17.3
+   ========================================================================== */
+
+/* --- Matrix Wrapper --- */
+.matrix-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Matrix Table --- */
+.matrix-table {
+  min-width: 900px;
+  font-size: var(--font-size-small);
+}
+
+.matrix-header-company {
+  min-width: 160px;
+  white-space: nowrap;
+}
+
+.matrix-header-track {
+  text-align: center;
+  padding: var(--space-2);
+  min-width: 60px;
+  max-width: 90px;
+  vertical-align: bottom;
+}
+
+.matrix-header-track__number {
+  display: block;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+}
+
+.matrix-header-track__name {
+  display: block;
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-header-track__severity {
+  margin-top: var(--space-1);
+  font-size: 0.625rem;
+}
+
+/* --- Matrix Rows --- */
+.matrix-row {
+  transition: background-color var(--transition-fast);
+}
+
+.matrix-row:hover td {
+  background-color: var(--color-bg-hover);
+}
+
+.matrix-cell-company {
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.matrix-cell-company__year {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-small);
+}
+
+/* --- Matrix Cells (status colors) --- */
+.matrix-cell {
+  text-align: center;
+  padding: var(--space-1);
+  position: relative;
+  min-width: 40px;
+  min-height: 32px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.matrix-cell:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+  z-index: 2;
+}
+
+.matrix-cell--status-not-started {
+  background-color: var(--color-status-not-started);
+}
+
+.matrix-cell--status-in-progress {
+  background-color: var(--color-status-in-progress);
+}
+
+.matrix-cell--status-completed {
+  background-color: var(--color-status-completed);
+}
+
+.matrix-cell--status-blocked {
+  background-color: var(--color-status-blocked);
+}
+
+.matrix-cell--status-rejected {
+  background-color: var(--color-status-rejected);
+}
+
+.matrix-cell--empty {
+  background-color: var(--color-bg-secondary);
+}
+
+
+/* --- Expandable Detail Row --- */
+.matrix-detail-row {
+  background-color: var(--color-bg-secondary);
+}
+
+.matrix-detail-cell {
+  padding: var(--space-3) var(--space-4);
+}
+
+.matrix-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.matrix-detail__track {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.matrix-detail__track-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.matrix-detail__track-title {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-body);
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+.matrix-detail__subtasks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.matrix-detail__subtask {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-small);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.matrix-detail__subtask:last-child {
+  border-bottom: none;
+}
+
+.matrix-detail__subtask--blocked {
+  color: var(--color-error);
+  font-weight: var(--font-weight-medium);
+}
+
+.matrix-detail__subtask-status {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.matrix-detail__subtask-summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matrix-detail__subtask-label {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+}
+
+/* --- KPI Cards --- */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.kpi-card__icon {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-2);
+}
+
+.kpi-card__value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.kpi-card__label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.kpi-section-title {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-3);
+  color: var(--color-text-primary);
+}
+
+/* --- KPI Year Summary Table --- */
+.kpi-year-summary {
+  margin-bottom: var(--space-4);
+}
+
+.kpi-year-table__cell--critical {
+  color: var(--color-severity-critical);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-year-table__cell--high {
+  color: var(--color-severity-high);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-year-table__cell--medium {
+  color: var(--color-severity-medium);
+  font-weight: var(--font-weight-medium);
+}
+
+.kpi-year-table__cell--low {
+  color: var(--color-severity-low);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Severity Bar Chart --- */
+.kpi-severity-chart {
+  margin-bottom: var(--space-4);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-small);
+}
+
+.chart-legend__swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.chart-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.chart-year-group {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.chart-year-label {
+  min-width: 48px;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-body);
+  padding-top: var(--space-1);
+}
+
+.chart-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 20px;
+}
+
+.chart-bar {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  min-width: 2px;
+  transition: width var(--transition-normal);
+}
+
+.chart-bar--critical {
+  background-color: var(--color-severity-critical);
+}
+
+.chart-bar--high {
+  background-color: var(--color-severity-high);
+}
+
+.chart-bar--medium {
+  background-color: var(--color-severity-medium);
+}
+
+.chart-bar--low {
+  background-color: var(--color-severity-low);
+}
+
+.chart-bar-value {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Responsive — KPI Cards & Matrix
+   ========================================================================== */
+
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+  .kpi-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .matrix-detail {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  .kpi-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .matrix-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-year-group {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .chart-year-label {
+    min-width: auto;
+  }
+}
+
+
+/* ==========================================================================
+   Detail View — Company detail with 14 tracks
+   Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5
+   ========================================================================== */
+
+.detail-back-btn {
+  margin-bottom: var(--space-4);
+}
+
+.detail-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.detail-header__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.detail-header__year,
+.detail-header__region {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.detail-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-track-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.detail-track-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  flex-wrap: wrap;
+  transition: background-color var(--transition-fast);
+}
+
+.detail-track-card__header:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.detail-track-card__header:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.detail-track-card__name {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-body);
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.detail-track-card__completion {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  min-width: 40px;
+  text-align: right;
+}
+
+.detail-track-card__counts {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.detail-track-card__assignee {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.detail-track-card__progress {
+  margin: 0 var(--space-4) var(--space-2);
+}
+
+.detail-track-card__subtasks {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.detail-track-card__no-subtasks {
+  font-size: var(--font-size-small);
+  color: var(--color-text-disabled);
+  margin: 0;
+}
+
+.detail-subtask-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detail-subtask-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-small);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-subtask-item:last-child {
+  border-bottom: none;
+}
+
+.detail-subtask-item--blocked {
+  color: var(--color-error);
+  font-weight: var(--font-weight-medium);
+}
+
+.detail-subtask-item__summary {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-subtask-item__assignee {
+  flex-shrink: 0;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   Region View — Companies grouped by region
+   Validates: Requirements 9.1, 9.2, 9.3, 9.4
+   ========================================================================== */
+
+.region-view__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-5);
+}
+
+.region-section {
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.region-section__header {
+  background-color: var(--color-bg-secondary);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.region-section__title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
+}
+
+.region-section__manager {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.region-section__metrics {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.region-metric {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.region-company-table {
+  width: 100%;
+  font-size: var(--font-size-body);
+}
+
+.region-company-row td {
+  padding: var(--space-2) var(--space-4);
+}
+
+/* ==========================================================================
+   Alerts View — Delayed tracks panel
+   Validates: Requirements 6.1, 6.2, 6.4
+   ========================================================================== */
+
+.alerts-view__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-5);
+}
+
+.alerts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+  flex-wrap: wrap;
+}
+
+.alert-item:hover {
+  background-color: var(--color-bg-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.alert-item:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.alert-item__company {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  min-width: 120px;
+}
+
+.alert-item__track {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-body);
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.alert-item__blocking {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  flex: 1 1 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive — Detail, Region, Alerts */
+@media (max-width: 767px) {
+  .detail-track-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .region-section__metrics {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .alert-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
