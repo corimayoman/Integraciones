@@ -3,10 +3,17 @@ const express = require('express');
 const cors = require('cors');
 const { getAuthUrl, exchangeCode, isAuthenticated, logout } = require('./auth');
 const { fetchAllIssues } = require('./jira-client');
+const { initDatabase } = require('./dc-database');
+const { createDCRouter } = require('./dc-routes');
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
+
+// --- Data Collection module ---
+const dcDb = initDatabase(process.env.DC_DB_PATH || './data-collection.db');
+const dcRouter = createDCRouter(dcDb);
+app.use('/dc', dcRouter);
 
 // --- Cache ---
 let cache = { data: null, ts: 0 };

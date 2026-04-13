@@ -2,7 +2,9 @@
  * Hash-based Router — I4G Integration Tracker
  *
  * SPA navigation using hash fragments.
- * Routes: #/ → Matrix, #/region → Region, #/alerts → Alerts, #/company/:id → Detail
+ * Routes: #/ → Matrix, #/region → Region, #/alerts → Alerts, #/company/:id → Detail,
+ * #/data-collection → DC home, #/data-collection/admin → DC admin,
+ * #/data-collection/:empresaId/:hojaId → DC sheet, #/data-collection/:empresaId → DC company
  * Unrecognized routes redirect to #/.
  *
  * Validates: Requirements 10.4
@@ -18,6 +20,11 @@ const routeListeners = [];
  * Order matters — first match wins.
  */
 const ROUTES = [
+  { pattern: /^#\/data-collection\/admin$/, name: 'dc-admin' },
+  { pattern: /^#\/data-collection\/login$/, name: 'dc-login' },
+  { pattern: /^#\/data-collection\/([^/]+)\/([^/]+)$/, name: 'dc-sheet', paramName: 'empresaId', paramName2: 'hojaId' },
+  { pattern: /^#\/data-collection\/([^/]+)$/, name: 'dc-company', paramName: 'empresaId' },
+  { pattern: /^#\/data-collection$/, name: 'dc-home' },
   { pattern: /^#\/company\/(.+)$/, name: 'company-detail', paramName: 'id' },
   { pattern: /^#\/region$/, name: 'region' },
   { pattern: /^#\/alerts$/, name: 'alerts' },
@@ -40,6 +47,9 @@ function parseHash(hash) {
       const params = {};
       if (route.paramName && match[1]) {
         params[route.paramName] = decodeURIComponent(match[1]);
+      }
+      if (route.paramName2 && match[2]) {
+        params[route.paramName2] = decodeURIComponent(match[2]);
       }
       return { name: route.name, params };
     }

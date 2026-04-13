@@ -1,0 +1,297 @@
+# Plan de Implementación: Módulo de Recolección de Datos
+
+## Resumen
+
+Implementación incremental del Módulo de Recolección de Datos que extiende el I4G Integration Tracker existente. Se construye desde la base de datos SQLite y autenticación JWT en el backend (proxy Express), pasando por los repositories y rutas REST, hasta el frontend con la arquitectura de 3 capas (Datos/Negocio/Presentación) en Vanilla JS. Se integran tests property-based para las 21 propiedades de correctitud definidas en el diseño, usando Vitest + fast-check.
+
+## Tareas
+
+- [x] 1. Base de datos SQLite y configuración del backend
+  - [x] 1.1 Instalar dependencias del backend y crear `proxy/dc-database.js`
+    - Agregar `better-sqlite3`, `jsonwebtoken`, `bcryptjs` al `proxy/package.json`
+    - Implementar `initDatabase(dbPath)` que crea/abre la conexión SQLite
+    - Implementar `runMigrations(db)` que ejecuta el SQL de creación del esquema completo: tablas `companies`, `users`, `user_company_assignments`, `apps_data`, `compliance_data`, `questionnaire_data` con todos los CHECK constraints, FOREIGN KEYs, y triggers de `updated_at`
+    - Crear usuario admin por defecto (username: `admin`, password hasheada con bcrypt) en la migración inicial
+    - _Requerimientos: 1.1, 1.2, 1.5, 2.6, 2.7_
+  - [x]* 1.2 Escribir unit tests para `dc-database.js`
+    - Verificar que `initDatabase` crea todas las tablas esperadas
+    - Verificar que la migración crea el usuario admin por defecto
+    - Verificar que los triggers de `updated_at` funcionan correctamente
+    - _Requerimientos: 1.2, 1.5, 2.7_
+
+- [x] 2. Autenticación JWT y middleware
+  - [x] 2.1 Implementar `proxy/dc-auth.js` — Autenticación JWT + bcrypt
+    - Implementar `hashPassword(password)` y `verifyPassword(password, hash)` con bcrypt
+    - Implementar `generateToken(user)` que genera JWT con id, username, role y expiración configurable
+    - Implementar `authMiddleware(req, res, next)` que valida JWT, verifica usuario activo, y adjunta `req.user`
+    - Implementar `adminOnly(req, res, next)` que verifica `role === 'admin'`
+    - Token inválido/expirado retorna 401; usuario inactivo retorna 403
+    - _Requerimientos: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.3_
+  - [x]* 2.2 Escribir property test — Password Hash Round-Trip (Property 5)
+    - **Property 5: Hashing de Contraseñas Round-Trip**
+    - Para cualquier contraseña en texto plano, hashearla con bcrypt y verificar la original retorna `true`, y verificar cualquier otra contraseña diferente retorna `false`
+    - **Valida: Requerimiento 2.6**
+  - [x]* 2.3 Escribir property test — JWT Login Token Válido (Property 2)
+    - **Property 2: JWT Login Produce Token Válido con Claims Correctos**
+    - Para cualquier usuario registrado con credenciales válidas, el login retorna un JWT que al decodificarse contiene id, rol y expiración futura
+    - **Valida: Requerimientos 2.1, 2.2**
+  - [x]* 2.4 Escribir property test — Credenciales Inválidas (Property 3)
+    - **Property 3: Credenciales Inválidas Retornan 401 Genérico**
+    - Para cualquier combinación de username/password inválidos, el login retorna 401 con mensaje idéntico sin revelar si el usuario existe
+    - **Valida: Requerimiento 2.3**
+  - [x]* 2.5 Escribir property test — Token JWT Inválido (Property 4)
+    - **Property 4: Token JWT Inválido o Expirado Rechazado con 401**
+    - Para cualquier JWT malformado, con firma inválida o expirado, la API retorna 401
+    - **Valida: Requerimientos 2.4, 2.5**
+  - [x]* 2.6 Escribir property test — Usuarios Desactivados (Property 6)
+    - **Property 6: Usuarios Desactivados Rechazados con 403**
+    - Para cualquier usuario inactivo, peticiones con su JWT válido son rechazadas con 403
+    - **Valida: Requerimiento 3.3**
+
+- [x] 3. Repositories del backend
+  - [x] 3.1 Implementar `proxy/dc-company-repo.js` — CRUD de empresas
+    - Implementar `findAll(db)`, `findById(db, id)`, `findByUserId(db, userId)`, `create(db, { name })`, `update(db, id, { name })`, `remove(db, id)`
+    - `findByUserId` retorna solo empresas asignadas al usuario vía `user_company_assignments`
+    - _Requerimientos: 11.1, 5.2, 5.6_
+  - [x] 3.2 Implementar `proxy/dc-user-repo.js` — CRUD de usuarios
+    - Implementar `findAll(db)`, `findById(db, id)`, `findByUsername(db, username)`, `create(db, { name, username, passwordHash })`, `update(db, id, { name, active })`, `resetPassword(db, id, passwordHash)`
+    - _Requerimientos: 11.2, 3.1, 3.2, 3.7_
+  - [x] 3.3 Implementar `proxy/dc-assignment-repo.js` — Asignaciones usuario-empresa
+    - Implementar `findByUser(db, userId)`, `findByCompany(db, companyId)`, `create(db, { userId, companyId, role })`, `remove(db, id)`
+    - Constraint UNIQUE(user_id, company_id, role) manejado por la tabla
+    - _Requerimientos: 11.3, 3.4, 3.5, 3.6_
+  - [x] 3.4 Implementar `proxy/dc-sheet-repo.js` — CRUD de datos de hojas
+    - Implementar `getSheetData(db, companyId, sheetId)`, `getRow(db, companyId, sheetId, rowId)`, `addRow(db, companyId, sheetId, data)`, `updateRow(db, companyId, sheetId, rowId, data)`, `deleteRow(db, companyId, sheetId, rowId)`
+    - Implementar `bulkInsert(db, companyId, sheetId, rows)` para importación CSV dentro de transacción atómica
+    - Implementar `exportRows(db, companyId, sheetId)` para exportación CSV
+    - Mapear `sheetId` a la tabla correcta: `apps` → `apps_data`, `compliance` → `compliance_data`, resto → `questionnaire_data` filtrado por `sheet_id`
+    - _Requerimientos: 11.4, 1.3, 1.4, 9.4, 9.6_
+  - [x]* 3.5 Escribir property test — CRUD Round-Trip (Property 1)
+    - **Property 1: CRUD Round-Trip**
+    - Para cualquier entidad válida (empresa, usuario, fila de hoja), crearla y obtenerla por ID retorna datos equivalentes
+    - **Valida: Requerimientos 1.3, 3.2, 3.7, 11.1, 11.2, 11.4, 11.8**
+  - [x]* 3.6 Escribir property test — Asignaciones Muchos-a-Muchos (Property 7)
+    - **Property 7: Asignaciones Muchos-a-Muchos**
+    - Para cualquier conjunto de usuarios y empresas, crear múltiples asignaciones con roles independientes y verificar que cada una es recuperable correctamente
+    - **Valida: Requerimientos 3.4, 3.5, 3.6, 11.3**
+  - [x]* 3.7 Escribir property test — Timestamps Válidos (Property 19)
+    - **Property 19: Todos los Registros Tienen Timestamps Válidos**
+    - Para cualquier registro creado o actualizado, `created_at` y `updated_at` son timestamps ISO válidos, y `updated_at >= created_at`
+    - **Valida: Requerimiento 1.6**
+
+- [x] 4. Checkpoint — Verificar que la capa de datos del backend funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 5. Rutas REST y validación de permisos
+  - [x] 5.1 Implementar `proxy/dc-routes.js` — Rutas REST del módulo
+    - Implementar endpoint POST `/dc/auth/login` (sin auth) que valida credenciales y retorna JWT
+    - Implementar endpoints CRUD de empresas: GET/POST/PUT/DELETE `/dc/companies[/:id]` (POST/PUT/DELETE solo Admin)
+    - Implementar endpoints CRUD de usuarios: GET/POST/PUT `/dc/users[/:id]` (solo Admin)
+    - Implementar endpoints de asignaciones: GET `/dc/users/:userId/assignments`, GET `/dc/companies/:companyId/assignments`, POST/DELETE `/dc/assignments[/:id]` (solo Admin)
+    - Implementar endpoints de datos de hojas: GET `/dc/companies/:companyId/sheets/:sheetId`, POST/PUT/DELETE filas (con validación de permisos por rol y columnas)
+    - Implementar endpoints de importación/exportación CSV: POST `/dc/import/:companyId/:sheetId` (Admin), GET `/dc/export/:companyId/:sheetId` (JWT)
+    - Validar campos requeridos en creación/actualización, retornar 400 con detalle de campos faltantes
+    - Todas las respuestas siguen formato `{ ok: true, data }` o `{ ok: false, error }`
+    - _Requerimientos: 2.1, 2.3, 4.3, 4.5, 4.6, 9.2, 9.3, 9.4, 9.5, 9.6, 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
+  - [x] 5.2 Integrar rutas del módulo en `proxy/server.js`
+    - Importar y montar `dc-routes.js` en el servidor Express existente bajo prefijo `/dc`
+    - Inicializar la base de datos SQLite al arrancar el servidor
+    - No afectar las rutas existentes de Jira OAuth (`/auth/*`, `/api/*`, `/health`)
+    - _Requerimientos: 10.5_
+  - [x]* 5.3 Escribir property test — Columnas Editables por Rol (Property 8)
+    - **Property 8: Columnas Editables por Rol**
+    - Para cualquier combinación de tipo de hoja y rol, `getEditableColumns` retorna exactamente las columnas correspondientes: Columnas_Empresa para Rol_Empresa, Columnas_Globant para Rol_Globant, todas para Admin
+    - **Valida: Requerimientos 4.1, 4.2, 4.4**
+  - [x]* 5.4 Escribir property test — Escritura No Autorizada (Property 9)
+    - **Property 9: Escritura No Autorizada Rechazada sin Cambios Parciales**
+    - Para cualquier petición de escritura sin rol adecuado o sin asignación a la empresa, la API rechaza con 403 y la BD queda sin cambios
+    - **Valida: Requerimientos 4.3, 4.5, 4.6**
+  - [x]* 5.5 Escribir property test — Lista Empresas por Asignación (Property 10)
+    - **Property 10: Lista de Empresas Filtrada por Asignaciones del Usuario**
+    - Para cualquier usuario con asignaciones a un subconjunto de empresas, el endpoint retorna exactamente las empresas asignadas. Para Admin, retorna todas
+    - **Valida: Requerimientos 5.2, 5.6**
+  - [x]* 5.6 Escribir property test — Formato JSON Consistente (Property 20)
+    - **Property 20: Respuestas API Siguen Formato JSON Consistente**
+    - Para cualquier respuesta de la API, el JSON contiene `ok` (boolean), y si `ok=true` contiene `data`, si `ok=false` contiene `error` (string)
+    - **Valida: Requerimiento 11.6**
+  - [x]* 5.7 Escribir property test — Campos Faltantes (Property 21)
+    - **Property 21: Campos Requeridos Faltantes Retornan 400 con Detalle**
+    - Para cualquier petición de creación/actualización con campos requeridos faltantes, la API retorna 400 con lista de campos faltantes
+    - **Valida: Requerimiento 11.7**
+  - [x]* 5.8 Escribir property test — Transacciones Fallidas (Property 18)
+    - **Property 18: Transacciones Fallidas Revierten Completamente**
+    - Para cualquier operación de escritura o importación que falla a mitad de ejecución, el estado de la BD es idéntico al estado previo
+    - **Valida: Requerimientos 1.4, 9.6**
+
+- [x] 6. Checkpoint — Verificar que todo el backend funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 7. Capa de Datos del frontend — Cliente HTTP del módulo
+  - [x] 7.1 Implementar `js/data/dc-api-client.js` — Cliente HTTP para el módulo
+    - Implementar `login(username, password)` que envía credenciales a POST `/dc/auth/login` y almacena JWT en localStorage
+    - Implementar `logout()` que elimina JWT de localStorage
+    - Implementar `getCurrentUser()` que decodifica el JWT y retorna el usuario o null
+    - Implementar `isAuthenticated()` que verifica si hay JWT válido (no expirado)
+    - Implementar funciones CRUD que adjuntan JWT como `Authorization: Bearer` header: `fetchCompanies()`, `fetchSheetData(companyId, sheetId)`, `updateRow(companyId, sheetId, rowId, data)`, `addRow(companyId, sheetId, data)`, `deleteRow(companyId, sheetId, rowId)`
+    - Implementar `importCSV(companyId, sheetId, file)` y `exportCSV(companyId, sheetId)`
+    - Implementar funciones admin: `fetchUsers()`, `createUser(data)`, `updateUser(id, data)`, `fetchAssignments(userId)`, `createAssignment(data)`, `deleteAssignment(id)`
+    - Detectar respuestas 401 → limpiar JWT y redirigir a login
+    - _Requerimientos: 2.1, 2.5, 11.1, 11.2, 11.3, 11.4, 11.5_
+
+- [x] 8. Capa de Negocio del frontend — Lógica de hojas y CSV
+  - [x] 8.1 Implementar `js/business/sheet-logic.js` — Definiciones de hojas y permisos por columna
+    - Exportar `SHEET_DEFINITIONS` con la definición de columnas por tipo de hoja y grupo (empresa/globant)
+    - Implementar `getEditableColumns(sheetId, userRole)` que retorna `{ editable: string[], readOnly: string[] }` según el mapeo de columnas por rol del diseño
+    - Implementar `validateRowData(sheetId, rowData)` que valida estructura de fila contra la definición de la hoja
+    - Implementar `getSheetPattern(sheetId)` que retorna el patrón de renderizado: `'inventory'` para apps/compliance, `'qa-management'` para infrastructure/it_experience/mst, `'qa-simple'` para building_security
+    - _Requerimientos: 4.1, 4.2, 4.4, 5.4, 6.1, 6.2, 7.2, 8.2_
+  - [x]* 8.2 Escribir property test — Mapeo Hoja-a-Patrón (Property 11)
+    - **Property 11: Mapeo Hoja-a-Patrón de Renderizado**
+    - Para cualquier ID de hoja válido, el sistema selecciona el patrón correcto: Inventario para apps/compliance, Cuestionario Gestión para infrastructure/it_experience/mst, Cuestionario Simple para building_security
+    - **Valida: Requerimiento 5.4**
+  - [x] 8.3 Implementar `js/business/csv-parser.js` — Parseo y validación CSV
+    - Implementar `parseCSV(csvText)` que retorna `{ headers, rows }`
+    - Implementar `toCSV(headers, rows)` que serializa a string CSV
+    - Implementar `validateCSVHeaders(csvHeaders, sheetId)` que retorna `{ valid, unrecognized, missing }`
+    - _Requerimientos: 9.2, 9.3, 9.7_
+  - [x]* 8.4 Escribir property test — Validación Headers CSV (Property 16)
+    - **Property 16: Validación de Headers CSV**
+    - Para cualquier conjunto de headers CSV y un ID de hoja, la validación identifica correctamente columnas reconocidas, no reconocidas y faltantes
+    - **Valida: Requerimientos 9.2, 9.3**
+  - [x]* 8.5 Escribir property test — CSV Import/Export Round-Trip (Property 17)
+    - **Property 17: Importación/Exportación CSV Round-Trip**
+    - Para cualquier datos CSV válidos, importar y exportar produce CSV con contenido equivalente al original
+    - **Valida: Requerimiento 9.7**
+  - [x] 8.6 Implementar `js/business/auth-logic.js` — Gestión de token JWT en frontend
+    - Implementar lógica de almacenamiento/recuperación de JWT en localStorage
+    - Implementar decodificación de payload JWT (sin verificación de firma, solo lectura de claims)
+    - Implementar verificación de expiración del token
+    - _Requerimientos: 2.1, 2.5_
+
+- [x] 9. Checkpoint — Verificar que la capa de negocio del frontend funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. Capa de Presentación — Login, navegación y lista de empresas
+  - [x] 10.1 Implementar `js/presentation/dc/login-view.js` — Pantalla de login
+    - Renderizar formulario con campos username y password, botón de login
+    - Manejar submit: llamar a `dc-api-client.login()`, mostrar error en caso de fallo, redirigir a lista de empresas en caso de éxito
+    - HTML semántico con atributos ARIA, reutilizar tokens CSS existentes
+    - _Requerimientos: 2.1, 10.1, 10.2, 10.3_
+  - [x] 10.2 Extender el router hash y la navegación principal
+    - Agregar rutas `#/data-collection`, `#/data-collection/:empresaId`, `#/data-collection/:empresaId/:hojaId`, `#/data-collection/admin` al router existente en `js/presentation/router.js`
+    - Agregar entrada "Recolección de Datos" en la barra de navegación principal en `js/app.js` (función `renderNav`)
+    - Verificar autenticación JWT al navegar a rutas `#/data-collection/*`; redirigir a login si no autenticado
+    - _Requerimientos: 5.1, 5.5, 10.4_
+  - [x] 10.3 Implementar `js/presentation/dc/company-list-view.js` — Lista de empresas
+    - Renderizar lista de empresas como cards clickeables usando `dc-api-client.fetchCompanies()`
+    - Cada card muestra nombre de la empresa
+    - Click en card navega a `#/data-collection/:empresaId`
+    - Mostrar enlace al panel de admin si el usuario tiene Rol_Admin
+    - _Requerimientos: 5.2, 5.6_
+
+- [x] 11. Capa de Presentación — Pestañas de hojas y patrones de renderizado
+  - [x] 11.1 Implementar `js/presentation/dc/sheet-tabs-view.js` — Contenedor con pestañas
+    - Renderizar 6 pestañas: Apps, Infrastructure, IT Experience, MST, Building Security, Compliance and Certifications
+    - Click en pestaña navega a `#/data-collection/:empresaId/:hojaId` y carga los datos correspondientes
+    - Pestaña activa resaltada visualmente
+    - _Requerimientos: 5.3, 5.4_
+  - [x] 11.2 Implementar `js/presentation/dc/inventory-sheet.js` — Patrón Inventario
+    - Renderizar tabla editable para hojas Apps y Compliance
+    - Columnas según definición en `SHEET_DEFINITIONS`, diferenciando visualmente Columnas_Empresa de Columnas_Globant
+    - Celdas editables según rol del usuario (usar `getEditableColumns`)
+    - Botón "Agregar fila" que llama a `dc-api-client.addRow()`
+    - Botón "Eliminar fila" con confirmación que llama a `dc-api-client.deleteRow()`
+    - Edición inline de celdas con guardado automático vía `dc-api-client.updateRow()`
+    - Confirmación visual de guardado exitoso
+    - _Requerimientos: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 4.1, 4.2_
+  - [x]* 11.3 Escribir property test — Edición Celda Round-Trip (Property 12)
+    - **Property 12: Edición de Celda Round-Trip**
+    - Para cualquier hoja, fila existente y valor nuevo válido, actualizar la celda y obtener la fila retorna el valor actualizado
+    - **Valida: Requerimientos 6.3, 7.3, 7.4, 8.3**
+  - [x]* 11.4 Escribir property test — Agregar/Eliminar Fila (Property 13)
+    - **Property 13: Agregar Fila Incrementa Conteo, Eliminar Fila Decrementa Conteo**
+    - Para cualquier hoja inventario con N filas, agregar resulta en N+1, eliminar en N-1
+    - **Valida: Requerimientos 6.4, 6.5**
+  - [x] 11.5 Implementar `js/presentation/dc/qa-mgmt-sheet.js` — Patrón Cuestionario con Gestión
+    - Renderizar preguntas agrupadas por Categoría con encabezado visual por categoría
+    - Columnas: #, NAME, Phase/Stage, Type, Question (solo lectura), XX Answers (Columnas_Empresa), Globant Team comments, Globant owner, Due date, Comments (Columnas_Globant)
+    - Celdas editables según rol del usuario
+    - Edición inline con guardado automático y confirmación visual
+    - _Requerimientos: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 4.1, 4.2_
+  - [x]* 11.6 Escribir property test — Agrupación por Categoría (Property 14)
+    - **Property 14: Agrupación de Cuestionarios por Categoría/Sección**
+    - Para cualquier conjunto de datos de cuestionario, la agrupación produce grupos donde cada pregunta aparece exactamente una vez en su grupo correspondiente
+    - **Valida: Requerimientos 7.1, 8.1**
+  - [x] 11.7 Implementar `js/presentation/dc/qa-simple-sheet.js` — Patrón Cuestionario Simple
+    - Renderizar preguntas agrupadas por Sección: "About the Building", "About the Office", "Support and Maintenance"
+    - Columnas: Sección (solo lectura), Question (solo lectura), Answer (editable)
+    - Sin columnas de gestión Globant (sin Globant owner, Due date, Comments)
+    - Edición inline con guardado automático y confirmación visual
+    - _Requerimientos: 8.1, 8.2, 8.3, 8.4, 8.5_
+  - [x]* 11.8 Escribir property test — Building Security sin Gestión (Property 15)
+    - **Property 15: Building Security Excluye Columnas de Gestión**
+    - Para cualquier dato de Building Security, las columnas de gestión Globant no aparecen en la vista renderizada
+    - **Valida: Requerimiento 8.4**
+
+- [x] 12. Checkpoint — Verificar que las vistas de hojas funcionan correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 13. Panel de administración e importación CSV
+  - [x] 13.1 Implementar `js/presentation/dc/admin-view.js` — Panel de administración
+    - Renderizar lista de usuarios con nombre, estado (activo/inactivo) y cantidad de empresas asignadas
+    - Formulario para crear nuevo usuario (nombre, username, contraseña inicial)
+    - Controles para editar usuario: modificar nombre, restablecer contraseña, activar/desactivar
+    - Sección de asignaciones: listar asignaciones del usuario seleccionado, crear nueva asignación (seleccionar empresa + rol), eliminar asignación
+    - Solo accesible para usuarios con Rol_Admin
+    - _Requerimientos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
+  - [x] 13.2 Implementar `js/presentation/dc/import-view.js` — Importación CSV
+    - Renderizar interfaz para seleccionar empresa destino y hoja destino
+    - Input de archivo CSV con validación de tipo
+    - Parsear CSV en el frontend con `csv-parser.js`, validar headers contra la hoja destino
+    - Mostrar preview de datos antes de confirmar importación
+    - Enviar datos al endpoint POST `/dc/import/:companyId/:sheetId`
+    - Mostrar resumen con cantidad de filas importadas en caso de éxito
+    - Mostrar error descriptivo en caso de fallo (columnas no reconocidas, error de transacción)
+    - Solo accesible para usuarios con Rol_Admin
+    - _Requerimientos: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
+
+- [ ] 14. Integración final y wiring
+  - [x] 14.1 Conectar todas las vistas con el router y el flujo de autenticación
+    - Integrar login-view, company-list-view, sheet-tabs-view, admin-view e import-view con el router hash
+    - Implementar guard de autenticación: verificar JWT al navegar a rutas `#/data-collection/*`, redirigir a login si no autenticado o token expirado
+    - Implementar guard de admin: verificar Rol_Admin al navegar a `#/data-collection/admin`, redirigir a lista de empresas si no es admin
+    - Conectar manejo de errores: 401 → redirigir a login, 403 → mostrar mensaje informativo, errores de red → mostrar `createErrorState` con reintentar
+    - _Requerimientos: 2.5, 4.3, 5.1, 5.5, 10.4_
+  - [x] 14.2 Crear estilos CSS específicos del módulo
+    - Crear `css/data-collection.css` con estilos para: formulario de login, lista de empresas (cards), pestañas de hojas, tablas editables (inventario y cuestionario), diferenciación visual columnas empresa/globant, panel de admin, importación CSV
+    - Reutilizar tokens de `css/tokens.css`, componentes de `css/components.css`
+    - Soportar modo oscuro usando tokens de `css/dark.css`
+    - Agregar link al CSS en `index.html`
+    - _Requerimientos: 10.1, 10.2, 10.3_
+  - [ ]* 14.3 Escribir unit tests de integración del módulo
+    - Test de flujo login → lista empresas → seleccionar empresa → ver hojas
+    - Test de permisos: usuario empresa solo edita columnas empresa, usuario globant solo edita columnas globant
+    - Test de importación CSV: subir archivo → validar → importar → verificar datos
+    - _Requerimientos: 2.1, 4.1, 4.2, 9.7_
+
+- [x] 15. Generadores custom de fast-check para el módulo
+  - [x]* 15.1 Crear `tests/property/dc-generators.js` — Generadores custom de fast-check
+    - Generadores para: `dcCompanyNameArb`, `dcUsernameArb`, `dcPasswordArb`, `dcRoleArb`, `dcSheetIdArb`, `dcCategoryArb`
+    - Generadores de filas: `dcAppsRowArb`, `dcComplianceRowArb`, `dcQuestionnaireRowArb`
+    - Generadores de CSV: `dcCSVHeadersArb`, `dcCSVDataArb`
+    - Generadores de auth: `dcUserCredentialsArb`, `dcInvalidCredentialsArb`, `dcInvalidTokenArb`
+    - Reutilizables por todos los archivos de property tests del módulo
+    - _Requerimientos: Todos (soporte de testing)_
+
+- [ ] 16. Checkpoint final — Verificar que todo el módulo funciona correctamente
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notas
+
+- Las tareas marcadas con `*` son opcionales y pueden omitirse para un MVP más rápido
+- Cada tarea referencia los requerimientos específicos para trazabilidad
+- Los checkpoints aseguran validación incremental
+- Los property tests validan las 21 propiedades de correctitud universales definidas en el diseño
+- Los unit tests validan ejemplos específicos y edge cases
+- El backend extiende el proxy Express existente en `proxy/` sin afectar las rutas de Jira OAuth
+- El frontend sigue la arquitectura de 3 capas existente (Datos/Negocio/Presentación) con Vanilla JS

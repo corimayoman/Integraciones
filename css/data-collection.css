@@ -1,0 +1,752 @@
+/* ==========================================================================
+   Data Collection Module — Styles
+   Login, company list, admin panel, import view.
+   Reuses tokens from tokens.css, components from components.css.
+   Dark mode via token overrides in dark.css.
+   Validates: Requirements 10.1, 10.2, 10.3
+   ========================================================================== */
+
+/* ==========================================================================
+   Login View
+   ========================================================================== */
+
+.dc-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: var(--space-5);
+}
+
+.dc-login__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+
+.dc-login__form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-md);
+}
+
+.dc-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dc-login__label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.dc-login__input {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dc-login__input:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+}
+
+.dc-login__submit {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.dc-login__error {
+  font-size: var(--font-size-body);
+  color: var(--color-error);
+  background-color: rgba(192, 57, 43, 0.08);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Company List View
+   ========================================================================== */
+
+.dc-company-list {
+  padding: var(--space-4) 0;
+}
+
+.dc-company-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.dc-company-list__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.dc-company-list__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.dc-company-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  cursor: pointer;
+  text-align: center;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.dc-company-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dc-company-card:focus-visible {
+  outline: 3px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.dc-company-card__name {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* ==========================================================================
+   Admin Panel (Redesigned — Company-centric)
+   ========================================================================== */
+
+.dc-admin {
+  padding: var(--space-4) 0;
+}
+
+.dc-admin__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.dc-admin__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* --- Tabs --- */
+.dc-admin__tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-5);
+}
+
+.dc-admin__tab {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family);
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dc-admin__tab:hover {
+  color: var(--color-text-primary);
+}
+
+.dc-admin__tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* --- Section container --- */
+.dc-admin__section {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+/* --- Company Grid --- */
+.dc-admin__company-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dc-admin__company-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dc-admin__company-card--expanded {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.dc-admin__company-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  user-select: none;
+}
+
+.dc-admin__company-card-header:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.dc-admin__company-icon {
+  font-size: 1.4rem;
+}
+
+.dc-admin__company-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.dc-admin__company-name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+.dc-admin__company-user-count {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.dc-admin__company-arrow {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  width: 1em;
+  text-align: center;
+}
+
+.dc-admin__company-body {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+}
+
+/* --- Assigned users inside company --- */
+.dc-admin__assigned-users {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.dc-admin__assigned-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.dc-admin__assigned-user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dc-admin__assigned-user-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* --- Role badges --- */
+.dc-admin__role-badge {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.dc-admin__role-badge--empresa {
+  background-color: rgba(15, 76, 129, 0.1);
+  color: var(--color-primary);
+}
+
+.dc-admin__role-badge--globant {
+  background-color: rgba(39, 174, 96, 0.1);
+  color: var(--color-success);
+}
+
+.dc-admin__role-badge--admin {
+  background-color: rgba(142, 68, 173, 0.1);
+  color: #8e44ad;
+}
+
+/* --- Add user to company form --- */
+.dc-admin__add-user-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) 0;
+}
+
+.dc-admin__add-user-label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* --- Danger zone --- */
+.dc-admin__danger-zone {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+}
+
+/* --- Empty text --- */
+.dc-admin__empty-text {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+}
+
+/* --- Create company form --- */
+.dc-admin__create-company-form {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.dc-admin__create-company-form .dc-admin__input {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* --- Create User Form --- */
+.dc-admin__create-form {
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.dc-admin__create-user-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dc-admin__form-title {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.dc-admin__form-error {
+  font-size: var(--font-size-body);
+  color: var(--color-error);
+  margin: 0;
+}
+
+.dc-admin__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dc-admin__label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.dc-admin__input,
+.dc-admin__select {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.dc-admin__input:focus,
+.dc-admin__select:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+}
+
+/* --- Users List --- */
+.dc-admin__user-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dc-admin__user-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.dc-admin__user-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  flex-wrap: wrap;
+}
+
+.dc-admin__user-name {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.dc-admin__user-username {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+.dc-admin__user-status {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.dc-admin__user-status--active {
+  background-color: rgba(39, 174, 96, 0.12);
+  color: var(--color-success);
+}
+
+.dc-admin__user-status--inactive {
+  background-color: rgba(192, 57, 43, 0.12);
+  color: var(--color-error);
+}
+
+.dc-admin__user-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* --- Company chips on user cards --- */
+.dc-admin__user-companies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.dc-admin__company-chip {
+  font-size: var(--font-size-small);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-medium);
+}
+
+.dc-admin__company-chip--empresa {
+  background-color: rgba(15, 76, 129, 0.1);
+  color: var(--color-primary);
+}
+
+.dc-admin__company-chip--globant {
+  background-color: rgba(39, 174, 96, 0.1);
+  color: var(--color-success);
+}
+
+/* --- Modal --- */
+.dc-admin__modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: dcFadeIn 0.15s ease;
+}
+
+.dc-admin__modal {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  min-width: 320px;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
+  animation: dcSlideUp 0.2s ease;
+}
+
+.dc-admin__modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dc-admin__modal-title {
+  font-size: var(--font-size-h4);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.dc-admin__modal-message {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dc-admin__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+@keyframes dcFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dcSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Toast --- */
+.dc-admin__toast {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  z-index: 1100;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.dc-admin__toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dc-admin__toast--success {
+  background-color: var(--color-success);
+  color: #fff;
+}
+
+.dc-admin__toast--error {
+  background-color: var(--color-error);
+  color: #fff;
+}
+
+.dc-admin__toast--info {
+  background-color: var(--color-primary);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Import View
+   ========================================================================== */
+
+.dc-import {
+  padding: var(--space-4) 0;
+}
+
+.dc-import__title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.dc-import__message {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body);
+  margin-bottom: var(--space-3);
+  white-space: pre-line;
+}
+
+.dc-import__message--error {
+  background-color: rgba(192, 57, 43, 0.08);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.dc-import__message--success {
+  background-color: rgba(39, 174, 96, 0.08);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.dc-import__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.dc-import__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dc-import__label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.dc-import__select {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.dc-import__select:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+}
+
+.dc-import__file {
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+}
+
+.dc-import__file::file-selector-button {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  margin-right: var(--space-2);
+  transition: background-color var(--transition-fast);
+}
+
+.dc-import__file::file-selector-button:hover {
+  background-color: var(--color-bg-hover);
+}
+
+
+/* ==========================================================================
+   Responsive — Admin Panel
+   ========================================================================== */
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  .dc-admin__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dc-admin__tabs {
+    overflow-x: auto;
+  }
+
+  .dc-admin__user-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dc-admin__user-actions {
+    width: 100%;
+  }
+
+  .dc-admin__add-user-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dc-admin__create-company-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dc-admin__modal {
+    min-width: auto;
+    margin: var(--space-4);
+  }
+
+  .dc-company-list__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dc-company-list__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dc-login__form {
+    max-width: 100%;
+  }
+}

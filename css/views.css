@@ -714,3 +714,152 @@
     align-items: flex-start;
   }
 }
+
+
+/* ==========================================================================
+   Data Collection Module — Sheet Tabs, Inventory, Q&A Views
+   Validates: Requirements 5.3, 5.4, 6.1-6.6, 7.1-7.7, 8.1-8.5
+   ========================================================================== */
+
+/* --- Sheet Tabs --- */
+.dc-sheet-tabs__nav {
+  margin-bottom: var(--space-4);
+}
+
+.dc-sheet-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.dc-sheet-tabs__item {
+  margin-bottom: -2px;
+}
+
+.dc-sheet-tabs__tab {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family);
+  color: var(--color-text-secondary);
+  background: none;
+  border: 2px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.dc-sheet-tabs__tab:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+}
+
+.dc-sheet-tabs__tab--active {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  border-bottom: 2px solid var(--color-bg-surface);
+  background-color: var(--color-bg-surface);
+}
+
+/* --- Inventory Sheet --- */
+.dc-inventory__toolbar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.dc-inventory__table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dc-inventory__th--globant,
+.dc-inventory__td--globant {
+  background-color: var(--color-brand-light);
+}
+
+.dc-inventory__td--readonly {
+  color: var(--color-text-secondary);
+}
+
+.dc-inventory__td--actions {
+  width: 40px;
+  text-align: center;
+}
+
+.dc-inventory__input,
+.dc-qa-mgmt__input,
+.dc-qa-simple__input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-body);
+  font-family: var(--font-family);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dc-inventory__input:focus,
+.dc-qa-mgmt__input:focus,
+.dc-qa-simple__input:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(15, 76, 129, 0.15);
+}
+
+/* Save confirmation */
+.dc-inventory__input--saved,
+.dc-qa-mgmt__input--saved,
+.dc-qa-simple__input--saved {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.15);
+}
+
+/* Save error */
+.dc-inventory__input--error,
+.dc-qa-mgmt__input--error,
+.dc-qa-simple__input--error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.15);
+}
+
+/* --- Q&A Management Sheet --- */
+.dc-qa-mgmt__group,
+.dc-qa-simple__group {
+  margin-bottom: var(--space-5);
+}
+
+.dc-qa-mgmt__category-header,
+.dc-qa-simple__section-header {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+}
+
+.dc-qa-mgmt__table-wrapper,
+.dc-qa-simple__table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dc-qa-mgmt__th--globant,
+.dc-qa-mgmt__td--globant {
+  background-color: var(--color-brand-light);
+}
+
+.dc-qa-mgmt__td--readonly,
+.dc-qa-simple__td--readonly {
+  color: var(--color-text-secondary);
+}

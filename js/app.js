@@ -22,6 +22,16 @@ import { renderAlertsView } from './presentation/alerts-view.js';
 import { renderDetailView } from './presentation/detail-view.js';
 import { initRouter, onRouteChange, getCurrentRoute } from './presentation/router.js';
 import { login, logout, checkAuth, fetchRawIssues, onConnectionChange } from './data/api-client.js';
+import { isAuthenticated, getCurrentUser as getDCUser } from './data/dc-api-client.js';
+import { clearToken } from './business/auth-logic.js';
+import { renderLoginView } from './presentation/dc/login-view.js';
+import { renderCompanyListView } from './presentation/dc/company-list-view.js';
+import { renderSheetTabsView } from './presentation/dc/sheet-tabs-view.js';
+import { renderInventorySheet } from './presentation/dc/inventory-sheet.js';
+import { renderQAMgmtSheet } from './presentation/dc/qa-mgmt-sheet.js';
+import { renderQASimpleSheet } from './presentation/dc/qa-simple-sheet.js';
+import { getSheetPattern, SHEET_TABS } from './business/sheet-logic.js';
+import { renderAdminView } from './presentation/dc/admin-view.js';
 
 /* ------------------------------------------------------------------ */
 /*  Application state                                                  */
@@ -69,6 +79,7 @@ function renderNav() {
     { hash: '#/', label: 'Matriz' },
     { hash: '#/region', label: 'Región' },
     { hash: '#/alerts', label: 'Alertas' },
+    { hash: '#/data-collection', label: 'Recolección de Datos' },
   ];
 
   const ul = document.createElement('ul');
@@ -87,7 +98,8 @@ function renderNav() {
     if (
       (link.hash === '#/' && currentRoute.name === 'matrix') ||
       (link.hash === '#/region' && currentRoute.name === 'region') ||
-      (link.hash === '#/alerts' && currentRoute.name === 'alerts')
+      (link.hash === '#/alerts' && currentRoute.name === 'alerts') ||
+      (link.hash === '#/data-collection' && currentRoute.name.startsWith('dc-'))
     ) {
       a.classList.add('nav-link--active');
       a.setAttribute('aria-current', 'page');
@@ -111,6 +123,23 @@ function renderCurrentView(route) {
   // Update nav active state
   renderNav();
 
+  // Auth guard for data-collection routes (except login)
+  if (route.name.startsWith('dc-') && route.name !== 'dc-login') {
+    if (!isAuthenticated()) {
+      window.location.hash = '#/data-collection/login';
+      return;
+    }
+  }
+
+  // Admin guard for dc-admin route
+  if (route.name === 'dc-admin') {
+    const dcUser = getDCUser();
+    if (!dcUser || dcUser.role !== 'admin') {
+      window.location.hash = '#/data-collection';
+      return;
+    }
+  }
+
   switch (route.name) {
     case 'matrix':
       renderMatrixRoute(main);
@@ -123,6 +152,21 @@ function renderCurrentView(route) {
       break;
     case 'company-detail':
       renderDetailRoute(main, route.params.id);
+      break;
+    case 'dc-login':
+      renderLoginView(main);
+      break;
+    case 'dc-home':
+      renderCompanyListView(main);
+      break;
+    case 'dc-company':
+      renderDCCompanyRoute(main, route.params.empresaId);
+      break;
+    case 'dc-sheet':
+      renderDCSheetRoute(main, route.params.empresaId, route.params.hojaId);
+      break;
+    case 'dc-admin':
+      renderDCAdminRoute(main);
       break;
     default:
       renderMatrixRoute(main);
@@ -180,6 +224,53 @@ function renderDetailRoute(main, companyId) {
     msg.textContent = 'Empresa no encontrada.';
     main.appendChild(msg);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Data Collection route stubs (wired in later tasks)                 */
+/* ------------------------------------------------------------------ */
+
+function renderDCCompanyRoute(main, empresaId) {
+  main.textContent = '';
+  // Default to first sheet tab
+  const defaultSheet = SHEET_TABS[0].id;
+  const content = renderSheetTabsView(main, empresaId, defaultSheet);
+  renderSheetByPattern(content, empresaId, defaultSheet);
+}
+
+function renderDCSheetRoute(main, empresaId, hojaId) {
+  main.textContent = '';
+  const content = renderSheetTabsView(main, empresaId, hojaId);
+  renderSheetByPattern(content, empresaId, hojaId);
+}
+
+/**
+ * Render the appropriate sheet pattern view based on the sheet ID.
+ */
+function renderSheetByPattern(container, empresaId, sheetId) {
+  const pattern = getSheetPattern(sheetId);
+  switch (pattern) {
+    case 'inventory':
+      renderInventorySheet(container, empresaId, sheetId);
+      break;
+    case 'qa-management':
+      renderQAMgmtSheet(container, empresaId, sheetId);
+      break;
+    case 'qa-simple':
+      renderQASimpleSheet(container, empresaId, sheetId);
+      break;
+    default: {
+      const msg = document.createElement('p');
+      msg.className = 'empty-state__message';
+      msg.textContent = `Hoja no reconocida: ${sheetId}`;
+      container.appendChild(msg);
+    }
+  }
+}
+
+function renderDCAdminRoute(main) {
+  main.textContent = '';
+  renderAdminView(main);
 }
 
 /* ------------------------------------------------------------------ */
@@ -303,6 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
+
+  // Listen for DC auth expiration — redirect to login when token expires
+  window.addEventListener('dc:auth-expired', () => {
+    clearToken();
+    window.location.hash = '#/data-collection/login';
+  });
 
   // Render header
   renderAppHeader();
