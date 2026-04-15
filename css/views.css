@@ -42,26 +42,23 @@
 
 /* --- Matrix Wrapper --- */
 .matrix-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
 /* --- Matrix Table --- */
 .matrix-table {
-  min-width: 900px;
+  width: 100%;
+  table-layout: fixed;
   font-size: var(--font-size-small);
 }
 
 .matrix-header-company {
-  min-width: 160px;
-  white-space: nowrap;
+  width: 160px;
 }
 
 .matrix-header-track {
   text-align: center;
-  padding: var(--space-2);
-  min-width: 60px;
-  max-width: 90px;
+  padding: var(--space-1);
   vertical-align: bottom;
 }
 
@@ -96,7 +93,7 @@
 
 .matrix-cell-company {
   font-weight: var(--font-weight-medium);
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .matrix-cell-company__year {
