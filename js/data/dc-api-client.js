@@ -88,15 +88,15 @@ async function request(path, options = {}) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Login with credentials, stores JWT in localStorage on success.
- * @param {string} username
- * @param {string} password
+ * Login con Firebase ID token (Google SSO).
+ * El backend verifica el token y retorna un JWT de sesión DC.
+ * @param {string} idToken — Firebase ID token del usuario autenticado
  * @returns {Promise<{ ok: boolean, user?: object, error?: string }>}
  */
-export async function login(username, password) {
-  const body = await request('/auth/login', {
+export async function loginWithGoogle(idToken) {
+  const body = await request('/auth/google', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ idToken }),
   });
   if (body.ok) {
     setToken(body.data.token);
@@ -238,6 +238,12 @@ export async function updateUser(id, data) {
   });
 }
 
+export async function deleteUser(id) {
+  return request(`/users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /*  Admin — Assignments                                                */
 /* ------------------------------------------------------------------ */
@@ -257,6 +263,26 @@ export async function deleteAssignment(id) {
   return request(`/assignments/${id}`, {
     method: 'DELETE',
   });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Audit Log                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Consulta el audit log (solo admin).
+ * @param {{ companyId?, userEmail?, sheetId?, from?, to?, limit? }} filters
+ */
+export async function fetchAuditLog(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.companyId) params.set('companyId', filters.companyId);
+  if (filters.userEmail) params.set('userEmail', filters.userEmail);
+  if (filters.sheetId) params.set('sheetId', filters.sheetId);
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.limit) params.set('limit', filters.limit);
+  const qs = params.toString();
+  return request(`/audit-log${qs ? `?${qs}` : ''}`);
 }
 
 /* ------------------------------------------------------------------ */

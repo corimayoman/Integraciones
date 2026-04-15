@@ -1,17 +1,16 @@
 /**
- * Admin View — Data Collection Module (Redesigned)
+ * Admin View — Data Collection Module
  *
- * Company-centric admin panel. Each company expands to show assigned users.
- * Users section with inline modals (no window.prompt/confirm).
- * Import CSV section integrated.
+ * Panel de administración: gestión de empresas, usuarios con empresa asignada,
+ * audit log de cambios e importación CSV.
  *
  * @module dc/admin-view
  */
 
 import {
-  fetchUsers, createUser, updateUser,
-  fetchAssignments, createAssignment, deleteAssignment,
-  fetchCompanies, createCompany, deleteCompany, getCurrentUser,
+  fetchUsers, createUser, updateUser, deleteUser,
+  fetchCompanies, createCompany, deleteCompany, updateCompany,
+  fetchAuditLog, getCurrentUser,
 } from '../../data/dc-api-client.js';
 import { createSpinner, createErrorState, createEmptyState } from '../components.js';
 import { renderImportView } from './import-view.js';
@@ -22,25 +21,19 @@ import { renderImportView } from './import-view.js';
 
 let usersCache = null;
 let companiesCache = null;
-/** Map<companyId, assignment[]> */
-let assignmentsByCompany = new Map();
-/** @type {number|null} Company ID currently expanded */
-let expandedCompanyId = null;
-/** @type {'companies'|'users'|'import'} */
+/** @type {'companies'|'users'|'audit'|'import'} */
 let activeTab = 'companies';
-/** @type {HTMLElement|null} Currently open modal */
+/** @type {HTMLElement|null} */
 let openModal = null;
 
 /* ------------------------------------------------------------------ */
-/*  Main render                                                        */
+/*  Entry point                                                        */
 /* ------------------------------------------------------------------ */
 
 export function renderAdminView(container) {
   container.textContent = '';
   usersCache = null;
   companiesCache = null;
-  assignmentsByCompany = new Map();
-  expandedCompanyId = null;
   activeTab = 'companies';
   openModal = null;
 
@@ -53,7 +46,6 @@ export function renderAdminView(container) {
   const wrapper = document.createElement('div');
   wrapper.className = 'dc-admin';
 
-  // Header
   const header = document.createElement('div');
   header.className = 'dc-admin__header';
 
@@ -61,7 +53,6 @@ export function renderAdminView(container) {
   backLink.href = '#/data-collection';
   backLink.className = 'btn btn--secondary btn--sm';
   backLink.textContent = '← Empresas';
-  backLink.setAttribute('aria-label', 'Volver a lista de empresas');
   header.appendChild(backLink);
 
   const title = document.createElement('h2');
@@ -70,11 +61,8 @@ export function renderAdminView(container) {
   header.appendChild(title);
 
   wrapper.appendChild(header);
+  wrapper.appendChild(buildTabs(wrapper));
 
-  // Tabs
-  wrapper.appendChild(buildTabs());
-
-  // Content area
   const content = document.createElement('div');
   content.id = 'dc-admin-content';
   wrapper.appendChild(content);
@@ -83,23 +71,24 @@ export function renderAdminView(container) {
   content.appendChild(spinner);
   container.appendChild(wrapper);
 
-  loadAdminData(content, spinner);
+  loadData(content, spinner);
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tabs                                                               */
 /* ------------------------------------------------------------------ */
 
-function buildTabs() {
+function buildTabs(wrapper) {
+  const tabs = [
+    { id: 'companies', label: '🏢 Empresas' },
+    { id: 'users',     label: '👤 Usuarios' },
+    { id: 'audit',     label: '📋 Audit Log' },
+    { id: 'import',    label: '📥 Importar CSV' },
+  ];
+
   const nav = document.createElement('nav');
   nav.className = 'dc-admin__tabs';
   nav.setAttribute('role', 'tablist');
-
-  const tabs = [
-    { id: 'companies', label: 'Empresas', icon: '🏢' },
-    { id: 'users', label: 'Usuarios', icon: '👤' },
-    { id: 'import', label: 'Importar CSV', icon: '📥' },
-  ];
 
   for (const t of tabs) {
     const btn = document.createElement('button');
@@ -107,10 +96,9 @@ function buildTabs() {
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', activeTab === t.id ? 'true' : 'false');
     btn.dataset.tab = t.id;
-    btn.textContent = `${t.icon} ${t.label}`;
+    btn.textContent = t.label;
     btn.addEventListener('click', () => {
       activeTab = t.id;
-      // Update tab styles
       nav.querySelectorAll('.dc-admin__tab').forEach(b => {
         b.classList.toggle('dc-admin__tab--active', b.dataset.tab === t.id);
         b.setAttribute('aria-selected', b.dataset.tab === t.id ? 'true' : 'false');
@@ -127,50 +115,23 @@ function buildTabs() {
 /*  Data loading                                                       */
 /* ------------------------------------------------------------------ */
 
-async function loadAdminData(content, spinner) {
+async function loadData(content, spinner) {
   try {
-    const [usersResult, companiesResult] = await Promise.all([
-      fetchUsers(),
-      fetchCompanies(),
-    ]);
+    const [usersResult, companiesResult] = await Promise.all([fetchUsers(), fetchCompanies()]);
     spinner.remove();
 
     if (!usersResult.ok) {
-      content.appendChild(createErrorState(
-        usersResult.error || 'Error al cargar usuarios.',
-        () => renderAdminView(content.parentElement)
-      ));
+      content.appendChild(createErrorState(usersResult.error || 'Error al cargar usuarios.'));
       return;
     }
 
     usersCache = usersResult.data || [];
     companiesCache = companiesResult.ok ? (companiesResult.data || []) : [];
-
-    // Preload assignments for all users
-    await loadAllAssignments();
-
     renderActiveTab();
   } catch {
     spinner.remove();
     content.appendChild(createErrorState('Error de conexión.'));
   }
-}
-
-async function loadAllAssignments() {
-  assignmentsByCompany = new Map();
-  const promises = (usersCache || []).map(async (user) => {
-    try {
-      const r = await fetchAssignments(user.id);
-      if (r.ok) {
-        for (const a of (r.data || [])) {
-          const cid = a.company_id;
-          if (!assignmentsByCompany.has(cid)) assignmentsByCompany.set(cid, []);
-          assignmentsByCompany.get(cid).push({ ...a, user_name: user.name, user_id: user.id, user_active: user.active });
-        }
-      }
-    } catch { /* silent */ }
-  });
-  await Promise.all(promises);
 }
 
 function renderActiveTab() {
@@ -179,16 +140,16 @@ function renderActiveTab() {
   content.textContent = '';
 
   if (activeTab === 'companies') renderCompaniesTab(content);
-  else if (activeTab === 'users') renderUsersTab(content);
+  else if (activeTab === 'users')  renderUsersTab(content);
+  else if (activeTab === 'audit')  renderAuditTab(content);
   else if (activeTab === 'import') renderImportTab(content);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Companies Tab (company-centric view)                               */
+/*  Companies Tab                                                      */
 /* ------------------------------------------------------------------ */
 
 function renderCompaniesTab(container) {
-  // Create company form
   container.appendChild(buildCreateCompanyForm());
 
   if (!companiesCache || companiesCache.length === 0) {
@@ -196,204 +157,48 @@ function renderCompaniesTab(container) {
     return;
   }
 
-  const grid = document.createElement('div');
-  grid.className = 'dc-admin__company-grid';
+  const list = document.createElement('div');
+  list.className = 'dc-admin__company-list';
 
   for (const company of companiesCache) {
-    grid.appendChild(buildCompanyCard(company));
-  }
-  container.appendChild(grid);
-}
+    const row = document.createElement('div');
+    row.className = 'dc-admin__company-row';
 
-function buildCompanyCard(company) {
-  const card = document.createElement('div');
-  card.className = `dc-admin__company-card${expandedCompanyId === company.id ? ' dc-admin__company-card--expanded' : ''}`;
+    const name = document.createElement('span');
+    name.className = 'dc-admin__company-row-name';
+    name.textContent = company.name;
+    row.appendChild(name);
 
-  // Card header (clickable to expand)
-  const header = document.createElement('div');
-  header.className = 'dc-admin__company-card-header';
-  header.addEventListener('click', () => {
-    expandedCompanyId = expandedCompanyId === company.id ? null : company.id;
-    renderActiveTab();
-  });
+    // Usuarios asignados a esta empresa
+    const usersOfCompany = (usersCache || []).filter(u => u.company_id === company.id);
+    const badge = document.createElement('span');
+    badge.className = 'dc-admin__company-user-count';
+    badge.textContent = `${usersOfCompany.length} usuario${usersOfCompany.length !== 1 ? 's' : ''}`;
+    row.appendChild(badge);
 
-  const icon = document.createElement('span');
-  icon.className = 'dc-admin__company-icon';
-  icon.textContent = '🏢';
-  header.appendChild(icon);
+    const spacer = document.createElement('span');
+    spacer.style.flex = '1';
+    row.appendChild(spacer);
 
-  const info = document.createElement('div');
-  info.className = 'dc-admin__company-info';
-
-  const name = document.createElement('span');
-  name.className = 'dc-admin__company-name';
-  name.textContent = company.name;
-  info.appendChild(name);
-
-  const assignments = assignmentsByCompany.get(company.id) || [];
-  const count = document.createElement('span');
-  count.className = 'dc-admin__company-user-count';
-  count.textContent = `${assignments.length} usuario${assignments.length !== 1 ? 's' : ''}`;
-  info.appendChild(count);
-
-  header.appendChild(info);
-
-  const arrow = document.createElement('span');
-  arrow.className = 'dc-admin__company-arrow';
-  arrow.textContent = expandedCompanyId === company.id ? '▾' : '▸';
-  header.appendChild(arrow);
-
-  card.appendChild(header);
-
-  // Expanded content
-  if (expandedCompanyId === company.id) {
-    const body = document.createElement('div');
-    body.className = 'dc-admin__company-body';
-
-    // Assigned users list
-    if (assignments.length > 0) {
-      const list = document.createElement('div');
-      list.className = 'dc-admin__assigned-users';
-
-      for (const a of assignments) {
-        const row = document.createElement('div');
-        row.className = 'dc-admin__assigned-user';
-
-        const userInfo = document.createElement('div');
-        userInfo.className = 'dc-admin__assigned-user-info';
-
-        const userName = document.createElement('span');
-        userName.className = 'dc-admin__assigned-user-name';
-        userName.textContent = a.user_name || `Usuario #${a.user_id}`;
-        userInfo.appendChild(userName);
-
-        const roleBadge = document.createElement('span');
-        roleBadge.className = `dc-admin__role-badge dc-admin__role-badge--${a.role}`;
-        roleBadge.textContent = a.role === 'empresa' ? '🏢 Empresa' : '🌐 Globant';
-        userInfo.appendChild(roleBadge);
-
-        if (a.user_active === 0) {
-          const inactiveBadge = document.createElement('span');
-          inactiveBadge.className = 'dc-admin__user-status dc-admin__user-status--inactive';
-          inactiveBadge.textContent = 'Inactivo';
-          userInfo.appendChild(inactiveBadge);
-        }
-
-        row.appendChild(userInfo);
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn btn--danger btn--sm';
-        removeBtn.textContent = '✕';
-        removeBtn.title = `Quitar ${a.user_name} de ${company.name}`;
-        removeBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          showConfirmModal(
-            `¿Quitar a "${a.user_name}" de "${company.name}"?`,
-            async () => {
-              const r = await deleteAssignment(a.id);
-              if (r.ok) { await reloadAll(); }
-              else showToast(r.error || 'Error al quitar asignación.', 'error');
-            }
-          );
-        });
-        row.appendChild(removeBtn);
-        list.appendChild(row);
-      }
-      body.appendChild(list);
-    } else {
-      const empty = document.createElement('p');
-      empty.className = 'dc-admin__empty-text';
-      empty.textContent = 'Sin usuarios asignados.';
-      body.appendChild(empty);
-    }
-
-    // Add user form
-    body.appendChild(buildAddUserToCompanyForm(company));
-
-    // Delete company button
-    const dangerZone = document.createElement('div');
-    dangerZone.className = 'dc-admin__danger-zone';
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn btn--danger btn--sm';
-    deleteBtn.textContent = '🗑 Eliminar empresa';
+    deleteBtn.textContent = '🗑';
+    deleteBtn.title = `Eliminar ${company.name}`;
     deleteBtn.addEventListener('click', () => {
       showConfirmModal(
         `¿Eliminar "${company.name}" y todos sus datos? Esta acción no se puede deshacer.`,
         async () => {
           const r = await deleteCompany(company.id);
-          if (r.ok) { expandedCompanyId = null; await reloadAll(); }
+          if (r.ok) { await reloadData(); }
           else showToast(r.error || 'Error al eliminar.', 'error');
         }
       );
     });
-    dangerZone.appendChild(deleteBtn);
-    body.appendChild(dangerZone);
-
-    card.appendChild(body);
+    row.appendChild(deleteBtn);
+    list.appendChild(row);
   }
 
-  return card;
-}
-
-function buildAddUserToCompanyForm(company) {
-  const form = document.createElement('form');
-  form.className = 'dc-admin__add-user-form';
-
-  const label = document.createElement('span');
-  label.className = 'dc-admin__add-user-label';
-  label.textContent = '+ Agregar usuario';
-  form.appendChild(label);
-
-  const userSelect = document.createElement('select');
-  userSelect.className = 'dc-admin__select';
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = 'Seleccionar usuario...';
-  userSelect.appendChild(defaultOpt);
-
-  const currentAssignments = assignmentsByCompany.get(company.id) || [];
-  const assignedUserIds = new Set(currentAssignments.map(a => a.user_id));
-
-  for (const u of (usersCache || [])) {
-    if (assignedUserIds.has(u.id)) continue;
-    if (!u.active) continue;
-    const opt = document.createElement('option');
-    opt.value = u.id;
-    opt.textContent = u.name;
-    userSelect.appendChild(opt);
-  }
-  form.appendChild(userSelect);
-
-  const roleSelect = document.createElement('select');
-  roleSelect.className = 'dc-admin__select';
-  for (const [val, lbl] of [['empresa', 'Rol: Empresa'], ['globant', 'Rol: Globant']]) {
-    const opt = document.createElement('option');
-    opt.value = val;
-    opt.textContent = lbl;
-    roleSelect.appendChild(opt);
-  }
-  form.appendChild(roleSelect);
-
-  const btn = document.createElement('button');
-  btn.type = 'submit';
-  btn.className = 'btn btn--primary btn--sm';
-  btn.textContent = 'Asignar';
-  form.appendChild(btn);
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const userId = Number(userSelect.value);
-    if (!userId) return;
-    btn.disabled = true;
-    try {
-      const r = await createAssignment({ userId, companyId: company.id, role: roleSelect.value });
-      if (r.ok) { await reloadAll(); }
-      else showToast(r.error || 'Error al asignar.', 'error');
-    } catch { showToast('Error de conexión.', 'error'); }
-    finally { btn.disabled = false; }
-  });
-
-  return form;
+  container.appendChild(list);
 }
 
 function buildCreateCompanyForm() {
@@ -426,11 +231,12 @@ function buildCreateCompanyForm() {
     btn.disabled = true;
     try {
       const result = await createCompany({ name });
-      if (result.ok) { input.value = ''; await reloadAll(); }
+      if (result.ok) { input.value = ''; await reloadData(); }
       else { errorEl.textContent = result.error || 'Error.'; errorEl.style.display = ''; }
     } catch { errorEl.textContent = 'Error de conexión.'; errorEl.style.display = ''; }
     finally { btn.disabled = false; }
   });
+
   return form;
 }
 
@@ -467,17 +273,23 @@ function buildUserCard(user) {
   nameSpan.textContent = user.name;
   header.appendChild(nameSpan);
 
-  const usernameSpan = document.createElement('span');
-  usernameSpan.className = 'dc-admin__user-username';
-  usernameSpan.textContent = `@${user.username}`;
-  header.appendChild(usernameSpan);
+  const emailSpan = document.createElement('span');
+  emailSpan.className = 'dc-admin__user-username';
+  emailSpan.textContent = user.email;
+  header.appendChild(emailSpan);
+
+  // Empresa asignada
+  const company = (companiesCache || []).find(c => c.id === user.company_id);
+  const companySpan = document.createElement('span');
+  companySpan.className = 'dc-admin__user-company';
+  companySpan.textContent = company ? `🏢 ${company.name}` : '—';
+  header.appendChild(companySpan);
 
   const statusBadge = document.createElement('span');
   statusBadge.className = `dc-admin__user-status dc-admin__user-status--${user.active ? 'active' : 'inactive'}`;
   statusBadge.textContent = user.active ? 'Activo' : 'Inactivo';
   header.appendChild(statusBadge);
 
-  // Role badge
   if (user.role === 'admin') {
     const adminBadge = document.createElement('span');
     adminBadge.className = 'dc-admin__role-badge dc-admin__role-badge--admin';
@@ -489,7 +301,6 @@ function buildUserCard(user) {
   spacer.style.flex = '1';
   header.appendChild(spacer);
 
-  // Actions
   const actions = document.createElement('div');
   actions.className = 'dc-admin__user-actions';
 
@@ -498,12 +309,6 @@ function buildUserCard(user) {
   editBtn.textContent = '✎ Editar';
   editBtn.addEventListener('click', () => showEditUserModal(user));
   actions.appendChild(editBtn);
-
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'btn btn--secondary btn--sm';
-  resetBtn.textContent = '🔑 Contraseña';
-  resetBtn.addEventListener('click', () => showResetPasswordModal(user));
-  actions.appendChild(resetBtn);
 
   const toggleBtn = document.createElement('button');
   toggleBtn.className = `btn btn--sm ${user.active ? 'btn--danger' : 'btn--primary'}`;
@@ -514,7 +319,7 @@ function buildUserCard(user) {
       `¿${action.charAt(0).toUpperCase() + action.slice(1)} a "${user.name}"?`,
       async () => {
         const r = await updateUser(user.id, { active: user.active ? 0 : 1 });
-        if (r.ok) await reloadAll();
+        if (r.ok) await reloadData();
         else showToast(r.error || 'Error.', 'error');
       }
     );
@@ -523,30 +328,6 @@ function buildUserCard(user) {
 
   header.appendChild(actions);
   card.appendChild(header);
-
-  // Show assigned companies
-  const companyAssignments = [];
-  for (const [cid, assigns] of assignmentsByCompany) {
-    for (const a of assigns) {
-      if (a.user_id === user.id) {
-        const company = companiesCache.find(c => c.id === cid);
-        companyAssignments.push({ ...a, company_name: company?.name || `#${cid}` });
-      }
-    }
-  }
-
-  if (companyAssignments.length > 0) {
-    const chips = document.createElement('div');
-    chips.className = 'dc-admin__user-companies';
-    for (const a of companyAssignments) {
-      const chip = document.createElement('span');
-      chip.className = `dc-admin__company-chip dc-admin__company-chip--${a.role}`;
-      chip.textContent = `${a.company_name} (${a.role})`;
-      chips.appendChild(chip);
-    }
-    card.appendChild(chips);
-  }
-
   return card;
 }
 
@@ -568,9 +349,32 @@ function buildCreateUserForm() {
   errorEl.style.display = 'none';
   form.appendChild(errorEl);
 
-  const nameInput = createFormField(form, 'dc-new-name', 'Nombre', 'text');
-  const usernameInput = createFormField(form, 'dc-new-username', 'Usuario', 'text');
-  const passwordInput = createFormField(form, 'dc-new-password', 'Contraseña', 'password');
+  const nameInput = createFormField(form, 'dc-new-name', 'Nombre completo', 'text');
+  const emailInput = createFormField(form, 'dc-new-email', 'Email (@globant.com)', 'email');
+
+  // Selector de empresa
+  const companyGroup = document.createElement('div');
+  companyGroup.className = 'dc-admin__field';
+  const companyLabel = document.createElement('label');
+  companyLabel.className = 'dc-admin__label';
+  companyLabel.setAttribute('for', 'dc-new-company');
+  companyLabel.textContent = 'Empresa';
+  companyGroup.appendChild(companyLabel);
+  const companySelect = document.createElement('select');
+  companySelect.id = 'dc-new-company';
+  companySelect.className = 'dc-admin__select';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = '— Sin empresa asignada —';
+  companySelect.appendChild(defaultOpt);
+  for (const c of (companiesCache || [])) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    companySelect.appendChild(opt);
+  }
+  companyGroup.appendChild(companySelect);
+  form.appendChild(companyGroup);
 
   const submitBtn = document.createElement('button');
   submitBtn.type = 'submit';
@@ -582,18 +386,18 @@ function buildCreateUserForm() {
     e.preventDefault();
     errorEl.style.display = 'none';
     const name = nameInput.value.trim();
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value;
-    if (!name || !username || !password) {
-      errorEl.textContent = 'Todos los campos son requeridos.';
+    const email = emailInput.value.trim().toLowerCase();
+    const companyId = companySelect.value ? Number(companySelect.value) : null;
+    if (!name || !email) {
+      errorEl.textContent = 'Nombre y email son requeridos.';
       errorEl.style.display = '';
       return;
     }
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creando...';
     try {
-      const result = await createUser({ name, username, password });
-      if (result.ok) { nameInput.value = ''; usernameInput.value = ''; passwordInput.value = ''; await reloadAll(); }
+      const result = await createUser({ name, email, companyId });
+      if (result.ok) { nameInput.value = ''; emailInput.value = ''; companySelect.value = ''; await reloadData(); }
       else { errorEl.textContent = result.error || 'Error.'; errorEl.style.display = ''; }
     } catch { errorEl.textContent = 'Error de conexión.'; errorEl.style.display = ''; }
     finally { submitBtn.disabled = false; submitBtn.textContent = 'Crear Usuario'; }
@@ -622,6 +426,187 @@ function createFormField(form, id, label, type) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Audit Log Tab                                                      */
+/* ------------------------------------------------------------------ */
+
+function renderAuditTab(container) {
+  const section = document.createElement('div');
+  section.className = 'dc-admin__audit';
+
+  // Filtros
+  const filtersRow = document.createElement('div');
+  filtersRow.className = 'dc-admin__audit-filters';
+
+  // Empresa
+  const companySelect = document.createElement('select');
+  companySelect.className = 'dc-admin__select';
+  const allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = 'Todas las empresas';
+  companySelect.appendChild(allOpt);
+  for (const c of (companiesCache || [])) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    companySelect.appendChild(opt);
+  }
+  filtersRow.appendChild(companySelect);
+
+  // Hoja
+  const sheetSelect = document.createElement('select');
+  sheetSelect.className = 'dc-admin__select';
+  const sheets = [
+    { value: '', label: 'Todas las hojas' },
+    { value: 'apps', label: 'Apps' },
+    { value: 'compliance', label: 'Compliance' },
+    { value: 'endpoints', label: 'Endpoints' },
+    { value: 'infrastructure', label: 'Infrastructure' },
+    { value: 'it_experience', label: 'IT Experience' },
+    { value: 'mst', label: 'MST' },
+    { value: 'building_security', label: 'Building Security' },
+  ];
+  for (const s of sheets) {
+    const opt = document.createElement('option');
+    opt.value = s.value;
+    opt.textContent = s.label;
+    sheetSelect.appendChild(opt);
+  }
+  filtersRow.appendChild(sheetSelect);
+
+  // Email
+  const emailInput = document.createElement('input');
+  emailInput.type = 'text';
+  emailInput.className = 'dc-admin__input';
+  emailInput.placeholder = 'Email del usuario...';
+  emailInput.style.minWidth = '200px';
+  filtersRow.appendChild(emailInput);
+
+  // Desde
+  const fromInput = document.createElement('input');
+  fromInput.type = 'date';
+  fromInput.className = 'dc-admin__input';
+  fromInput.title = 'Desde';
+  filtersRow.appendChild(fromInput);
+
+  // Hasta
+  const toInput = document.createElement('input');
+  toInput.type = 'date';
+  toInput.className = 'dc-admin__input';
+  toInput.title = 'Hasta';
+  filtersRow.appendChild(toInput);
+
+  // Botón buscar
+  const searchBtn = document.createElement('button');
+  searchBtn.type = 'button';
+  searchBtn.className = 'btn btn--primary btn--sm';
+  searchBtn.textContent = '🔍 Buscar';
+  filtersRow.appendChild(searchBtn);
+
+  section.appendChild(filtersRow);
+
+  // Resultados
+  const resultsDiv = document.createElement('div');
+  resultsDiv.id = 'dc-audit-results';
+  section.appendChild(resultsDiv);
+  container.appendChild(section);
+
+  // Carga inicial
+  loadAuditResults(resultsDiv, {});
+
+  searchBtn.addEventListener('click', () => {
+    loadAuditResults(resultsDiv, {
+      companyId: companySelect.value || undefined,
+      sheetId: sheetSelect.value || undefined,
+      userEmail: emailInput.value.trim() || undefined,
+      from: fromInput.value || undefined,
+      to: toInput.value || undefined,
+    });
+  });
+}
+
+async function loadAuditResults(container, filters) {
+  container.textContent = '';
+  const spinner = createSpinner('sm');
+  container.appendChild(spinner);
+
+  try {
+    const result = await fetchAuditLog(filters);
+    spinner.remove();
+
+    if (!result.ok) {
+      container.appendChild(createErrorState(result.error || 'Error al cargar el audit log.'));
+      return;
+    }
+
+    const entries = result.data || [];
+    if (entries.length === 0) {
+      container.appendChild(createEmptyState('No hay registros para los filtros seleccionados.'));
+      return;
+    }
+
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'dc-inventory__table-wrapper';
+
+    const table = document.createElement('table');
+    table.className = 'table dc-admin__audit-table';
+
+    const headers = ['Fecha/Hora', 'Usuario', 'Empresa', 'Hoja', 'Acción', 'Campo', 'Valor anterior', 'Valor nuevo'];
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    for (const h of headers) {
+      const th = document.createElement('th');
+      th.className = 'dc-inventory__th';
+      th.textContent = h;
+      headerRow.appendChild(th);
+    }
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    for (const entry of entries) {
+      const tr = document.createElement('tr');
+      tr.className = 'dc-inventory__row';
+
+      const actionClass = entry.action === 'INSERT' ? 'audit-insert'
+        : entry.action === 'DELETE' ? 'audit-delete' : 'audit-update';
+
+      const cells = [
+        new Date(entry.changed_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }),
+        entry.user_email,
+        entry.company_name || '—',
+        entry.sheet_id || '—',
+        entry.action,
+        entry.field_name || '—',
+        entry.old_value ?? '—',
+        entry.new_value ?? '—',
+      ];
+
+      cells.forEach((val, i) => {
+        const td = document.createElement('td');
+        td.className = 'dc-inventory__td';
+        if (i === 4) td.classList.add(`dc-admin__audit-action--${actionClass}`);
+        td.textContent = val;
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+
+    const count = document.createElement('p');
+    count.className = 'dc-admin__audit-count';
+    count.textContent = `${entries.length} registro${entries.length !== 1 ? 's' : ''}`;
+    container.appendChild(count);
+
+  } catch {
+    spinner.remove();
+    container.appendChild(createErrorState('Error de conexión.'));
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Import Tab                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -633,7 +618,87 @@ function renderImportTab(container) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Inline Modals (replace window.prompt / window.confirm)             */
+/*  Edit User Modal                                                    */
+/* ------------------------------------------------------------------ */
+
+function showEditUserModal(user) {
+  const content = document.createElement('div');
+  content.className = 'dc-admin__modal-content';
+
+  const title = document.createElement('h3');
+  title.className = 'dc-admin__modal-title';
+  title.textContent = `Editar: ${user.name}`;
+  content.appendChild(title);
+
+  // Nombre
+  const nameGroup = document.createElement('div');
+  nameGroup.className = 'dc-admin__field';
+  const nameLabel = document.createElement('label');
+  nameLabel.className = 'dc-admin__label';
+  nameLabel.textContent = 'Nombre';
+  nameGroup.appendChild(nameLabel);
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'dc-admin__input';
+  nameInput.value = user.name;
+  nameGroup.appendChild(nameInput);
+  content.appendChild(nameGroup);
+
+  // Empresa
+  const companyGroup = document.createElement('div');
+  companyGroup.className = 'dc-admin__field';
+  const companyLabel = document.createElement('label');
+  companyLabel.className = 'dc-admin__label';
+  companyLabel.textContent = 'Empresa';
+  companyGroup.appendChild(companyLabel);
+  const companySelect = document.createElement('select');
+  companySelect.className = 'dc-admin__select';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = '— Sin empresa —';
+  companySelect.appendChild(noneOpt);
+  for (const c of (companiesCache || [])) {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    if (c.id === user.company_id) opt.selected = true;
+    companySelect.appendChild(opt);
+  }
+  companyGroup.appendChild(companySelect);
+  content.appendChild(companyGroup);
+
+  const actions = document.createElement('div');
+  actions.className = 'dc-admin__modal-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'btn btn--secondary btn--sm';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.addEventListener('click', closeModal);
+  actions.appendChild(cancelBtn);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'btn btn--primary btn--sm';
+  saveBtn.textContent = 'Guardar';
+  saveBtn.addEventListener('click', async () => {
+    const newName = nameInput.value.trim();
+    const newCompanyId = companySelect.value ? Number(companySelect.value) : null;
+    if (!newName) { closeModal(); return; }
+    saveBtn.disabled = true;
+    try {
+      const r = await updateUser(user.id, { name: newName, companyId: newCompanyId });
+      if (r.ok) { await reloadData(); showToast('Usuario actualizado.', 'success'); }
+      else showToast(r.error || 'Error.', 'error');
+    } catch { showToast('Error de conexión.', 'error'); }
+    closeModal();
+  });
+  actions.appendChild(saveBtn);
+
+  content.appendChild(actions);
+  showModal(content);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Modals                                                             */
 /* ------------------------------------------------------------------ */
 
 function showModal(content) {
@@ -648,20 +713,15 @@ function showModal(content) {
   modal.setAttribute('aria-modal', 'true');
   modal.appendChild(content);
   overlay.appendChild(modal);
-
   document.body.appendChild(overlay);
   openModal = overlay;
 
-  // Focus first input or button
-  const focusable = modal.querySelector('input, button');
+  const focusable = modal.querySelector('input, button, select');
   if (focusable) focusable.focus();
 }
 
 function closeModal() {
-  if (openModal) {
-    openModal.remove();
-    openModal = null;
-  }
+  if (openModal) { openModal.remove(); openModal = null; }
 }
 
 function showConfirmModal(message, onConfirm) {
@@ -697,97 +757,8 @@ function showConfirmModal(message, onConfirm) {
   showModal(content);
 }
 
-function showEditUserModal(user) {
-  const content = document.createElement('div');
-  content.className = 'dc-admin__modal-content';
-
-  const title = document.createElement('h3');
-  title.className = 'dc-admin__modal-title';
-  title.textContent = `Editar: ${user.name}`;
-  content.appendChild(title);
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'dc-admin__input';
-  input.value = user.name;
-  input.placeholder = 'Nuevo nombre';
-  content.appendChild(input);
-
-  const actions = document.createElement('div');
-  actions.className = 'dc-admin__modal-actions';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn btn--secondary btn--sm';
-  cancelBtn.textContent = 'Cancelar';
-  cancelBtn.addEventListener('click', closeModal);
-  actions.appendChild(cancelBtn);
-
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'btn btn--primary btn--sm';
-  saveBtn.textContent = 'Guardar';
-  saveBtn.addEventListener('click', async () => {
-    const newName = input.value.trim();
-    if (!newName || newName === user.name) { closeModal(); return; }
-    saveBtn.disabled = true;
-    try {
-      const r = await updateUser(user.id, { name: newName });
-      if (r.ok) { await reloadAll(); showToast('Nombre actualizado.', 'success'); }
-      else showToast(r.error || 'Error.', 'error');
-    } catch { showToast('Error de conexión.', 'error'); }
-    closeModal();
-  });
-  actions.appendChild(saveBtn);
-
-  content.appendChild(actions);
-  showModal(content);
-}
-
-function showResetPasswordModal(user) {
-  const content = document.createElement('div');
-  content.className = 'dc-admin__modal-content';
-
-  const title = document.createElement('h3');
-  title.className = 'dc-admin__modal-title';
-  title.textContent = `Nueva contraseña: ${user.name}`;
-  content.appendChild(title);
-
-  const input = document.createElement('input');
-  input.type = 'password';
-  input.className = 'dc-admin__input';
-  input.placeholder = 'Nueva contraseña';
-  content.appendChild(input);
-
-  const actions = document.createElement('div');
-  actions.className = 'dc-admin__modal-actions';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'btn btn--secondary btn--sm';
-  cancelBtn.textContent = 'Cancelar';
-  cancelBtn.addEventListener('click', closeModal);
-  actions.appendChild(cancelBtn);
-
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'btn btn--primary btn--sm';
-  saveBtn.textContent = 'Restablecer';
-  saveBtn.addEventListener('click', async () => {
-    const password = input.value;
-    if (!password) { closeModal(); return; }
-    saveBtn.disabled = true;
-    try {
-      const r = await updateUser(user.id, { password });
-      if (r.ok) showToast('Contraseña restablecida.', 'success');
-      else showToast(r.error || 'Error.', 'error');
-    } catch { showToast('Error de conexión.', 'error'); }
-    closeModal();
-  });
-  actions.appendChild(saveBtn);
-
-  content.appendChild(actions);
-  showModal(content);
-}
-
 /* ------------------------------------------------------------------ */
-/*  Toast notifications                                                */
+/*  Toast                                                              */
 /* ------------------------------------------------------------------ */
 
 function showToast(message, type = 'info') {
@@ -796,7 +767,6 @@ function showToast(message, type = 'info') {
   toast.textContent = message;
   toast.setAttribute('role', 'status');
   document.body.appendChild(toast);
-  // Trigger animation
   requestAnimationFrame(() => toast.classList.add('dc-admin__toast--visible'));
   setTimeout(() => {
     toast.classList.remove('dc-admin__toast--visible');
@@ -805,18 +775,14 @@ function showToast(message, type = 'info') {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Reload helper                                                      */
+/*  Reload                                                             */
 /* ------------------------------------------------------------------ */
 
-async function reloadAll() {
+async function reloadData() {
   try {
-    const [usersResult, companiesResult] = await Promise.all([
-      fetchUsers(),
-      fetchCompanies(),
-    ]);
+    const [usersResult, companiesResult] = await Promise.all([fetchUsers(), fetchCompanies()]);
     if (usersResult.ok) usersCache = usersResult.data || [];
     if (companiesResult.ok) companiesCache = companiesResult.data || [];
-    await loadAllAssignments();
     renderActiveTab();
   } catch { /* silent */ }
 }
