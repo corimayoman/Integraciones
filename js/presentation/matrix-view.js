@@ -16,7 +16,7 @@ import {
   sortCompaniesByYear,
   getCompanyOverallStatus,
 } from '../business/presentation-utils.js';
-import { createTooltip } from './components.js';
+import { createBadge, createTooltip } from './components.js';
 
 /** @type {HTMLElement|null} */
 let matrixContainer = null;
