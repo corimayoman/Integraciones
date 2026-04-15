@@ -15,7 +15,7 @@ import { calculateKPIs, calculateYearSummary, calculateSeverityChart } from '../
 let kpiContainer = null;
 
 /**
- * Render the KPI panel into the given container.
+ * Render only the KPI cards into the given container.
  *
  * @param {HTMLElement} container
  * @param {object} model - DashboardModel
@@ -23,36 +23,45 @@ let kpiContainer = null;
 export function renderKPIPanel(container, model) {
   kpiContainer = container;
   container.textContent = '';
-
-  const kpis = calculateKPIs(model);
-  const yearSummary = calculateYearSummary(model);
-  const chartData = calculateSeverityChart(model);
-
-  // KPI Cards
-  const cardsSection = buildKPICards(kpis);
-  container.appendChild(cardsSection);
-
-  // Year Summary Table
-  if (yearSummary.length > 0) {
-    const tableSection = buildYearSummaryTable(yearSummary);
-    container.appendChild(tableSection);
-  }
-
-  // Severity Bar Chart
-  if (chartData.years.length > 0) {
-    const chartSection = buildSeverityChart(chartData);
-    container.appendChild(chartSection);
-  }
+  container.appendChild(buildKPICards(calculateKPIs(model)));
 }
 
 /**
- * Update the KPI panel with new model data.
+ * Update the KPI cards with new model data.
  *
  * @param {object} model - DashboardModel
  */
 export function updateKPIPanel(model) {
   if (!kpiContainer) return;
   renderKPIPanel(kpiContainer, model);
+}
+
+/**
+ * Render the year summary table into a container.
+ *
+ * @param {HTMLElement} container
+ * @param {object} model - DashboardModel
+ */
+export function renderYearSummaryPanel(container, model) {
+  container.textContent = '';
+  const yearSummary = calculateYearSummary(model);
+  if (yearSummary.length > 0) {
+    container.appendChild(buildYearSummaryTable(yearSummary));
+  }
+}
+
+/**
+ * Render the severity chart into a container.
+ *
+ * @param {HTMLElement} container
+ * @param {object} model - DashboardModel
+ */
+export function renderSeverityChartPanel(container, model) {
+  container.textContent = '';
+  const chartData = calculateSeverityChart(model);
+  if (chartData.years.length > 0) {
+    container.appendChild(buildSeverityChart(chartData));
+  }
 }
 
 

@@ -15,7 +15,7 @@ import { applyFilters } from './business/filters.js';
 import { detectDelayedTracks } from './business/alerts.js';
 import { renderHeader, updateConnectionStatus, showOfflineBanner, hideOfflineBanner, showConnectionLostBanner, hideConnectionLostBanner, updateAlertCount, setConnectingState, resetConnectingState } from './presentation/header.js';
 import { renderFilters } from './presentation/filters-view.js';
-import { renderKPIPanel, updateKPIPanel } from './presentation/kpi-panel.js';
+import { renderKPIPanel, updateKPIPanel, renderYearSummaryPanel, renderSeverityChartPanel } from './presentation/kpi-panel.js';
 import { renderMatrixView, updateMatrixView } from './presentation/matrix-view.js';
 import { renderRegionView } from './presentation/region-view.js';
 import { renderAlertsView } from './presentation/alerts-view.js';
@@ -42,6 +42,9 @@ let model = null;
 
 /** @type {object} Current filter state */
 let currentFilters = { severity: null, year: null, region: null, status: null };
+
+/** @type {string} Active sub-tab in the matrix route */
+let activeMatrixSubTab = 'empresas';
 
 /** @type {boolean} Whether we are connected to Jira */
 let isLive = false;
@@ -302,29 +305,69 @@ function renderCurrentView(route) {
 function renderMatrixRoute(main) {
   main.textContent = '';
 
-  // Filters container
+  // Filters (shared, always visible)
   const filtersContainer = document.createElement('div');
   filtersContainer.className = 'filters-container';
   filtersContainer.id = 'filters-container';
   main.appendChild(filtersContainer);
 
-  // KPI panel container
+  // KPI cards (compact, always visible)
   const kpiContainer = document.createElement('div');
   kpiContainer.className = 'kpi-container';
   kpiContainer.id = 'kpi-container';
   main.appendChild(kpiContainer);
 
-  // Matrix container
-  const matrixContainer = document.createElement('div');
-  matrixContainer.className = 'matrix-container';
-  matrixContainer.id = 'matrix-container';
-  main.appendChild(matrixContainer);
+  // Sub-tabs wrapper
+  const subtabsWrapper = document.createElement('div');
+  subtabsWrapper.className = 'matrix-subtabs';
+  main.appendChild(subtabsWrapper);
+
+  // Tab nav buttons
+  const tabNav = document.createElement('div');
+  tabNav.className = 'matrix-subtabs__nav';
+  const tabDefs = [
+    { id: 'empresas',  label: 'Estado por Empresa' },
+    { id: 'years',     label: 'Resumen por Año' },
+    { id: 'severity',  label: 'Completitud por Severidad' },
+  ];
+  for (const tab of tabDefs) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'matrix-subtab__btn' + (tab.id === activeMatrixSubTab ? ' matrix-subtab__btn--active' : '');
+    btn.dataset.tab = tab.id;
+    btn.textContent = tab.label;
+    btn.addEventListener('click', () => {
+      activeMatrixSubTab = tab.id;
+      tabNav.querySelectorAll('.matrix-subtab__btn').forEach((b) => {
+        b.classList.toggle('matrix-subtab__btn--active', b.dataset.tab === tab.id);
+      });
+      subtabsWrapper.querySelectorAll('.matrix-subtab-panel').forEach((p) => {
+        p.hidden = p.dataset.tab !== tab.id;
+      });
+    });
+    tabNav.appendChild(btn);
+  }
+  subtabsWrapper.appendChild(tabNav);
+
+  // Panel containers
+  const panels = tabDefs.map(({ id }) => {
+    const panel = document.createElement('div');
+    panel.className = 'matrix-subtab-panel';
+    panel.dataset.tab = id;
+    panel.id = `subtab-${id}`;
+    panel.hidden = id !== activeMatrixSubTab;
+    subtabsWrapper.appendChild(panel);
+    return panel;
+  });
+  const [empresasPanel, yearsPanel, severityPanel] = panels;
 
   const filteredModel = applyFilters(model, currentFilters);
 
   renderFilters(filtersContainer, model, onFilterChange);
   renderKPIPanel(kpiContainer, filteredModel);
-  renderMatrixView(matrixContainer, filteredModel);
+  renderMatrixView(empresasPanel, filteredModel);
+  renderYearSummaryPanel(yearsPanel, filteredModel);
+  renderSeverityChartPanel(severityPanel, filteredModel);
 }
 
 function renderRegionRoute(main) {
@@ -405,18 +448,16 @@ function renderDCAdminRoute(main) {
 
 function onFilterChange(filters) {
   currentFilters = { ...filters };
-
-  const kpiContainer = document.getElementById('kpi-container');
-  const matrixContainer = document.getElementById('matrix-container');
-
   const filteredModel = applyFilters(model, currentFilters);
 
-  if (kpiContainer) {
-    updateKPIPanel(filteredModel);
-  }
-  if (matrixContainer) {
-    updateMatrixView(filteredModel);
-  }
+  updateKPIPanel(filteredModel);
+  updateMatrixView(filteredModel);
+
+  const yearsPanel = document.getElementById('subtab-years');
+  if (yearsPanel) renderYearSummaryPanel(yearsPanel, filteredModel);
+
+  const severityPanel = document.getElementById('subtab-severity');
+  if (severityPanel) renderSeverityChartPanel(severityPanel, filteredModel);
 }
 
 /* ------------------------------------------------------------------ */

@@ -154,6 +154,21 @@ function buildCompanyRow(company) {
   const tdName = document.createElement('td');
   tdName.className = 'matrix-cell-company';
 
+  // Overall company status indicator — placed before the name
+  const overallStatus = getCompanyOverallStatus(company);
+  const badgeConfig = {
+    'Completado':  { mod: 'completed',   icon: '✓', label: 'Integración completada' },
+    'En Progreso': { mod: 'in-progress', icon: '●', label: 'Integración en progreso' },
+    'No Iniciado': { mod: 'not-started', icon: '○', label: 'Integración no iniciada' },
+    'Estancado':   { mod: 'stalled',     icon: '⏸', label: 'Integración estancada — sin actividad reciente' },
+  }[overallStatus] ?? { mod: 'not-started', icon: '○', label: '' };
+  const statusBadge = document.createElement('span');
+  statusBadge.className = `company-status-badge company-status-badge--${badgeConfig.mod}`;
+  statusBadge.textContent = badgeConfig.icon;
+  statusBadge.title = badgeConfig.label;
+  statusBadge.setAttribute('aria-label', badgeConfig.label);
+  tdName.appendChild(statusBadge);
+
   const nameText = document.createElement('span');
   nameText.textContent = company.name;
   tdName.appendChild(nameText);
@@ -164,21 +179,6 @@ function buildCompanyRow(company) {
     yearSpan.textContent = ` (${company.year})`;
     tdName.appendChild(yearSpan);
   }
-
-  // Overall company status indicator
-  const overallStatus = getCompanyOverallStatus(company);
-  const statusBadge = document.createElement('span');
-  const badgeConfig = {
-    'Completado':  { mod: 'completed',   icon: '✓', label: 'Integración completada' },
-    'En Progreso': { mod: 'in-progress', icon: '●', label: 'Integración en progreso' },
-    'No Iniciado': { mod: 'not-started', icon: '○', label: 'Integración no iniciada' },
-    'Estancado':   { mod: 'stalled',     icon: '⏸', label: 'Integración estancada — sin actividad reciente' },
-  }[overallStatus] ?? { mod: 'not-started', icon: '○', label: '' };
-  statusBadge.className = `company-status-badge company-status-badge--${badgeConfig.mod}`;
-  statusBadge.textContent = badgeConfig.icon;
-  statusBadge.title = badgeConfig.label;
-  statusBadge.setAttribute('aria-label', badgeConfig.label);
-  tdName.appendChild(statusBadge);
 
   row.appendChild(tdName);
 
