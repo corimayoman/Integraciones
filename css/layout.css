@@ -132,6 +132,12 @@
   box-shadow: none;
 }
 
+.led--connecting {
+  background-color: #F0A500;
+  box-shadow: 0 0 6px #F0A500, 0 0 12px rgba(240, 165, 0, 0.4);
+  animation: led-pulse 0.8s ease-in-out infinite;
+}
+
 .led-label {
   font-size: var(--font-size-small);
   color: rgba(255, 255, 255, 0.7);
@@ -158,6 +164,15 @@
 
 .header-connect-btn:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.header-connect-btn--connecting,
+.header-connect-btn--connecting:hover {
+  background-color: rgba(240, 165, 0, 0.15);
+  border-color: rgba(240, 165, 0, 0.5);
+  color: #F0A500;
+  cursor: wait;
+  opacity: 0.85;
 }
 
 /* --- Navigation (horizontal tabs — clean, minimal) --- */
@@ -204,6 +219,49 @@
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
   font-weight: var(--font-weight-bold);
+}
+
+/* Empuja el botón DC/Exit al extremo derecho */
+.nav-item--end {
+  margin-left: auto;
+}
+
+/* Botón "Módulo DC" — discreto, al costado derecho */
+.nav-dc-btn {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.nav-dc-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: rgba(var(--color-primary-rgb, 56, 139, 253), 0.08);
+  text-decoration: none;
+}
+
+/* Botón "← Volver al Dashboard" */
+.nav-exit-dc-btn {
+  background: none;
+  border: none;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.nav-exit-dc-btn:hover {
+  color: var(--color-text-primary);
 }
 
 /* --- Main Content Area --- */
@@ -304,4 +362,60 @@
   .nav-tabs {
     max-width: 1440px;
   }
+}
+
+/* --- User chip en el header --- */
+.header-user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.header-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.header-user-initials {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary, #388bfd);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-user-name {
+  font-size: var(--font-size-small);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.header-signout-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+  line-height: 0;
+}
+
+.header-signout-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
 }

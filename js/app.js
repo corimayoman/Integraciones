@@ -13,18 +13,17 @@ import { OFFLINE_ISSUES } from './data/offline-data.js';
 import { transformJiraData } from './business/transformer.js';
 import { applyFilters } from './business/filters.js';
 import { detectDelayedTracks } from './business/alerts.js';
-import { renderHeader, updateConnectionStatus, showOfflineBanner, hideOfflineBanner, showConnectionLostBanner, hideConnectionLostBanner, updateAlertCount } from './presentation/header.js';
+import { renderHeader, updateConnectionStatus, showOfflineBanner, hideOfflineBanner, showConnectionLostBanner, hideConnectionLostBanner, updateAlertCount, setConnectingState, resetConnectingState } from './presentation/header.js';
 import { renderFilters } from './presentation/filters-view.js';
 import { renderKPIPanel, updateKPIPanel } from './presentation/kpi-panel.js';
 import { renderMatrixView, updateMatrixView } from './presentation/matrix-view.js';
 import { renderRegionView } from './presentation/region-view.js';
 import { renderAlertsView } from './presentation/alerts-view.js';
 import { renderDetailView } from './presentation/detail-view.js';
-import { initRouter, onRouteChange, getCurrentRoute } from './presentation/router.js';
+import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
 import { login, logout, checkAuth, fetchRawIssues, onConnectionChange } from './data/api-client.js';
-import { isAuthenticated, getCurrentUser as getDCUser } from './data/dc-api-client.js';
+import { isAuthenticated, getCurrentUser as getDCUser, loginWithGoogle } from './data/dc-api-client.js';
 import { clearToken } from './business/auth-logic.js';
-import { renderLoginView } from './presentation/dc/login-view.js';
 import { renderCompanyListView } from './presentation/dc/company-list-view.js';
 import { renderSheetTabsView } from './presentation/dc/sheet-tabs-view.js';
 import { renderInventorySheet } from './presentation/dc/inventory-sheet.js';
@@ -32,6 +31,7 @@ import { renderQAMgmtSheet } from './presentation/dc/qa-mgmt-sheet.js';
 import { renderQASimpleSheet } from './presentation/dc/qa-simple-sheet.js';
 import { getSheetPattern, SHEET_TABS } from './business/sheet-logic.js';
 import { renderAdminView } from './presentation/dc/admin-view.js';
+import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken } from './firebase-auth.js';
 
 /* ------------------------------------------------------------------ */
 /*  Application state                                                  */
@@ -53,11 +53,94 @@ let authPollInterval = null;
 /*  Dark mode                                                          */
 /* ------------------------------------------------------------------ */
 
-function detectDarkModePreference() {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-  if (prefersDark.matches) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+/* ------------------------------------------------------------------ */
+/*  Loading overlay                                                    */
+/* ------------------------------------------------------------------ */
+
+function showLoadingOverlay(message = 'Cargando…') {
+  let overlay = document.getElementById('loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loading-overlay';
+    overlay.className = 'loading-overlay';
+    document.body.appendChild(overlay);
   }
+  overlay.innerHTML = `
+    <div class="loading-overlay__card">
+      <div class="loading-overlay__spinner"></div>
+      <p class="loading-overlay__message">${message}</p>
+    </div>
+  `;
+  overlay.hidden = false;
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.hidden = true;
+}
+
+/* ------------------------------------------------------------------ */
+/*  DC Module auth via Google SSO                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Handle "Módulo DC" button click: sign in with Google (if needed),
+ * exchange Firebase ID token for a DC session token, then navigate to DC home.
+ */
+async function handleDCLogin() {
+  try {
+    showLoadingOverlay('Autenticando con Google…');
+    const idToken = await getFirebaseIdToken();
+
+    showLoadingOverlay('Verificando acceso al módulo DC…');
+    const result = await loginWithGoogle(idToken);
+    hideLoadingOverlay();
+
+    if (result.ok) {
+      renderNav();
+      const { user } = result;
+      if (user.role === 'admin') {
+        navigate('#/data-collection');
+      } else if (user.companyId) {
+        navigate(`#/data-collection/${user.companyId}`);
+      } else {
+        navigate('#/data-collection');
+      }
+    } else {
+      showDCAccessError(result.error || 'Tu cuenta no tiene acceso al módulo de Recolección de Datos. Contactá a tu administrador.');
+    }
+  } catch (err) {
+    hideLoadingOverlay();
+    // Ignore user-cancelled popup
+    if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') return;
+    showDCAccessError(err.message || 'Error al autenticar. Intentá nuevamente.');
+  }
+}
+
+/**
+ * Show a temporary error banner at the top of the page.
+ * @param {string} message
+ */
+function showDCAccessError(message) {
+  let toast = document.getElementById('dc-access-error');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'dc-access-error';
+    toast.className = 'dc-access-error';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.hidden = false;
+  setTimeout(() => { toast.hidden = true; }, 6000);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Dark mode                                                          */
+/* ------------------------------------------------------------------ */
+
+function detectDarkModePreference() {
+  // Default: modo claro. El toggle permite cambiarlo manualmente.
+  document.documentElement.setAttribute('data-theme', 'light');
 }
 
 function toggleDarkMode() {
@@ -75,38 +158,81 @@ function renderNav() {
   if (!nav) return;
   nav.textContent = '';
 
-  const links = [
-    { hash: '#/', label: 'Matriz' },
-    { hash: '#/region', label: 'Región' },
-    { hash: '#/alerts', label: 'Alertas' },
-    { hash: '#/data-collection', label: 'Recolección de Datos' },
-  ];
+  const dcMode = isAuthenticated(); // usuario logueado en el módulo DC
+  const currentRoute = getCurrentRoute();
 
   const ul = document.createElement('ul');
   ul.className = 'nav-list';
 
-  for (const link of links) {
+  if (dcMode) {
+    // Modo DC: solo Recolección de Datos + botón para volver al dashboard
+    const dcLink = { hash: '#/data-collection', label: 'Recolección de Datos', title: 'Módulo de carga y seguimiento de datos de integración por empresa' };
     const li = document.createElement('li');
     li.className = 'nav-item';
-
     const a = document.createElement('a');
-    a.href = link.hash;
+    a.href = dcLink.hash;
     a.className = 'nav-link';
-    a.textContent = link.label;
-
-    const currentRoute = getCurrentRoute();
-    if (
-      (link.hash === '#/' && currentRoute.name === 'matrix') ||
-      (link.hash === '#/region' && currentRoute.name === 'region') ||
-      (link.hash === '#/alerts' && currentRoute.name === 'alerts') ||
-      (link.hash === '#/data-collection' && currentRoute.name.startsWith('dc-'))
-    ) {
+    a.textContent = dcLink.label;
+    a.title = dcLink.title;
+    if (currentRoute.name.startsWith('dc-')) {
       a.classList.add('nav-link--active');
       a.setAttribute('aria-current', 'page');
     }
-
     li.appendChild(a);
     ul.appendChild(li);
+
+    // Botón para salir del modo DC
+    const exitLi = document.createElement('li');
+    exitLi.className = 'nav-item nav-item--end';
+    const exitBtn = document.createElement('button');
+    exitBtn.type = 'button';
+    exitBtn.className = 'nav-exit-dc-btn';
+    exitBtn.textContent = '← Volver al Dashboard';
+    exitBtn.title = 'Salir del módulo de Recolección de Datos';
+    exitBtn.addEventListener('click', () => {
+      clearToken();
+      window.location.hash = '#/';
+    });
+    exitLi.appendChild(exitBtn);
+    ul.appendChild(exitLi);
+
+  } else {
+    // Modo dashboard: Matriz + Alertas + botón para entrar al módulo DC
+    const dashLinks = [
+      { hash: '#/', label: 'Matriz', title: 'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración' },
+      { hash: '#/alerts', label: 'Alertas', title: 'Tracks críticos o de alta severidad con subtareas bloqueadas o rechazadas que requieren atención' },
+    ];
+
+    for (const link of dashLinks) {
+      const li = document.createElement('li');
+      li.className = 'nav-item';
+      const a = document.createElement('a');
+      a.href = link.hash;
+      a.className = 'nav-link';
+      a.textContent = link.label;
+      a.title = link.title;
+      if (
+        (link.hash === '#/' && currentRoute.name === 'matrix') ||
+        (link.hash === '#/alerts' && currentRoute.name === 'alerts')
+      ) {
+        a.classList.add('nav-link--active');
+        a.setAttribute('aria-current', 'page');
+      }
+      li.appendChild(a);
+      ul.appendChild(li);
+    }
+
+    // Botón para entrar al módulo DC
+    const dcLi = document.createElement('li');
+    dcLi.className = 'nav-item nav-item--end';
+    const dcBtn = document.createElement('button');
+    dcBtn.type = 'button';
+    dcBtn.className = 'nav-dc-btn';
+    dcBtn.textContent = 'Módulo DC';
+    dcBtn.title = 'Acceder al módulo de Recolección de Datos (requiere cuenta Globant)';
+    dcBtn.addEventListener('click', handleDCLogin);
+    dcLi.appendChild(dcBtn);
+    ul.appendChild(dcLi);
   }
 
   nav.appendChild(ul);
@@ -123,10 +249,10 @@ function renderCurrentView(route) {
   // Update nav active state
   renderNav();
 
-  // Auth guard for data-collection routes (except login)
-  if (route.name.startsWith('dc-') && route.name !== 'dc-login') {
+  // Auth guard for data-collection routes
+  if (route.name.startsWith('dc-')) {
     if (!isAuthenticated()) {
-      window.location.hash = '#/data-collection/login';
+      window.location.hash = '#/';
       return;
     }
   }
@@ -154,7 +280,7 @@ function renderCurrentView(route) {
       renderDetailRoute(main, route.params.id);
       break;
     case 'dc-login':
-      renderLoginView(main);
+      window.location.hash = '#/';
       break;
     case 'dc-home':
       renderCompanyListView(main);
@@ -298,7 +424,19 @@ function onFilterChange(filters) {
 /* ------------------------------------------------------------------ */
 
 function onConnect() {
+  // Prevent double-click: deshabilita el botón y muestra estado "conectando"
+  setConnectingState();
+
   login();
+
+  // Timeout: si en 3 minutos no hubo respuesta, resetear
+  const timeoutId = setTimeout(() => {
+    if (authPollInterval) {
+      clearInterval(authPollInterval);
+      authPollInterval = null;
+    }
+    resetConnectingState();
+  }, 3 * 60 * 1000);
 
   // Poll for auth status every 2 seconds
   authPollInterval = setInterval(async () => {
@@ -306,12 +444,18 @@ function onConnect() {
     if (result.authenticated) {
       clearInterval(authPollInterval);
       authPollInterval = null;
+      clearTimeout(timeoutId);
+
+      // Mostrar spinner de carga en el contenido principal
+      showLoadingOverlay('Trayendo datos desde Jira…');
 
       // Fetch live data
       const rawIssues = await fetchRawIssues();
       model = transformJiraData(rawIssues);
       model.metadata.mode = 'live';
       isLive = true;
+
+      hideLoadingOverlay();
 
       // Re-render header and current view
       renderAppHeader();
@@ -356,6 +500,12 @@ function renderAppHeader() {
     onConnect,
     onDisconnect,
     onToggleDarkMode: toggleDarkMode,
+    googleUser: getGoogleUser(),
+    onSignOut: async () => {
+      await signOutGoogle();
+      clearToken(); // también limpia sesión DC si estaba activa
+      window.location.hash = '#/';
+    },
   });
 }
 
@@ -384,10 +534,7 @@ function handleConnectionChange(newIsLive) {
 /*  Initialization                                                     */
 /* ------------------------------------------------------------------ */
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Detect dark mode preference
-  detectDarkModePreference();
-
+function bootApp() {
   // Load offline data by default
   model = transformJiraData(OFFLINE_ISSUES);
   model.metadata.mode = 'offline';
@@ -395,10 +542,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
 
-  // Listen for DC auth expiration — redirect to login when token expires
+  // Listen for DC auth expiration — go back to dashboard
   window.addEventListener('dc:auth-expired', () => {
     clearToken();
-    window.location.hash = '#/data-collection/login';
+    renderNav();
+    window.location.hash = '#/';
   });
 
   // Render header
@@ -413,4 +561,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   initRouter();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Modo claro por defecto
+  detectDarkModePreference();
+
+  // El dashboard es público — arrancar inmediatamente sin gate de auth
+  bootApp();
+
+  // Escuchar cambios de estado de Google para actualizar el chip de usuario en el header
+  waitForAuthState((user) => {
+    renderAppHeader();
+    renderNav();
+    // Si Google cierra sesión y había token DC activo, limpiarlo
+    if (!user && isAuthenticated()) {
+      clearToken();
+    }
+  });
 });

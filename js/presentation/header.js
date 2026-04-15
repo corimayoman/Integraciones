@@ -25,7 +25,7 @@ let ledLabel = null;
 /**
  * Render the header into the given container.
  */
-export function renderHeader(container, { isLive, alertCount, onConnect, onDisconnect, onToggleDarkMode }) {
+export function renderHeader(container, { isLive, alertCount, onConnect, onDisconnect, onToggleDarkMode, googleUser, onSignOut }) {
   headerContainer = container;
 
   let headerContent = container.querySelector('.header-content');
@@ -106,6 +106,41 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
   darkToggle.addEventListener('click', onToggleDarkMode);
   actions.appendChild(darkToggle);
 
+  // User chip con cerrar sesión
+  if (googleUser && onSignOut) {
+    const chip = document.createElement('div');
+    chip.className = 'header-user-chip';
+
+    if (googleUser.photoURL) {
+      const img = document.createElement('img');
+      img.src = googleUser.photoURL;
+      img.alt = googleUser.displayName || googleUser.email;
+      img.className = 'header-user-avatar';
+      chip.appendChild(img);
+    } else {
+      const initials = document.createElement('span');
+      initials.className = 'header-user-initials';
+      initials.textContent = (googleUser.displayName || googleUser.email || '?')[0].toUpperCase();
+      chip.appendChild(initials);
+    }
+
+    const name = document.createElement('span');
+    name.className = 'header-user-name';
+    name.textContent = googleUser.displayName?.split(' ')[0] || googleUser.email;
+    chip.appendChild(name);
+
+    const signOutBtn = document.createElement('button');
+    signOutBtn.type = 'button';
+    signOutBtn.className = 'header-signout-btn';
+    signOutBtn.setAttribute('aria-label', 'Cerrar sesión');
+    signOutBtn.title = 'Cerrar sesión';
+    signOutBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+    signOutBtn.addEventListener('click', onSignOut);
+    chip.appendChild(signOutBtn);
+
+    actions.appendChild(chip);
+  }
+
   headerContent.appendChild(actions);
 }
 
@@ -121,7 +156,30 @@ export function updateConnectionStatus(isLive) {
   }
   if (connectBtn) {
     connectBtn.textContent = isLive ? 'Desconectar' : 'Conectar Jira';
+    connectBtn.disabled = false;
+    connectBtn.classList.remove('header-connect-btn--connecting');
   }
+}
+
+/**
+ * Puts the connect button in a "connecting…" pending state.
+ * Disables the button to prevent double-clicks.
+ */
+export function setConnectingState() {
+  if (!connectBtn) return;
+  connectBtn.disabled = true;
+  connectBtn.textContent = 'Conectando…';
+  connectBtn.classList.add('header-connect-btn--connecting');
+  if (ledIndicator) ledIndicator.className = 'led led--connecting';
+  if (ledLabel) ledLabel.textContent = 'Conectando…';
+}
+
+/**
+ * Resets the connect button back to idle (not connected).
+ * Call this if the connection attempt is cancelled or fails.
+ */
+export function resetConnectingState() {
+  updateConnectionStatus(false);
 }
 
 /**

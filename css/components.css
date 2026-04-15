@@ -409,3 +409,80 @@
 .filter-group__select:focus {
   border-color: var(--color-border-focus);
 }
+
+/* ------------------------------------------------------------------ */
+/*  Loading overlay                                                    */
+/* ------------------------------------------------------------------ */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  backdrop-filter: blur(2px);
+}
+
+.loading-overlay[hidden] {
+  display: none;
+}
+
+.loading-overlay__card {
+  background: var(--color-bg-surface, #1c1f26);
+  border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+  border-radius: var(--radius-lg, 12px);
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.loading-overlay__spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: #3FB950;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-overlay__message {
+  font-size: var(--font-size-small, 0.875rem);
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* --- DC Access Error Toast --- */
+.dc-access-error {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #c0392b;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  max-width: 480px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  animation: fadeInDown 0.2s ease;
+}
+
+.dc-access-error[hidden] {
+  display: none;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

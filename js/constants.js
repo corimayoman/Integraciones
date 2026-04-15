@@ -58,27 +58,42 @@ export const REGION_MAP = {
   'Doit':              'Americas',
   'PointSource':       'Americas',
   'Ratio':             'Americas',
-  'Vertic':            'Americas',
+  'Vertic':            'EMEA & New Markets',
   'Walmeric':          'Americas',
-  'Cloudshift':        'Americas',
+  'Cloudshift':        'EMEA & New Markets',
   'Grupo ASSA':        'Americas',
   'Navint':            'Americas',
   'Atix':              'Americas',
   'GeneXus Consulting':'Americas',
-  'Pentalog':          'Americas',
-  'Software Delivery':  'Americas',
-  'Habitant':          'Americas',
+  'Genexus':           'Americas',
+  'Software Delivery': 'Americas',
+  'Habitant':          'EMEA & New Markets',
   'Practia':           'Americas',
   'Everis':            'Americas',
-  'Bluecap':           'Americas',
+  'Bluecap':           'EMEA & New Markets',
   'Gepagni':           'Americas',
+  'Exusia':            'EMEA & New Markets',
+  'Blankfactor':       'Americas',
+  'GUT':               'Americas',
+  'Nescara':           'Americas',
+  'KTBO':              'Americas',
+  'Iteris':            'Americas',
+  'Chili':             'EMEA & New Markets',
+  'Experience IT':     'Americas',
   // EMEA & New Markets
   'Genexus Europe':    'EMEA & New Markets',
+  'Pentalog':          'EMEA & New Markets',
   'Pentalog EU':       'EMEA & New Markets',
   'Vertic EU':         'EMEA & New Markets',
   'Cloudshift EU':     'EMEA & New Markets',
   'MMS':               'EMEA & New Markets',
   'Startechup':        'EMEA & New Markets',
+  'Omnia':             'EMEA & New Markets',
+  'Common MS':         'EMEA & New Markets',
+  'Codebay':           'EMEA & New Markets',
+  'Sportian':          'EMEA & New Markets',
+  'Sysdata':           'EMEA & New Markets',
+  'eWave':             'EMEA & New Markets',
 };
 
 /** Default region when a company is not found in REGION_MAP */
@@ -109,7 +124,7 @@ export const RETRY_CONFIG = {
 /**
  * Proxy base URL.
  */
-export const PROXY_BASE_URL = 'http://localhost:3002';
+export const PROXY_BASE_URL = '';
 
 /**
  * All valid Jira statuses (for validation).

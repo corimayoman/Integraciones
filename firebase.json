@@ -1,0 +1,56 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "database.rules.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "proxy/**",
+      "functions/**",
+      "tests/**",
+      "docs/**",
+      ".kiro/**",
+      ".vscode/**",
+      "scripts/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/dc/**",
+        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+      },
+      {
+        "source": "/auth/**",
+        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+      },
+      {
+        "source": "/api/**",
+        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+      },
+      {
+        "source": "/health",
+        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          { "key": "Content-Type", "value": "application/javascript" }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  }
+}
