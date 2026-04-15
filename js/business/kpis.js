@@ -35,9 +35,9 @@ export function calculateKPIs(model) {
           allTracks.reduce((sum, t) => sum + t.progress, 0) / allTracks.length,
         );
 
-  // Blocked tracks: tracks with at least one subtask "Bloqueado"
-  const blockedTracksCount = allTracks.filter((t) =>
-    t.subtasks.some((s) => s.status === 'Bloqueado'),
+  // Blocked tracks: tracks whose Epic status is "Bloqueado"
+  const blockedTracksCount = allTracks.filter(
+    (t) => t.status === 'Bloqueado',
   ).length;
 
   // Critical in progress: tracks with severity "Critical" and status "En Progreso"
