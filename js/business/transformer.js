@@ -87,28 +87,6 @@ export function calculateTrackProgress(subtasks) {
 }
 
 /**
- * Determine overall track status from its subtasks.
- * Priority: Bloqueado > Completado > En Progreso > No Iniciado.
- *
- * - If any subtask is "Bloqueado" → "Bloqueado"
- * - If all subtasks are "Completado" → "Completado"
- * - If any subtask is "En Progreso" → "En Progreso"
- * - Otherwise → "No Iniciado"
- *
- * Empty list → "No Iniciado"
- *
- * @param {Array<{ status: string }>} subtasks
- * @returns {string}
- */
-export function determineTrackStatus(subtasks) {
-  if (subtasks.length === 0) return 'No Iniciado';
-  if (subtasks.some((s) => s.status === 'Bloqueado')) return 'Bloqueado';
-  if (subtasks.every((s) => s.status === 'Completado')) return 'Completado';
-  if (subtasks.some((s) => s.status === 'En Progreso')) return 'En Progreso';
-  return 'No Iniciado';
-}
-
-/**
  * Build the hierarchical DashboardModel from raw Jira issues.
  *
  * Steps:
@@ -236,7 +214,7 @@ export function transformJiraData(rawIssues) {
         severity: trackDef ? trackDef.severity : 'Medium',
         epicKey: epic.key,
         progress: calculateTrackProgress(epicSubtasks),
-        status: determineTrackStatus(epicSubtasks),
+        status: mapJiraStatus(epic.fields.status?.name),
         subtasks: epicSubtasks,
         assignee: epic.fields.assignee?.displayName ?? null,
         totalSubtasks: epicSubtasks.length,
@@ -249,6 +227,7 @@ export function transformJiraData(rawIssues) {
       name,
       year,
       region,
+      status: mapJiraStatus(theme.fields.status?.name),
       tracks,
       others,
     };
