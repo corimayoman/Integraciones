@@ -109,7 +109,7 @@ export const RETRY_CONFIG = {
 /**
  * Proxy base URL.
  */
-export const PROXY_BASE_URL = 'http://localhost:3002';
+export const PROXY_BASE_URL = '';
 
 /**
  * All valid Jira statuses (for validation).
