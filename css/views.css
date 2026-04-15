@@ -70,6 +70,26 @@
   font-size: var(--font-size-small);
 }
 
+/* --- Company overall status indicator --- */
+.company-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  margin-left: var(--space-2);
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.company-status-badge--completed   { background-color: var(--color-status-completed); color: #fff; }
+.company-status-badge--in-progress { background-color: var(--color-status-in-progress); color: #fff; }
+.company-status-badge--not-started { background-color: var(--color-status-not-started); color: #fff; }
+.company-status-badge--stalled     { background-color: #E67E22; color: #fff; }
+
 /* --- Matrix Cells --- */
 .matrix-cell {
   text-align: center;

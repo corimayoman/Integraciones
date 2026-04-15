@@ -27,6 +27,29 @@ export function sanitizeHTML(str) {
 }
 
 /**
+ * Derive an overall integration status for a company from its tracks.
+ *
+ * Rules (in priority order):
+ *  - No tracks                                   → 'No Iniciado'
+ *  - All tracks 'Completado'                     → 'Completado'
+ *  - All tracks 'No Iniciado'                    → 'No Iniciado'
+ *  - Any track 'En Progreso' or 'Bloqueado'      → 'En Progreso'
+ *  - Mix of Completado + No Iniciado, no activity→ 'Estancado'
+ *
+ * @param {{ tracks: Array<{ status: string }> }} company
+ * @returns {'Completado'|'No Iniciado'|'En Progreso'|'Estancado'}
+ */
+export function getCompanyOverallStatus(company) {
+  const tracks = company.tracks ?? [];
+  if (tracks.length === 0) return 'No Iniciado';
+  const statuses = tracks.map((t) => t.status);
+  if (statuses.every((s) => s === 'Completado')) return 'Completado';
+  if (statuses.every((s) => s === 'No Iniciado')) return 'No Iniciado';
+  if (statuses.some((s) => s === 'En Progreso' || s === 'Bloqueado')) return 'En Progreso';
+  return 'Estancado';
+}
+
+/**
  * Return CSS class name for a track status.
  *
  * @param {string} trackStatus - Dashboard status
