@@ -42,7 +42,7 @@ export const STATUS_MAP = {
   'Backlog':              'No Iniciado',
   'Blocked':              'Bloqueado',
   'Rejected':             'Rechazado',
-  'Reopened':             'Rechazado',
+  'Reopened':             'En Progreso',
 };
 
 /**
