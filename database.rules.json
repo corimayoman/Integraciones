@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "allowedUsers": {
+      ".read": "auth != null",
+      ".write": false
+    }
+  }
+}

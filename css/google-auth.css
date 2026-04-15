@@ -1,0 +1,166 @@
+/* ============================================================
+   Google Auth — Login screen & user chip
+   ============================================================ */
+
+/* ---- Login fullscreen ---- */
+
+#main-content:has(.google-login) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--color-surface);
+  padding: 0;
+}
+
+.google-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-6);
+}
+
+.google-login__card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-10);
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.google-login__logo {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-5);
+}
+
+.google-login__logo-icon {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.google-login__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+}
+
+.google-login__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6);
+}
+
+.google-login__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.google-login__btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
+}
+
+.google-login__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-login__error {
+  margin-top: var(--space-3);
+  font-size: 0.8125rem;
+  color: var(--color-danger, #dc2626);
+}
+
+.google-login__domain-note {
+  margin-top: var(--space-4);
+  font-size: 0.75rem;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+}
+
+/* ---- User chip in header ---- */
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+}
+
+.user-chip__avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-chip__avatar--initials {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.6875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-chip__name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-chip__signout {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: var(--space-1);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.user-chip__signout:hover {
+  color: var(--color-danger, #dc2626);
+}
+
+/* Dark mode */
+[data-theme="dark"] .google-login__btn {
+  background: var(--color-surface-raised);
+}
+
+[data-theme="dark"] .google-login__card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
