@@ -2,7 +2,7 @@
   "rules": {
     "allowedUsers": {
       ".read": "auth != null",
-      ".write": false
+      ".write": "auth != null"
     }
   }
 }

@@ -11,7 +11,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, get, set, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const ALLOWED_DOMAIN = 'globant.com';
 
@@ -33,6 +33,9 @@ provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
 
 /** @type {object|null} Current Firebase user */
 let currentGoogleUser = null;
+
+/** @type {string|null} Role of the currently signed-in user */
+let currentUserRole = null;
 
 /**
  * Codifica un email como clave de RTDB.
@@ -58,14 +61,13 @@ async function checkWhitelist(email) {
   try {
     const key = encodeEmail(email);
     const snapshot = await get(ref(db, `allowedUsers/${key}`));
-    if (!snapshot.exists()) return 'denied';
+    if (!snapshot.exists()) return { status: 'denied', role: null };
     const data = snapshot.val();
-    // Verificar que esté activo (si tiene campo active = false, denegar)
-    if (data && data.active === false) return 'denied';
-    return 'allowed';
+    if (data && data.active === false) return { status: 'denied', role: null };
+    return { status: 'allowed', role: data?.role ?? 'Viewer' };
   } catch {
     console.warn('[AMS Auth] Whitelist no disponible, usando solo restricción de dominio.');
-    return 'unavailable';
+    return { status: 'unavailable', role: null };
   }
 }
 
@@ -94,11 +96,11 @@ export async function signInWithGoogle() {
 
   // Capa 2: whitelist
   const whitelistResult = await checkWhitelist(email);
-  if (whitelistResult === 'denied') {
+  if (whitelistResult.status === 'denied') {
     await signOut(auth);
     throw new Error('Tu cuenta no está autorizada para acceder a esta aplicación. Contactá a tu administrador.');
   }
-
+  currentUserRole = whitelistResult.role;
   return user;
 }
 
@@ -120,6 +122,56 @@ export async function getFirebaseIdToken() {
   }
   const user = await signInWithGoogle();
   return user.getIdToken();
+}
+
+/** Returns the role of the currently signed-in user: 'Admin', 'Viewer', or null. */
+export function getUserRole() {
+  return currentUserRole;
+}
+
+/** True if the current user is an Admin. */
+export function isAdmin() {
+  return currentUserRole === 'Admin';
+}
+
+/** List all entries in allowedUsers (admin use). */
+export async function listAllowedUsers() {
+  const snapshot = await get(ref(db, 'allowedUsers'));
+  if (!snapshot.exists()) return [];
+  const raw = snapshot.val();
+  return Object.entries(raw).map(([key, val]) => ({
+    key,
+    email: val.email ?? '',
+    role: val.role ?? 'Viewer',
+    active: val.active !== false,
+    addedBy: val.addedBy ?? null,
+    addedAt: val.addedAt ?? null,
+  })).sort((a, b) => a.email.localeCompare(b.email));
+}
+
+/**
+ * Create or update a user in allowedUsers.
+ * @param {string} email
+ * @param {'Admin'|'Viewer'} role
+ * @param {boolean} active
+ */
+export async function saveAllowedUser(email, role, active = true) {
+  const key = encodeEmail(email.toLowerCase().trim());
+  await set(ref(db, `allowedUsers/${key}`), {
+    email: email.toLowerCase().trim(),
+    role,
+    active,
+    addedBy: auth.currentUser?.email ?? 'unknown',
+    addedAt: new Date().toISOString().slice(0, 10),
+  });
+}
+
+/**
+ * Permanently delete a user from allowedUsers.
+ * @param {string} key — the encoded key (as returned by listAllowedUsers)
+ */
+export async function deleteAllowedUser(key) {
+  await remove(ref(db, `allowedUsers/${key}`));
 }
 
 /**
@@ -146,6 +198,7 @@ export function waitForAuthState(onChange) {
     onAuthStateChanged(auth, async (user) => {
       // Sin sesión activa
       if (!user) {
+        currentUserRole = null;
         done(null);
         return;
       }
@@ -158,11 +211,11 @@ export function waitForAuthState(onChange) {
 
       // Capa 2: whitelist (también al restaurar sesión)
       const whitelistResult = await checkWhitelist(user.email);
-      if (whitelistResult === 'denied') {
+      if (whitelistResult.status === 'denied') {
         await signOut(auth);
         return;
       }
-
+      currentUserRole = whitelistResult.role;
       done(user);
     });
   });

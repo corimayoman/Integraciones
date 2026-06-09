@@ -33,7 +33,9 @@ import { renderQAMgmtSheet } from './presentation/dc/qa-mgmt-sheet.js';
 import { renderQASimpleSheet } from './presentation/dc/qa-simple-sheet.js';
 import { getSheetPattern, SHEET_TABS } from './business/sheet-logic.js';
 import { renderAdminView } from './presentation/dc/admin-view.js';
-import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken } from './firebase-auth.js';
+import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken, getUserRole, isAdmin } from './firebase-auth.js';
+import { renderGoogleLoginView, removeGoogleLoginView } from './presentation/google-login-view.js';
+import { renderAdminPanel } from './presentation/admin-view.js';
 
 /* ------------------------------------------------------------------ */
 /*  Application state                                                  */
@@ -211,6 +213,10 @@ function renderNav() {
       { hash: '#/compliance', label: 'Compliance', title: 'Dashboard de cumplimiento G4G: SOX, Compliance y GIST' },
     ];
 
+    if (isAdmin()) {
+      dashLinks.push({ hash: '#/admin', label: 'Admin', title: 'User access management' });
+    }
+
     for (const link of dashLinks) {
       const li = document.createElement('li');
       li.className = 'nav-item';
@@ -222,7 +228,8 @@ function renderNav() {
       if (
         (link.hash === '#/' && currentRoute.name === 'matrix') ||
         (link.hash === '#/alerts' && currentRoute.name === 'alerts') ||
-        (link.hash === '#/compliance' && currentRoute.name === 'compliance')
+        (link.hash === '#/compliance' && currentRoute.name === 'compliance') ||
+        (link.hash === '#/admin' && currentRoute.name === 'admin')
       ) {
         a.classList.add('nav-link--active');
         a.setAttribute('aria-current', 'page');
@@ -277,6 +284,13 @@ function renderCurrentView(route) {
       break;
     case 'compliance':
       renderComplianceRoute(main);
+      break;
+    case 'admin':
+      if (isAdmin()) {
+        renderAdminPanel(main);
+      } else {
+        main.innerHTML = '<p style="padding:2rem">Access denied.</p>';
+      }
       break;
     case 'company-detail':
       renderDetailRoute(main, route.params.id);
@@ -693,20 +707,33 @@ function bootApp() {
   initRouter();
 }
 
+let appBooted = false;
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Modo claro por defecto
   detectDarkModePreference();
 
-  // El dashboard es público — arrancar inmediatamente sin gate de auth
-  bootApp();
-
-  // Escuchar cambios de estado de Google para actualizar el chip de usuario en el header
   waitForAuthState((user) => {
-    renderAppHeader();
-    renderNav();
-    // Si Google cierra sesión y había token DC activo, limpiarlo
-    if (!user && isAuthenticated()) {
-      clearToken();
+    if (!user) {
+      // Not authenticated — show login gate, hide app chrome
+      if (appBooted) {
+        // User signed out while app was running — reload cleanly
+        window.location.reload();
+        return;
+      }
+      renderGoogleLoginView(() => {
+        // onSuccess callback — waitForAuthState onChange fires with the new user
+      });
+    } else {
+      // Authenticated
+      removeGoogleLoginView();
+      if (!appBooted) {
+        appBooted = true;
+        bootApp();
+      } else {
+        renderAppHeader();
+        renderNav();
+        renderCurrentView(getCurrentRoute());
+      }
     }
   });
 });
