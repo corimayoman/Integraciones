@@ -248,8 +248,6 @@ function buildDonutSVG(bucket) {
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-  svg.setAttribute('width', size);
-  svg.setAttribute('height', size);
   svg.setAttribute('class', 'compliance-donut');
 
   if (total === 0) {
@@ -452,19 +450,23 @@ function makePill(text, variant) {
   return pill;
 }
 
+const PAGE_SIZE = 10;
+
 function buildTaskList(tasks, showPriority = false) {
   const today = new Date().toISOString().slice(0, 10);
 
   const wrap = document.createElement('div');
   wrap.className = 'compliance-task-table-wrap';
 
+  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Due Date', 'Status'];
+  if (showPriority) cols.splice(5, 0, 'Priority');
+
+  // --- build table (just thead + empty tbody to be filled per page) ---
   const table = document.createElement('table');
   table.className = 'compliance-task-table';
 
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Due Date', 'Status'];
-  if (showPriority) cols.splice(5, 0, 'Priority');
   for (const col of cols) {
     const th = document.createElement('th');
     th.textContent = col;
@@ -474,69 +476,115 @@ function buildTaskList(tasks, showPriority = false) {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  for (const task of tasks) {
-    const overdue = task.status !== 'Completado' && task.duedate && task.duedate < today;
-    const tr = document.createElement('tr');
-    if (overdue) tr.classList.add('compliance-task-row--overdue');
-
-    const tdKey = document.createElement('td');
-    tdKey.className = 'compliance-task-td compliance-task-td--key';
-    const keyLink = document.createElement('a');
-    keyLink.href = `https://globant.atlassian.net/browse/${task.key}`;
-    keyLink.target = '_blank';
-    keyLink.rel = 'noopener noreferrer';
-    keyLink.textContent = task.key;
-    keyLink.className = 'compliance-jira-link';
-    tdKey.appendChild(keyLink);
-    tr.appendChild(tdKey);
-
-    const tdSummary = document.createElement('td');
-    tdSummary.className = 'compliance-task-td compliance-task-td--summary';
-    tdSummary.textContent = task.summary;
-    tr.appendChild(tdSummary);
-
-    const tdAssignee = document.createElement('td');
-    tdAssignee.className = 'compliance-task-td';
-    tdAssignee.textContent = task.assignee ?? '—';
-    tr.appendChild(tdAssignee);
-
-    const tdCreated = document.createElement('td');
-    tdCreated.className = 'compliance-task-td compliance-task-td--date';
-    tdCreated.textContent = task.created ?? '—';
-    tr.appendChild(tdCreated);
-
-    const tdDue = document.createElement('td');
-    tdDue.className = `compliance-task-td compliance-task-td--date${overdue ? ' compliance-task-td--overdue' : ''}`;
-    tdDue.textContent = task.duedate ?? '—';
-    tr.appendChild(tdDue);
-
-    if (showPriority) {
-      const tdPriority = document.createElement('td');
-      tdPriority.className = 'compliance-task-td';
-      if (task.priority) {
-        const pb = document.createElement('span');
-        pb.className = 'compliance-priority-badge';
-        pb.style.color = PRIORITY_COLORS[task.priority] ?? 'inherit';
-        pb.textContent = task.priority;
-        tdPriority.appendChild(pb);
-      } else {
-        tdPriority.textContent = '—';
-      }
-      tr.appendChild(tdPriority);
-    }
-
-    const tdStatus = document.createElement('td');
-    tdStatus.className = 'compliance-task-td';
-    const badge = document.createElement('span');
-    badge.className = `compliance-status-badge compliance-status-badge--${statusClass(task.status)}`;
-    badge.textContent = statusLabel(task.status);
-    tdStatus.appendChild(badge);
-    tr.appendChild(tdStatus);
-
-    tbody.appendChild(tr);
-  }
   table.appendChild(tbody);
   wrap.appendChild(table);
+
+  // --- pagination controls ---
+  const totalPages = Math.ceil(tasks.length / PAGE_SIZE);
+  let currentPage = 0;
+
+  const pager = document.createElement('div');
+  pager.className = 'compliance-pager';
+
+  const btnPrev = document.createElement('button');
+  btnPrev.className = 'compliance-pager-btn';
+  btnPrev.textContent = '← Prev';
+
+  const pageLabel = document.createElement('span');
+  pageLabel.className = 'compliance-pager-label';
+
+  const btnNext = document.createElement('button');
+  btnNext.className = 'compliance-pager-btn';
+  btnNext.textContent = 'Next →';
+
+  pager.appendChild(btnPrev);
+  pager.appendChild(pageLabel);
+  pager.appendChild(btnNext);
+  wrap.appendChild(pager);
+
+  function renderPage(page) {
+    currentPage = page;
+    tbody.textContent = '';
+
+    const start = page * PAGE_SIZE;
+    const slice = tasks.slice(start, start + PAGE_SIZE);
+
+    for (const task of slice) {
+      const overdue = task.status !== 'Completado' && task.duedate && task.duedate < today;
+      const tr = document.createElement('tr');
+      if (overdue) tr.classList.add('compliance-task-row--overdue');
+
+      const tdKey = document.createElement('td');
+      tdKey.className = 'compliance-task-td compliance-task-td--key';
+      const keyLink = document.createElement('a');
+      keyLink.href = `https://globant.atlassian.net/browse/${task.key}`;
+      keyLink.target = '_blank';
+      keyLink.rel = 'noopener noreferrer';
+      keyLink.textContent = task.key;
+      keyLink.className = 'compliance-jira-link';
+      tdKey.appendChild(keyLink);
+      tr.appendChild(tdKey);
+
+      const tdSummary = document.createElement('td');
+      tdSummary.className = 'compliance-task-td compliance-task-td--summary';
+      tdSummary.textContent = task.summary;
+      tr.appendChild(tdSummary);
+
+      const tdAssignee = document.createElement('td');
+      tdAssignee.className = 'compliance-task-td';
+      tdAssignee.textContent = task.assignee ?? '—';
+      tr.appendChild(tdAssignee);
+
+      const tdCreated = document.createElement('td');
+      tdCreated.className = 'compliance-task-td compliance-task-td--date';
+      tdCreated.textContent = task.created ?? '—';
+      tr.appendChild(tdCreated);
+
+      const tdDue = document.createElement('td');
+      tdDue.className = `compliance-task-td compliance-task-td--date${overdue ? ' compliance-task-td--overdue' : ''}`;
+      tdDue.textContent = task.duedate ?? '—';
+      tr.appendChild(tdDue);
+
+      if (showPriority) {
+        const tdPriority = document.createElement('td');
+        tdPriority.className = 'compliance-task-td';
+        if (task.priority) {
+          const pb = document.createElement('span');
+          pb.className = 'compliance-priority-badge';
+          pb.style.color = PRIORITY_COLORS[task.priority] ?? 'inherit';
+          pb.textContent = task.priority;
+          tdPriority.appendChild(pb);
+        } else {
+          tdPriority.textContent = '—';
+        }
+        tr.appendChild(tdPriority);
+      }
+
+      const tdStatus = document.createElement('td');
+      tdStatus.className = 'compliance-task-td';
+      const badge = document.createElement('span');
+      badge.className = `compliance-status-badge compliance-status-badge--${statusClass(task.status)}`;
+      badge.textContent = statusLabel(task.status);
+      tdStatus.appendChild(badge);
+      tr.appendChild(tdStatus);
+
+      tbody.appendChild(tr);
+    }
+
+    const from = start + 1;
+    const to   = Math.min(start + PAGE_SIZE, tasks.length);
+    pageLabel.textContent = `${from}–${to} of ${tasks.length}`;
+    btnPrev.disabled = currentPage === 0;
+    btnNext.disabled = currentPage >= totalPages - 1;
+  }
+
+  btnPrev.addEventListener('click', () => renderPage(currentPage - 1));
+  btnNext.addEventListener('click', () => renderPage(currentPage + 1));
+
+  // hide pager when results fit on one page
+  if (totalPages <= 1) pager.style.display = 'none';
+
+  renderPage(0);
   return wrap;
 }
 
