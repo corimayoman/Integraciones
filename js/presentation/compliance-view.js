@@ -150,7 +150,7 @@ function buildSoxDimCard(label, dim) {
   card.appendChild(buildStatsPills(dim.stats));
 
   if (dim.tasks.length > 0) {
-    card.appendChild(buildTaskList(dim.tasks));
+    card.appendChild(buildTaskList(sortTasksByStatus(dim.tasks)));
   }
 
   return card;
@@ -187,28 +187,27 @@ function buildGistSection(gist) {
   // Vulnerability charts row
   const vg = gist.vulnGroups;
   if (vg.total > 0) {
-    const chartsRow = document.createElement('div');
-    chartsRow.className = 'compliance-vuln-charts';
-
-    chartsRow.appendChild(buildPieCard('Open', vg.open, 'open'));
-    chartsRow.appendChild(buildPieCard('Blocked', vg.blocked, 'blocked'));
-    chartsRow.appendChild(buildPieCard('Closed', vg.closed, 'closed'));
-
     const note = document.createElement('p');
     note.className = 'compliance-vuln-note';
     note.textContent = `Critical and High vulnerabilities · ${vg.total} total`;
     section.appendChild(note);
+
+    const chartsRow = document.createElement('div');
+    chartsRow.className = 'compliance-vuln-charts';
+    chartsRow.appendChild(buildPieCard('Open', vg.open, 'open'));
+    chartsRow.appendChild(buildPieCard('Blocked', vg.blocked, 'blocked'));
+    chartsRow.appendChild(buildPieCard('Closed', vg.closed, 'closed'));
     section.appendChild(chartsRow);
   }
 
-  // Task table
+  // Task table — sorted by status (Blocked first, then Open, then Closed)
   if (gist.tasks.length > 0) {
     const taskSection = document.createElement('details');
     taskSection.className = 'compliance-tasks-details';
     const summary = document.createElement('summary');
     summary.textContent = `Show tasks (${gist.tasks.length})`;
     taskSection.appendChild(summary);
-    taskSection.appendChild(buildTaskList(gist.tasks, true));
+    taskSection.appendChild(buildTaskList(sortTasksByStatus(gist.tasks), true));
     section.appendChild(taskSection);
   }
 
@@ -381,7 +380,7 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
     const summary = document.createElement('summary');
     summary.textContent = `Show tasks (${tasks.length})`;
     taskSection.appendChild(summary);
-    taskSection.appendChild(buildTaskList(tasks));
+    taskSection.appendChild(buildTaskList(sortTasksByStatus(tasks)));
     section.appendChild(taskSection);
   }
 
@@ -551,6 +550,16 @@ const STATUS_EN = {
 
 function statusLabel(status) {
   return STATUS_EN[status] ?? status;
+}
+
+const STATUS_SORT_ORDER = { 'Bloqueado': 0, 'En Progreso': 1, 'No Iniciado': 2, 'Completado': 3, 'Rechazado': 4 };
+
+function sortTasksByStatus(tasks) {
+  return [...tasks].sort((a, b) => {
+    const oa = STATUS_SORT_ORDER[a.status] ?? 99;
+    const ob = STATUS_SORT_ORDER[b.status] ?? 99;
+    return oa - ob;
+  });
 }
 
 function statusClass(status) {
