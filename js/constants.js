@@ -42,7 +42,7 @@ export const STATUS_MAP = {
   'Backlog':              'No Iniciado',
   'Blocked':              'Bloqueado',
   'Rejected':             'Rechazado',
-  'Cancelled':            'Rechazado',
+  'Cancelled':            'Completado',
   'Reopened':             'En Progreso',
   'Done':                 'Completado',
   'Resolved':             'Completado',
