@@ -483,8 +483,8 @@ function buildTaskList(tasks, showPriority = false) {
   const wrap = document.createElement('div');
   wrap.className = 'compliance-task-table-wrap';
 
-  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Due Date', 'Status'];
-  if (showPriority) cols.splice(5, 0, 'Priority');
+  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Aging (days)', 'Due Date', 'Status'];
+  if (showPriority) cols.splice(6, 0, 'Priority');
 
   // --- build table (just thead + empty tbody to be filled per page) ---
   const table = document.createElement('table');
@@ -565,9 +565,44 @@ function buildTaskList(tasks, showPriority = false) {
       tdCreated.textContent = task.created ?? '—';
       tr.appendChild(tdCreated);
 
+      // Aging: days from created to today
+      const tdAging = document.createElement('td');
+      tdAging.className = 'compliance-task-td compliance-task-td--num';
+      if (task.created) {
+        const msPerDay = 86_400_000;
+        const agingDays = Math.floor((Date.parse(today) - Date.parse(task.created)) / msPerDay);
+        tdAging.textContent = agingDays >= 0 ? agingDays : '—';
+      } else {
+        tdAging.textContent = '—';
+      }
+      tr.appendChild(tdAging);
+
+      // Due Date + semaphore
       const tdDue = document.createElement('td');
-      tdDue.className = `compliance-task-td compliance-task-td--date${overdue ? ' compliance-task-td--overdue' : ''}`;
-      tdDue.textContent = task.duedate ?? '—';
+      tdDue.className = `compliance-task-td compliance-task-td--date compliance-task-td--due${overdue ? ' compliance-task-td--overdue' : ''}`;
+
+      if (task.duedate) {
+        const isClosed   = task.status === 'Completado' || task.status === 'Rechazado';
+        // Green: closed (we assume on-time since no actual close-date field),
+        //        OR not closed but still within due date.
+        // Red:   not closed and past due date.
+        const semClass = (!isClosed && overdue) ? 'semaphore--red' : 'semaphore--green';
+        const semTitle = (!isClosed && overdue)
+          ? `Overdue — due ${task.duedate}`
+          : isClosed ? `Closed — due ${task.duedate}` : `On track — due ${task.duedate}`;
+
+        const dot = document.createElement('span');
+        dot.className = `compliance-semaphore ${semClass}`;
+        dot.title = semTitle;
+        dot.setAttribute('aria-label', semTitle);
+        tdDue.appendChild(dot);
+
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = task.duedate;
+        tdDue.appendChild(dateSpan);
+      } else {
+        tdDue.textContent = '—';
+      }
       tr.appendChild(tdDue);
 
       if (showPriority) {
