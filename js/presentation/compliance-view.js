@@ -251,7 +251,7 @@ function buildDonutSVG(bucket) {
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
   svg.setAttribute('width', size);
   svg.setAttribute('height', size);
-  svg.className = 'compliance-donut';
+  svg.setAttribute('class', 'compliance-donut');
 
   if (total === 0) {
     // Empty state circle
