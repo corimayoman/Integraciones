@@ -42,7 +42,12 @@ export const STATUS_MAP = {
   'Backlog':              'No Iniciado',
   'Blocked':              'Bloqueado',
   'Rejected':             'Rechazado',
+  'Cancelled':            'Rechazado',
   'Reopened':             'En Progreso',
+  'Done':                 'Completado',
+  'Resolved':             'Completado',
+  'Won\'t Fix':           'Rechazado',
+  'Won\'t Do':            'Rechazado',
 };
 
 /**
@@ -150,3 +155,14 @@ export const SEVERITIES = ['Critical', 'High', 'Medium', 'Low'];
  * Region list.
  */
 export const REGIONS = ['Americas', 'EMEA & New Markets'];
+
+/**
+ * Company overall integration status options (for filter).
+ * Each has the icon shown in the matrix badge.
+ */
+export const COMPANY_OVERALL_STATUSES = [
+  { value: 'Completado',  icon: '✓', label: 'Completado' },
+  { value: 'En Progreso', icon: '●', label: 'En Progreso' },
+  { value: 'No Iniciado', icon: '○', label: 'No Iniciado' },
+  { value: 'Estancado',   icon: '⏸', label: 'Estancado' },
+];

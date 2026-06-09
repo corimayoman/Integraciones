@@ -539,7 +539,7 @@ const STATUS_EN = {
   'Completado':  'Completed',
   'En Progreso': 'In Progress',
   'Bloqueado':   'Blocked',
-  'Rechazado':   'Rejected',
+  'Rechazado':   'Cancelled / Rejected',
   'No Iniciado': 'Not Started',
 };
 
