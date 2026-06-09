@@ -205,10 +205,9 @@ function renderNav() {
     ul.appendChild(exitLi);
 
   } else {
-    // Modo dashboard: Matriz + Alertas + botón para entrar al módulo DC
+    // Modo dashboard: Matriz + Compliance
     const dashLinks = [
       { hash: '#/', label: 'Matriz', title: 'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración' },
-      { hash: '#/alerts', label: 'Alertas', title: 'Tracks críticos o de alta severidad con subtareas bloqueadas o rechazadas que requieren atención' },
       { hash: '#/compliance', label: 'Compliance', title: 'Dashboard de cumplimiento G4G: SOX, Compliance y GIST' },
     ];
 
@@ -232,17 +231,7 @@ function renderNav() {
       ul.appendChild(li);
     }
 
-    // Botón para entrar al módulo DC
-    const dcLi = document.createElement('li');
-    dcLi.className = 'nav-item nav-item--end';
-    const dcBtn = document.createElement('button');
-    dcBtn.type = 'button';
-    dcBtn.className = 'nav-dc-btn';
-    dcBtn.textContent = 'Módulo DC';
-    dcBtn.title = 'Acceder al módulo de Recolección de Datos (requiere cuenta Globant)';
-    dcBtn.addEventListener('click', handleDCLogin);
-    dcLi.appendChild(dcBtn);
-    ul.appendChild(dcLi);
+    // Módulo DC button intentionally hidden
   }
 
   nav.appendChild(ul);
