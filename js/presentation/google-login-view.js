@@ -56,7 +56,12 @@ export function renderGoogleLoginView(onSuccess) {
       const user = await signInWithGoogle();
       onSuccess(user);
     } catch (err) {
-      errorEl.textContent = err.message || 'Error al iniciar sesión. Intentá de nuevo.';
+      const isAccessDenied = err.message?.includes('autorizada') || err.message?.includes('authorized');
+      if (isAccessDenied) {
+        errorEl.innerHTML = '<strong>Access Denied.</strong> Your account is not authorized to access this application. Contact your administrator.';
+      } else {
+        errorEl.textContent = err.message || 'Sign-in error. Please try again.';
+      }
       errorEl.hidden = false;
       btn.disabled = false;
       btn.innerHTML = `
