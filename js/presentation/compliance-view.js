@@ -32,23 +32,27 @@ const SOX_DIM_LABELS = {
  * @param {boolean} isRefreshing - true while a live fetch is in progress
  * @param {string|null} error
  */
+const TABS = [
+  { id: 'sox',        label: 'SOX' },
+  { id: 'compliance', label: 'Compliance' },
+  { id: 'gist',       label: 'GIST Compliance' },
+];
+
+// Remember the last active tab across re-renders
+let _activeTab = 'sox';
+
 export function renderComplianceView(container, complianceModel, isRefreshing, error) {
   container.textContent = '';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'compliance-view';
 
-  // Header row with title + status banner
   const titleRow = document.createElement('div');
   titleRow.className = 'compliance-title-row';
-
   const title = document.createElement('h2');
   title.className = 'compliance-title';
   title.textContent = 'G4G Compliance Dashboard';
   titleRow.appendChild(title);
-
-  // (no per-route refresh badge needed — global loading overlay covers it)
-
   wrapper.appendChild(titleRow);
 
   if (error) {
@@ -63,37 +67,58 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   if (!complianceModel) {
     const empty = document.createElement('div');
     empty.className = 'compliance-not-connected';
-    if (error) {
-      empty.innerHTML = `
-        <p class="compliance-not-connected__title">Error loading compliance data</p>
-        <p class="compliance-not-connected__hint">${error}</p>
-        <p class="compliance-not-connected__hint">Check the browser console for details, or try clicking Refresh.</p>
-      `;
-    } else {
-      empty.innerHTML = `
-        <p class="compliance-not-connected__title">No compliance data yet</p>
-        <p class="compliance-not-connected__hint">Connect to Jira and click Refresh to load compliance data.</p>
-      `;
-    }
+    empty.innerHTML = `
+      <p class="compliance-not-connected__title">No compliance data yet</p>
+      <p class="compliance-not-connected__hint">Connect to Jira and click Refresh to load compliance data.</p>
+    `;
     wrapper.appendChild(empty);
     container.appendChild(wrapper);
     return;
   }
 
-  const grid = document.createElement('div');
-  grid.className = 'compliance-grid';
+  // --- Tab bar ---
+  const tabBar = document.createElement('div');
+  tabBar.className = 'compliance-tab-bar';
+  tabBar.setAttribute('role', 'tablist');
 
-  // SOX section — special, with 5 sub-dimensions
-  grid.appendChild(buildSoxSection(complianceModel.sox));
+  const panels = {
+    sox:        buildSoxSection(complianceModel.sox),
+    compliance: buildDimensionCard('Compliance', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance'),
+    gist:       buildGistSection(complianceModel.gist),
+  };
 
-  // Compliance section
-  grid.appendChild(buildDimensionCard('Compliance', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance'));
+  const tabEls = {};
+  for (const tab of TABS) {
+    const btn = document.createElement('button');
+    btn.className = 'compliance-tab-btn';
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', tab.id === _activeTab ? 'true' : 'false');
+    btn.dataset.tab = tab.id;
+    btn.textContent = tab.label;
+    btn.addEventListener('click', () => switchTab(tab.id));
+    tabBar.appendChild(btn);
+    tabEls[tab.id] = btn;
+  }
 
-  // GIST section — special, with vulnerability pie charts
-  grid.appendChild(buildGistSection(complianceModel.gist));
+  // --- Panel container ---
+  const panelWrap = document.createElement('div');
+  panelWrap.className = 'compliance-tab-panel';
 
-  wrapper.appendChild(grid);
+  function switchTab(id) {
+    _activeTab = id;
+    for (const [tid, btn] of Object.entries(tabEls)) {
+      btn.setAttribute('aria-selected', tid === id ? 'true' : 'false');
+      btn.classList.toggle('compliance-tab-btn--active', tid === id);
+    }
+    panelWrap.textContent = '';
+    panelWrap.appendChild(panels[id]);
+  }
+
+  wrapper.appendChild(tabBar);
+  wrapper.appendChild(panelWrap);
   container.appendChild(wrapper);
+
+  switchTab(_activeTab);
 }
 
 /* ------------------------------------------------------------------ */

@@ -1012,6 +1012,44 @@
   color: var(--color-error);
 }
 
+/* --- Compliance inner tabs --- */
+.compliance-tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: var(--space-5);
+}
+
+.compliance-tab-btn {
+  padding: var(--space-2) var(--space-5);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.compliance-tab-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.compliance-tab-btn--active,
+.compliance-tab-btn[aria-selected="true"] {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.compliance-tab-panel {
+  min-height: 200px;
+}
+
+/* --- kept for backward compat, no longer used as wrapper --- */
 .compliance-grid {
   display: flex;
   flex-direction: column;
