@@ -33,14 +33,43 @@ function mapStatus(jiraStatus) {
 
 function toTask(issue) {
   return {
-    key:       issue.key,
-    summary:   issue.fields.summary,
-    status:    mapStatus(issue.fields.status?.name ?? ''),
-    jiraStatus: issue.fields.status?.name ?? '',
-    duedate:   issue.fields.duedate ?? null,
-    created:   issue.fields.created ? issue.fields.created.slice(0, 10) : null,
-    assignee:  issue.fields.assignee?.displayName ?? null,
+    key:             issue.key,
+    summary:         issue.fields.summary,
+    status:          mapStatus(issue.fields.status?.name ?? ''),
+    jiraStatus:      issue.fields.status?.name ?? '',
+    duedate:         issue.fields.duedate ?? null,
+    created:         issue.fields.created ? issue.fields.created.slice(0, 10) : null,
+    assignee:        issue.fields.assignee?.displayName ?? null,
+    priority:        issue.fields.priority?.name ?? null,
+    isVulnerability: issue.fields.issuetype?.name === 'Vulnerability',
   };
+}
+
+/**
+ * Group High/Critical vulnerabilities into Open, Blocked, Closed buckets.
+ * @param {Array} tasks
+ * @returns {{ open, blocked, closed }} Each is { critical: number, high: number }
+ */
+export function groupVulnerabilities(tasks) {
+  const vulns = tasks.filter(
+    t => t.isVulnerability && (t.priority === 'Critical' || t.priority === 'High')
+  );
+
+  const bucket = () => ({ critical: 0, high: 0, total: 0 });
+  const open    = bucket();
+  const blocked = bucket();
+  const closed  = bucket();
+
+  for (const v of vulns) {
+    const b = v.status === 'Completado' ? closed
+            : v.status === 'Bloqueado'  ? blocked
+            : open;
+    if (v.priority === 'Critical') b.critical++;
+    else b.high++;
+    b.total++;
+  }
+
+  return { open, blocked, closed, total: vulns.length };
 }
 
 function toEpicOrInit(issue) {
@@ -133,6 +162,7 @@ export function transformComplianceData(rawIssues) {
     epic: gistEpicEntry.epic,
     tasks: gistAllTasks,
     stats: computeStats(gistAllTasks),
+    vulnGroups: groupVulnerabilities(gistAllTasks),
   };
 
   return { sox, compliance, gist };
