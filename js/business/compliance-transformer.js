@@ -28,7 +28,12 @@ const COMPLIANCE_EPIC_KEY = 'GLO220-13086';
 const GIST_EPIC_KEY       = 'GLO220-13087';
 
 function mapStatus(jiraStatus) {
-  return STATUS_MAP[jiraStatus] ?? 'No Iniciado';
+  if (!jiraStatus) return 'No Iniciado';
+  const mapped = STATUS_MAP[jiraStatus];
+  if (!mapped) {
+    console.warn(`[compliance] Unknown Jira status: "${jiraStatus}" (${[...jiraStatus].map(c => c.charCodeAt(0).toString(16)).join(' ')})`);
+  }
+  return mapped ?? 'No Iniciado';
 }
 
 function toTask(issue) {
