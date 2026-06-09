@@ -25,7 +25,7 @@ export function renderGoogleLoginView(onSuccess) {
         <div class="google-login__logo">
           <span class="google-login__logo-icon">A</span>
         </div>
-        <h1 class="google-login__title">AMS Integration Tracker</h1>
+        <h1 class="google-login__title">AMS Integration & Compliance Tracker</h1>
         <p class="google-login__subtitle">Iniciá sesión con tu cuenta de Globant</p>
         <button class="google-login__btn" id="google-signin-btn">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">

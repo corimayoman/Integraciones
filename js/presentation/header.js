@@ -1,5 +1,5 @@
 /**
- * Header — AMS Integration Tracker
+ * Header — AMS Integration & Compliance Tracker
  *
  * Renders header with LED connection indicator, alert count, dark mode toggle.
  * No more ugly banners — just a clean LED dot next to the title.
@@ -22,11 +22,17 @@ let ledIndicator = null;
 /** @type {HTMLElement|null} */
 let ledLabel = null;
 
+/** Saved refs for dynamic banner updates */
+let _onConnectRef = null;
+let _snapshotDateRef = null;
+
 /**
  * Render the header into the given container.
  */
-export function renderHeader(container, { isLive, alertCount, onConnect, onDisconnect, onToggleDarkMode, googleUser, onSignOut }) {
+export function renderHeader(container, { isLive, alertCount, snapshotDate, onConnect, onDisconnect, onRefresh, onToggleDarkMode, googleUser, onSignOut }) {
   headerContainer = container;
+  _onConnectRef = onConnect;
+  _snapshotDateRef = snapshotDate;
 
   let headerContent = container.querySelector('.header-content');
   if (!headerContent) {
@@ -49,7 +55,7 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
 
   const title = document.createElement('h1');
   title.className = 'app-title';
-  title.textContent = 'AMS Integration Tracker';
+  title.textContent = 'AMS Integration & Compliance Tracker';
   leftGroup.appendChild(title);
 
   // LED connection indicator
@@ -81,6 +87,18 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
   alertBadge.textContent = String(alertCount);
   if (alertCount === 0) alertBadge.style.display = 'none';
   actions.appendChild(alertBadge);
+
+  // Refresh button — only when live
+  if (isLive && onRefresh) {
+    const refreshBtn = document.createElement('button');
+    refreshBtn.type = 'button';
+    refreshBtn.className = 'btn header-refresh-btn';
+    refreshBtn.setAttribute('aria-label', 'Actualizar datos desde Jira');
+    refreshBtn.title = 'Actualizar datos desde Jira';
+    refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
+    refreshBtn.addEventListener('click', onRefresh);
+    actions.appendChild(refreshBtn);
+  }
 
   // Connect/Disconnect button
   connectBtn = document.createElement('button');
@@ -142,12 +160,46 @@ export function renderHeader(container, { isLive, alertCount, onConnect, onDisco
   }
 
   headerContent.appendChild(actions);
+
+  // Snapshot banner — shown when offline with cached data
+  const existingBanner = container.querySelector('.snapshot-banner');
+  if (existingBanner) existingBanner.remove();
+
+  if (!isLive) {
+    const banner = document.createElement('div');
+    banner.className = 'snapshot-banner';
+
+    if (snapshotDate) {
+      const d = new Date(snapshotDate);
+      const formatted = d.toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+      banner.innerHTML = `
+        <span class="snapshot-banner__icon">📅</span>
+        <span class="snapshot-banner__text">Datos del <strong>${formatted}</strong> — sin conexión a Jira en vivo</span>
+        <button class="snapshot-banner__btn" aria-label="Reconectar a Jira">Reconectar</button>
+      `;
+      banner.querySelector('.snapshot-banner__btn').addEventListener('click', onConnect);
+    } else {
+      banner.innerHTML = `
+        <span class="snapshot-banner__icon">⚠️</span>
+        <span class="snapshot-banner__text">Sin conexión a Jira. Conectate para ver datos en tiempo real.</span>
+        <button class="snapshot-banner__btn" aria-label="Conectar Jira">Conectar</button>
+      `;
+      banner.querySelector('.snapshot-banner__btn').addEventListener('click', onConnect);
+    }
+
+    container.appendChild(banner);
+  }
 }
 
 /**
- * Update the connection status LED indicator.
+ * Update the connection status LED indicator and snapshot banner.
  */
-export function updateConnectionStatus(isLive) {
+export function updateConnectionStatus(isLive, snapshotDate) {
+  if (snapshotDate !== undefined) _snapshotDateRef = snapshotDate;
+
   if (ledIndicator) {
     ledIndicator.className = isLive ? 'led led--online' : 'led led--offline';
   }
@@ -158,6 +210,40 @@ export function updateConnectionStatus(isLive) {
     connectBtn.textContent = isLive ? 'Desconectar' : 'Conectar Jira';
     connectBtn.disabled = false;
     connectBtn.classList.remove('header-connect-btn--connecting');
+  }
+
+  // Update snapshot banner
+  if (headerContainer) {
+    const existing = headerContainer.querySelector('.snapshot-banner');
+    if (existing) existing.remove();
+
+    if (!isLive) {
+      const banner = document.createElement('div');
+      banner.className = 'snapshot-banner';
+
+      if (_snapshotDateRef) {
+        const d = new Date(_snapshotDateRef);
+        const formatted = d.toLocaleString('es-AR', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+        banner.innerHTML = `
+          <span class="snapshot-banner__icon">📅</span>
+          <span class="snapshot-banner__text">Datos del <strong>${formatted}</strong> — sin conexión a Jira en vivo</span>
+          <button class="snapshot-banner__btn">Reconectar</button>
+        `;
+      } else {
+        banner.innerHTML = `
+          <span class="snapshot-banner__icon">⚠️</span>
+          <span class="snapshot-banner__text">Sin conexión a Jira. Conectate para ver datos en tiempo real.</span>
+          <button class="snapshot-banner__btn">Conectar</button>
+        `;
+      }
+      if (_onConnectRef) {
+        banner.querySelector('.snapshot-banner__btn').addEventListener('click', _onConnectRef);
+      }
+      headerContainer.appendChild(banner);
+    }
   }
 }
 
