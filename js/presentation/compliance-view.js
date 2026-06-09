@@ -63,10 +63,18 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   if (!complianceModel) {
     const empty = document.createElement('div');
     empty.className = 'compliance-not-connected';
-    empty.innerHTML = `
-      <p class="compliance-not-connected__title">No data available</p>
-      <p class="compliance-not-connected__hint">Connect to Jira using the button above to load compliance data.</p>
-    `;
+    if (error) {
+      empty.innerHTML = `
+        <p class="compliance-not-connected__title">Error loading compliance data</p>
+        <p class="compliance-not-connected__hint">${error}</p>
+        <p class="compliance-not-connected__hint">Check the browser console for details, or try clicking Refresh.</p>
+      `;
+    } else {
+      empty.innerHTML = `
+        <p class="compliance-not-connected__title">No compliance data yet</p>
+        <p class="compliance-not-connected__hint">Connect to Jira and click Refresh to load compliance data.</p>
+      `;
+    }
     wrapper.appendChild(empty);
     container.appendChild(wrapper);
     return;

@@ -56,32 +56,52 @@ const COMPLIANCE_EPIC_KEYS = [
 ];
 
 const ALL_COMPLIANCE_KEYS = [...COMPLIANCE_INITIATIVE_KEYS, ...COMPLIANCE_EPIC_KEYS];
-const COMPLIANCE_JQL = `key in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR parent in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR "Epic Link" in (${COMPLIANCE_EPIC_KEYS.join(', ')})`;
 
-async function fetchComplianceIssues() {
+// Query 1: the known anchors + their direct children via parent field
+const JQL_PARENT = `key in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR parent in (${ALL_COMPLIANCE_KEYS.join(', ')})`;
+
+// Query 2: children linked via Epic Link custom field (cf[10014]) — used by
+// some issue types (Vulnerability, Story) in company-managed Jira projects
+const JQL_EPIC_LINK = `cf[10014] in (${COMPLIANCE_EPIC_KEYS.join(', ')})`;
+
+async function runJql(jql) {
   let allIssues = [];
   let nextPageToken = null;
-
   do {
-    const body = { jql: COMPLIANCE_JQL, fields: FIELDS, maxResults: 200 };
+    const body = { jql, fields: FIELDS, maxResults: 200 };
     if (nextPageToken) body.nextPageToken = nextPageToken;
-
-    const res = await jiraFetch('/search/jql', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-
+    const res = await jiraFetch('/search/jql', { method: 'POST', body: JSON.stringify(body) });
     if (!res.ok) {
       const err = await res.text();
-      throw new Error(`Jira compliance fetch failed (${res.status}): ${err}`);
+      throw new Error(`Jira JQL failed (${res.status}): ${err}`);
     }
-
     const data = await res.json();
     allIssues = allIssues.concat(data.issues || []);
     nextPageToken = data.nextPageToken || null;
   } while (nextPageToken);
-
   return allIssues;
+}
+
+async function fetchComplianceIssues() {
+  // Run both queries; Epic Link query is optional — ignore if the field doesn't exist
+  const [parentResult, epicLinkResult] = await Promise.allSettled([
+    runJql(JQL_PARENT),
+    runJql(JQL_EPIC_LINK),
+  ]);
+
+  if (parentResult.status === 'rejected') {
+    throw parentResult.reason; // main query must succeed
+  }
+
+  const parentIssues   = parentResult.value;
+  const epicLinkIssues = epicLinkResult.status === 'fulfilled' ? epicLinkResult.value : [];
+
+  // Deduplicate by key
+  const seen = new Set(parentIssues.map(i => i.key));
+  const extra = epicLinkIssues.filter(i => !seen.has(i.key));
+
+  console.log(`Compliance fetch: ${parentIssues.length} via parent, ${extra.length} via epicLink`);
+  return [...parentIssues, ...extra];
 }
 
 module.exports = { fetchAllIssues, fetchComplianceIssues, I4G_JQL };

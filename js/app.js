@@ -409,17 +409,19 @@ async function renderComplianceRoute(main) {
   //    already ran, or previous fetch failed) — fetch now, auth is guaranteed valid
   if (complianceModel) return;
 
+  let fetchError = null;
   try {
     const issues = await fetchComplianceIssues();
     if (issues && issues.length > 0) {
       complianceModel = transformComplianceData(issues);
     }
-  } catch {
-    // keep empty state
+  } catch (err) {
+    console.error('Compliance fetch error:', err);
+    fetchError = err.message ?? 'Unknown error';
   }
 
   if (getCurrentRoute().name === 'compliance') {
-    renderComplianceView(main, complianceModel, false, null);
+    renderComplianceView(main, complianceModel, false, fetchError);
   }
 }
 
@@ -546,6 +548,8 @@ function onConnect() {
 
       if (complianceResult.status === 'fulfilled' && complianceResult.value?.length > 0) {
         complianceModel = transformComplianceData(complianceResult.value);
+      } else if (complianceResult.status === 'rejected') {
+        console.error('Compliance fetch failed during connect:', complianceResult.reason);
       }
 
       hideLoadingOverlay();
