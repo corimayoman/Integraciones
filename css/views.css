@@ -1334,7 +1334,7 @@
 .compliance-task-td {
   padding: var(--space-2) var(--space-3);
   color: var(--color-text-primary);
-  vertical-align: middle;
+  vertical-align: top;
 }
 
 .compliance-task-td--key {
