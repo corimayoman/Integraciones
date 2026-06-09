@@ -34,20 +34,23 @@ export const INTEGRATION_TRACKS = [
  * Validates: Requirement 8.5
  */
 export const STATUS_MAP = {
-  'Closed':               'Completado',
+  // Open
+  'Open':                 'No Iniciado',
+  'Backlog':              'No Iniciado',
   'In Progress':          'En Progreso',
   'Analyzing':            'En Progreso',
   'Solution In Progress': 'En Progreso',
-  'Open':                 'No Iniciado',
-  'Backlog':              'No Iniciado',
-  'Blocked':              'Bloqueado',
-  'Rejected':             'Rechazado',
-  'Cancelled':            'Completado',
   'Reopened':             'En Progreso',
+  // Blocked
+  'Blocked':              'Bloqueado',
+  // Closed (everything else is considered closed)
+  'Closed':               'Completado',
+  'Cancelled':            'Completado',
   'Done':                 'Completado',
   'Resolved':             'Completado',
-  'Won\'t Fix':           'Rechazado',
-  'Won\'t Do':            'Rechazado',
+  'Rejected':             'Completado',
+  'Won\'t Fix':           'Completado',
+  'Won\'t Do':            'Completado',
 };
 
 /**

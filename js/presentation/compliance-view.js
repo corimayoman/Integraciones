@@ -536,11 +536,11 @@ function buildTaskList(tasks, showPriority = false) {
 }
 
 const STATUS_EN = {
-  'Completado':  'Completed',
-  'En Progreso': 'In Progress',
+  'Completado':  'Closed',
+  'En Progreso': 'Open',
+  'No Iniciado': 'Open',
   'Bloqueado':   'Blocked',
-  'Rechazado':   'Cancelled / Rejected',
-  'No Iniciado': 'Not Started',
+  'Rechazado':   'Closed',
 };
 
 function statusLabel(status) {
