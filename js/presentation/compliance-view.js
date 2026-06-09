@@ -47,12 +47,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   title.textContent = 'G4G Compliance Dashboard';
   titleRow.appendChild(title);
 
-  if (isRefreshing) {
-    const badge = document.createElement('span');
-    badge.className = 'compliance-refresh-badge';
-    badge.textContent = '⟳ Refreshing from Jira…';
-    titleRow.appendChild(badge);
-  }
+  // (no per-route refresh badge needed — global loading overlay covers it)
 
   wrapper.appendChild(titleRow);
 

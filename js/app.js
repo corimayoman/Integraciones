@@ -392,32 +392,17 @@ function renderAlertsRoute(main) {
   renderAlertsView(main, filteredModel);
 }
 
-async function renderComplianceRoute(main) {
+function renderComplianceRoute(main) {
   main.textContent = '';
 
-  // Step 1 — immediately show whatever we already have (never blank screen)
+  // Show whatever we already have — model is populated by onConnect / onRefresh,
+  // never fetched on demand here (that avoids pre-auth requests and race conditions).
   if (!complianceModel) {
     const cached = loadComplianceCachedIssues();
     if (cached) complianceModel = transformComplianceData(cached);
   }
-  renderComplianceView(main, complianceModel, isLive, null);
 
-  // Step 2 — if no live connection, we're done (show cached or "not connected" state)
-  if (!isLive) return;
-
-  // Step 3 — fetch fresh data, then re-render once (no race condition)
-  try {
-    const issues = await fetchComplianceIssues();
-    if (issues && issues.length > 0) {
-      complianceModel = transformComplianceData(issues);
-    }
-  } catch {
-    // network error — keep existing data
-  }
-
-  if (getCurrentRoute().name === 'compliance') {
-    renderComplianceView(main, complianceModel, false, null);
-  }
+  renderComplianceView(main, complianceModel, false, null);
 }
 
 function renderDetailRoute(main, companyId) {
@@ -526,15 +511,24 @@ function onConnect() {
       clearTimeout(timeoutId);
 
       // Mostrar spinner de carga en el contenido principal
-      showLoadingOverlay('Trayendo datos desde Jira…');
+      showLoadingOverlay('Fetching data from Jira…');
 
-      // Fetch live data
-      const rawIssues = await fetchRawIssues();
+      // Fetch main + compliance data in parallel — both under the same loading overlay
+      const [rawResult, complianceResult] = await Promise.allSettled([
+        fetchRawIssues(),
+        fetchComplianceIssues(),
+      ]);
+
+      const rawIssues = rawResult.status === 'fulfilled' ? rawResult.value : [];
       model = transformJiraData(rawIssues);
       model.metadata.mode = 'live';
       model.metadata.snapshotDate = getSnapshotDate();
-      saveModelSnapshot(model);  // guardar modelo transformado (liviano)
+      saveModelSnapshot(model);
       isLive = true;
+
+      if (complianceResult.status === 'fulfilled' && complianceResult.value?.length > 0) {
+        complianceModel = transformComplianceData(complianceResult.value);
+      }
 
       hideLoadingOverlay();
 
@@ -546,25 +540,24 @@ function onConnect() {
 }
 
 async function onRefresh() {
-  showLoadingOverlay('Actualizando datos desde Jira…');
+  showLoadingOverlay('Refreshing data from Jira…');
 
-  // Clear both caches and fetch both datasets in parallel
   clearCache();
   clearComplianceCache();
 
-  const [rawIssues, complianceIssues] = await Promise.allSettled([
+  const [rawResult, complianceResult] = await Promise.allSettled([
     fetchRawIssues(),
     fetchComplianceIssues(),
   ]);
 
-  const raw = rawIssues.status === 'fulfilled' ? rawIssues.value : [];
-  model = transformJiraData(raw);
+  const rawIssues = rawResult.status === 'fulfilled' ? rawResult.value : [];
+  model = transformJiraData(rawIssues);
   model.metadata.mode = 'live';
   model.metadata.snapshotDate = getSnapshotDate();
   saveModelSnapshot(model);
 
-  if (complianceIssues.status === 'fulfilled' && complianceIssues.value?.length > 0) {
-    complianceModel = transformComplianceData(complianceIssues.value);
+  if (complianceResult.status === 'fulfilled' && complianceResult.value?.length > 0) {
+    complianceModel = transformComplianceData(complianceResult.value);
   }
 
   hideLoadingOverlay();
