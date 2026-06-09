@@ -77,10 +77,10 @@ export function computeStats(tasks) {
 export function transformComplianceData(rawIssues) {
   const byKey = new Map(rawIssues.map(i => [i.key, i]));
 
-  // Index tasks by parent key
+  // Index tasks by parent key or Epic Link (customfield_10014)
   const tasksByParent = new Map();
   for (const issue of rawIssues) {
-    const parentKey = issue.fields.parent?.key;
+    const parentKey = issue.fields.parent?.key ?? issue.fields.customfield_10014 ?? null;
     if (!parentKey) continue;
     if (!tasksByParent.has(parentKey)) tasksByParent.set(parentKey, []);
     tasksByParent.get(parentKey).push(issue);
@@ -119,9 +119,19 @@ export function transformComplianceData(rawIssues) {
     ...buildEpicEntry(COMPLIANCE_EPIC_KEY),
   };
 
+  // GIST: merge tasks from epic children + direct children of initiative
+  // (Vulnerability issues may link directly to the initiative instead of the epic)
+  const gistEpicEntry = buildEpicEntry(GIST_EPIC_KEY);
+  const gistInitChildren = (tasksByParent.get(INITIATIVE_KEYS.gist) ?? [])
+    .filter(i => i.key !== GIST_EPIC_KEY)
+    .map(toTask);
+  const gistAllTasks = [...gistEpicEntry.tasks, ...gistInitChildren];
+
   const gist = {
     initiative: buildInitiative(INITIATIVE_KEYS.gist),
-    ...buildEpicEntry(GIST_EPIC_KEY),
+    epic: gistEpicEntry.epic,
+    tasks: gistAllTasks,
+    stats: computeStats(gistAllTasks),
   };
 
   return { sox, compliance, gist };

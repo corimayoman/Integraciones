@@ -55,7 +55,8 @@ const COMPLIANCE_EPIC_KEYS = [
   'GLO220-13081', // SOX - Other
 ];
 
-const COMPLIANCE_JQL = `key in (${[...COMPLIANCE_INITIATIVE_KEYS, ...COMPLIANCE_EPIC_KEYS].join(', ')}) OR parent in (${[...COMPLIANCE_INITIATIVE_KEYS, ...COMPLIANCE_EPIC_KEYS].join(', ')})`;
+const ALL_COMPLIANCE_KEYS = [...COMPLIANCE_INITIATIVE_KEYS, ...COMPLIANCE_EPIC_KEYS];
+const COMPLIANCE_JQL = `key in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR parent in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR "Epic Link" in (${COMPLIANCE_EPIC_KEYS.join(', ')})`;
 
 async function fetchComplianceIssues() {
   let allIssues = [];
