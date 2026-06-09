@@ -392,17 +392,35 @@ function renderAlertsRoute(main) {
   renderAlertsView(main, filteredModel);
 }
 
-function renderComplianceRoute(main) {
+async function renderComplianceRoute(main) {
   main.textContent = '';
 
-  // Show whatever we already have — model is populated by onConnect / onRefresh,
-  // never fetched on demand here (that avoids pre-auth requests and race conditions).
+  // 1. Show last known data immediately (memory → localStorage cache)
   if (!complianceModel) {
     const cached = loadComplianceCachedIssues();
     if (cached) complianceModel = transformComplianceData(cached);
   }
-
   renderComplianceView(main, complianceModel, false, null);
+
+  // 2. If not connected, nothing more to do
+  if (!isLive) return;
+
+  // 3. Already connected but no data yet (e.g. user navigated here after onConnect
+  //    already ran, or previous fetch failed) — fetch now, auth is guaranteed valid
+  if (complianceModel) return;
+
+  try {
+    const issues = await fetchComplianceIssues();
+    if (issues && issues.length > 0) {
+      complianceModel = transformComplianceData(issues);
+    }
+  } catch {
+    // keep empty state
+  }
+
+  if (getCurrentRoute().name === 'compliance') {
+    renderComplianceView(main, complianceModel, false, null);
+  }
 }
 
 function renderDetailRoute(main, companyId) {
