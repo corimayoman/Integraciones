@@ -206,6 +206,7 @@ export function waitForAuthState(onChange) {
       // Capa 1: dominio
       if (!user.email.endsWith(`@${ALLOWED_DOMAIN}`)) {
         await signOut(auth);
+        window.dispatchEvent(new CustomEvent('ams:access-denied', { detail: { email: user.email } }));
         return;
       }
 
@@ -213,6 +214,7 @@ export function waitForAuthState(onChange) {
       const whitelistResult = await checkWhitelist(user.email);
       if (whitelistResult.status === 'denied') {
         await signOut(auth);
+        window.dispatchEvent(new CustomEvent('ams:access-denied', { detail: { email: user.email } }));
         return;
       }
       currentUserRole = whitelistResult.role;
