@@ -38,6 +38,7 @@ function toTask(issue) {
     status:    mapStatus(issue.fields.status?.name ?? ''),
     jiraStatus: issue.fields.status?.name ?? '',
     duedate:   issue.fields.duedate ?? null,
+    created:   issue.fields.created ? issue.fields.created.slice(0, 10) : null,
     assignee:  issue.fields.assignee?.displayName ?? null,
   };
 }

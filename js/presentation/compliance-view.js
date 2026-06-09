@@ -247,45 +247,68 @@ function makePill(text, variant) {
 }
 
 function buildTaskList(tasks) {
-  const ul = document.createElement('ul');
-  ul.className = 'compliance-task-list';
-
   const today = new Date().toISOString().slice(0, 10);
 
-  for (const task of tasks) {
-    const li = document.createElement('li');
-    li.className = 'compliance-task-item';
+  const wrap = document.createElement('div');
+  wrap.className = 'compliance-task-table-wrap';
 
-    const overdue = task.status !== 'Completado' && task.duedate && task.duedate < today;
+  const table = document.createElement('table');
+  table.className = 'compliance-task-table';
 
-    const dot = document.createElement('span');
-    dot.className = `compliance-task-dot compliance-task-dot--${statusClass(task.status)}`;
-    li.appendChild(dot);
-
-    const text = document.createElement('span');
-    text.className = 'compliance-task-text';
-    text.textContent = task.summary;
-    text.title = task.key;
-    li.appendChild(text);
-
-    if (task.duedate) {
-      const due = document.createElement('span');
-      due.className = `compliance-task-due ${overdue ? 'compliance-task-due--overdue' : ''}`;
-      due.textContent = task.duedate;
-      li.appendChild(due);
-    }
-
-    if (task.assignee) {
-      const assignee = document.createElement('span');
-      assignee.className = 'compliance-task-assignee';
-      assignee.textContent = task.assignee;
-      li.appendChild(assignee);
-    }
-
-    ul.appendChild(li);
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  for (const col of ['ID', 'Título', 'Asignado a', 'Creado', 'Vence', 'Estado']) {
+    const th = document.createElement('th');
+    th.textContent = col;
+    headerRow.appendChild(th);
   }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
-  return ul;
+  const tbody = document.createElement('tbody');
+  for (const task of tasks) {
+    const overdue = task.status !== 'Completado' && task.duedate && task.duedate < today;
+    const tr = document.createElement('tr');
+    if (overdue) tr.classList.add('compliance-task-row--overdue');
+
+    const tdKey = document.createElement('td');
+    tdKey.className = 'compliance-task-td compliance-task-td--key';
+    tdKey.textContent = task.key;
+    tr.appendChild(tdKey);
+
+    const tdSummary = document.createElement('td');
+    tdSummary.className = 'compliance-task-td compliance-task-td--summary';
+    tdSummary.textContent = task.summary;
+    tr.appendChild(tdSummary);
+
+    const tdAssignee = document.createElement('td');
+    tdAssignee.className = 'compliance-task-td';
+    tdAssignee.textContent = task.assignee ?? '—';
+    tr.appendChild(tdAssignee);
+
+    const tdCreated = document.createElement('td');
+    tdCreated.className = 'compliance-task-td compliance-task-td--date';
+    tdCreated.textContent = task.created ?? '—';
+    tr.appendChild(tdCreated);
+
+    const tdDue = document.createElement('td');
+    tdDue.className = `compliance-task-td compliance-task-td--date${overdue ? ' compliance-task-td--overdue' : ''}`;
+    tdDue.textContent = task.duedate ?? '—';
+    tr.appendChild(tdDue);
+
+    const tdStatus = document.createElement('td');
+    tdStatus.className = 'compliance-task-td';
+    const badge = document.createElement('span');
+    badge.className = `compliance-status-badge compliance-status-badge--${statusClass(task.status)}`;
+    badge.textContent = task.status;
+    tdStatus.appendChild(badge);
+    tr.appendChild(tdStatus);
+
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  return wrap;
 }
 
 function statusClass(status) {
