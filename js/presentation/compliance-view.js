@@ -40,13 +40,13 @@ export function renderComplianceView(container, complianceModel, loading, error)
 
   const title = document.createElement('h2');
   title.className = 'compliance-title';
-  title.textContent = 'G4G Compliance Dashboard';
+  title.textContent = 'G4G Compliance Dashboard';  // intentionally English
   wrapper.appendChild(title);
 
   if (loading) {
     const spinner = document.createElement('p');
     spinner.className = 'compliance-loading';
-    spinner.textContent = 'Cargando datos de Jira…';
+    spinner.textContent = 'Loading data from Jira…';
     wrapper.appendChild(spinner);
     container.appendChild(wrapper);
     return;
@@ -55,7 +55,7 @@ export function renderComplianceView(container, complianceModel, loading, error)
   if (error) {
     const errEl = document.createElement('p');
     errEl.className = 'compliance-error';
-    errEl.textContent = `Error al cargar datos: ${error}`;
+    errEl.textContent = `Error loading data: ${error}`;
     wrapper.appendChild(errEl);
     container.appendChild(wrapper);
     return;
@@ -64,7 +64,7 @@ export function renderComplianceView(container, complianceModel, loading, error)
   if (!complianceModel) {
     const empty = document.createElement('p');
     empty.className = 'empty-state__message';
-    empty.textContent = 'No hay datos de compliance disponibles.';
+    empty.textContent = 'No compliance data available.';
     wrapper.appendChild(empty);
     container.appendChild(wrapper);
     return;
@@ -180,13 +180,13 @@ function buildGistSection(gist) {
     const chartsRow = document.createElement('div');
     chartsRow.className = 'compliance-vuln-charts';
 
-    chartsRow.appendChild(buildPieCard('Abiertas', vg.open, 'open'));
-    chartsRow.appendChild(buildPieCard('Bloqueadas', vg.blocked, 'blocked'));
-    chartsRow.appendChild(buildPieCard('Cerradas', vg.closed, 'closed'));
+    chartsRow.appendChild(buildPieCard('Open', vg.open, 'open'));
+    chartsRow.appendChild(buildPieCard('Blocked', vg.blocked, 'blocked'));
+    chartsRow.appendChild(buildPieCard('Closed', vg.closed, 'closed'));
 
     const note = document.createElement('p');
     note.className = 'compliance-vuln-note';
-    note.textContent = `Vulnerabilidades Critical y High · ${vg.total} en total`;
+    note.textContent = `Critical and High vulnerabilities · ${vg.total} total`;
     section.appendChild(note);
     section.appendChild(chartsRow);
   }
@@ -196,7 +196,7 @@ function buildGistSection(gist) {
     const taskSection = document.createElement('details');
     taskSection.className = 'compliance-tasks-details';
     const summary = document.createElement('summary');
-    summary.textContent = `Ver tareas (${gist.tasks.length})`;
+    summary.textContent = `Show tasks (${gist.tasks.length})`;
     taskSection.appendChild(summary);
     taskSection.appendChild(buildTaskList(gist.tasks, true));
     section.appendChild(taskSection);
@@ -369,7 +369,7 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
     const taskSection = document.createElement('details');
     taskSection.className = 'compliance-tasks-details';
     const summary = document.createElement('summary');
-    summary.textContent = `Ver tareas (${tasks.length})`;
+    summary.textContent = `Show tasks (${tasks.length})`;
     taskSection.appendChild(summary);
     taskSection.appendChild(buildTaskList(tasks));
     section.appendChild(taskSection);
@@ -385,7 +385,7 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
 function buildInitiativeTag(initiative) {
   const tag = document.createElement('span');
   tag.className = `compliance-status-badge compliance-status-badge--${statusClass(initiative.status)}`;
-  tag.textContent = `${initiative.key} · ${initiative.status}`;
+  tag.textContent = `${initiative.key} · ${statusLabel(initiative.status)}`;
   tag.title = initiative.summary;
   return tag;
 }
@@ -426,11 +426,11 @@ function buildStatsPills(stats) {
   const pills = document.createElement('div');
   pills.className = 'compliance-pills';
 
-  pills.appendChild(makePill(`${stats.completed}/${stats.total} completadas`, 'neutral'));
+  pills.appendChild(makePill(`${stats.completed}/${stats.total} completed`, 'neutral'));
   if (stats.overdue > 0) {
-    pills.appendChild(makePill(`${stats.overdue} vencida${stats.overdue !== 1 ? 's' : ''}`, 'danger'));
+    pills.appendChild(makePill(`${stats.overdue} overdue`, 'danger'));
   } else {
-    pills.appendChild(makePill('Sin vencimientos', 'ok'));
+    pills.appendChild(makePill('No overdue', 'ok'));
   }
 
   return pills;
@@ -454,8 +454,8 @@ function buildTaskList(tasks, showPriority = false) {
 
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  const cols = ['ID', 'Título', 'Asignado a', 'Creado', 'Vence', 'Estado'];
-  if (showPriority) cols.splice(5, 0, 'Prioridad');
+  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Due Date', 'Status'];
+  if (showPriority) cols.splice(5, 0, 'Priority');
   for (const col of cols) {
     const th = document.createElement('th');
     th.textContent = col;
@@ -514,7 +514,7 @@ function buildTaskList(tasks, showPriority = false) {
     tdStatus.className = 'compliance-task-td';
     const badge = document.createElement('span');
     badge.className = `compliance-status-badge compliance-status-badge--${statusClass(task.status)}`;
-    badge.textContent = task.status;
+    badge.textContent = statusLabel(task.status);
     tdStatus.appendChild(badge);
     tr.appendChild(tdStatus);
 
@@ -523,6 +523,18 @@ function buildTaskList(tasks, showPriority = false) {
   table.appendChild(tbody);
   wrap.appendChild(table);
   return wrap;
+}
+
+const STATUS_EN = {
+  'Completado':  'Completed',
+  'En Progreso': 'In Progress',
+  'Bloqueado':   'Blocked',
+  'Rechazado':   'Rejected',
+  'No Iniciado': 'Not Started',
+};
+
+function statusLabel(status) {
+  return STATUS_EN[status] ?? status;
 }
 
 function statusClass(status) {

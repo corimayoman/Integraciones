@@ -395,28 +395,24 @@ function renderAlertsRoute(main) {
 function renderComplianceRoute(main) {
   main.textContent = '';
 
-  // Show immediately with cached data if available, then refresh
-  if (complianceModel) {
-    renderComplianceView(main, complianceModel, false, null);
-  } else {
+  // Always show last known data immediately (in-memory model or localStorage cache)
+  if (!complianceModel) {
     const cached = loadComplianceCachedIssues();
-    if (cached) {
-      complianceModel = transformComplianceData(cached);
-      renderComplianceView(main, complianceModel, false, null);
-    } else {
-      renderComplianceView(main, null, true, null);
-    }
+    if (cached) complianceModel = transformComplianceData(cached);
   }
+  renderComplianceView(main, complianceModel, false, null);
+
+  // Only attempt live fetch when there is an active Jira connection
+  if (!isLive) return;
 
   fetchComplianceIssues().then((issues) => {
+    if (!issues || issues.length === 0) return; // don't overwrite cache with empty response
     complianceModel = transformComplianceData(issues);
     if (getCurrentRoute().name === 'compliance') {
       renderComplianceView(main, complianceModel, false, null);
     }
-  }).catch((err) => {
-    if (!complianceModel && getCurrentRoute().name === 'compliance') {
-      renderComplianceView(main, null, false, err.message);
-    }
+  }).catch(() => {
+    // fetch failed — keep showing whatever we already have
   });
 }
 
@@ -535,6 +531,11 @@ function onConnect() {
       model.metadata.snapshotDate = getSnapshotDate();
       saveModelSnapshot(model);  // guardar modelo transformado (liviano)
       isLive = true;
+
+      // Refresh compliance data in the background
+      fetchComplianceIssues().then((issues) => {
+        if (issues && issues.length > 0) complianceModel = transformComplianceData(issues);
+      }).catch(() => {});
 
       hideLoadingOverlay();
 
