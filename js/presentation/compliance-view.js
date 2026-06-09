@@ -236,7 +236,7 @@ function buildPieCard(label, bucket, variant) {
 
 function buildDonutSVG(bucket) {
   const size   = 100;
-  const cx = cy = size / 2;
+  const cx = size / 2, cy = size / 2;
   const R  = 38;   // outer radius
   const r  = 22;   // inner radius (hole)
 
