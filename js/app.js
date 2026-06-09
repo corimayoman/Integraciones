@@ -9,7 +9,6 @@
  * @module app
  */
 
-import { OFFLINE_ISSUES } from './data/offline-data.js';
 import { transformJiraData } from './business/transformer.js';
 import { applyFilters } from './business/filters.js';
 import { detectDelayedTracks } from './business/alerts.js';
@@ -20,8 +19,11 @@ import { renderMatrixView, updateMatrixView } from './presentation/matrix-view.j
 import { renderRegionView } from './presentation/region-view.js';
 import { renderAlertsView } from './presentation/alerts-view.js';
 import { renderDetailView } from './presentation/detail-view.js';
+import { renderComplianceView } from './presentation/compliance-view.js';
+import { fetchComplianceIssues, loadComplianceCachedIssues } from './data/compliance-api.js';
+import { transformComplianceData } from './business/compliance-transformer.js';
 import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
-import { login, logout, checkAuth, fetchRawIssues, onConnectionChange } from './data/api-client.js';
+import { login, logout, checkAuth, fetchRawIssues, onConnectionChange, saveModelSnapshot, loadModelSnapshot, getSnapshotDate, clearCache } from './data/api-client.js';
 import { isAuthenticated, getCurrentUser as getDCUser, loginWithGoogle } from './data/dc-api-client.js';
 import { clearToken } from './business/auth-logic.js';
 import { renderCompanyListView } from './presentation/dc/company-list-view.js';
@@ -41,10 +43,13 @@ import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken } fr
 let model = null;
 
 /** @type {object} Current filter state */
-let currentFilters = { severity: null, year: null, region: null, status: null };
+let currentFilters = { severity: [], year: [], region: [], status: [], companyStatus: [] };
 
 /** @type {string} Active sub-tab in the matrix route */
 let activeMatrixSubTab = 'empresas';
+
+/** @type {object|null} Compliance model */
+let complianceModel = null;
 
 /** @type {boolean} Whether we are connected to Jira */
 let isLive = false;
@@ -204,6 +209,7 @@ function renderNav() {
     const dashLinks = [
       { hash: '#/', label: 'Matriz', title: 'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración' },
       { hash: '#/alerts', label: 'Alertas', title: 'Tracks críticos o de alta severidad con subtareas bloqueadas o rechazadas que requieren atención' },
+      { hash: '#/compliance', label: 'Compliance', title: 'Dashboard de cumplimiento G4G: SOX, Compliance y GIST' },
     ];
 
     for (const link of dashLinks) {
@@ -216,7 +222,8 @@ function renderNav() {
       a.title = link.title;
       if (
         (link.hash === '#/' && currentRoute.name === 'matrix') ||
-        (link.hash === '#/alerts' && currentRoute.name === 'alerts')
+        (link.hash === '#/alerts' && currentRoute.name === 'alerts') ||
+        (link.hash === '#/compliance' && currentRoute.name === 'compliance')
       ) {
         a.classList.add('nav-link--active');
         a.setAttribute('aria-current', 'page');
@@ -278,6 +285,9 @@ function renderCurrentView(route) {
       break;
     case 'alerts':
       renderAlertsRoute(main);
+      break;
+    case 'compliance':
+      renderComplianceRoute(main);
       break;
     case 'company-detail':
       renderDetailRoute(main, route.params.id);
@@ -380,6 +390,34 @@ function renderAlertsRoute(main) {
   main.textContent = '';
   const filteredModel = applyFilters(model, currentFilters);
   renderAlertsView(main, filteredModel);
+}
+
+function renderComplianceRoute(main) {
+  main.textContent = '';
+
+  // Show immediately with cached data if available, then refresh
+  if (complianceModel) {
+    renderComplianceView(main, complianceModel, false, null);
+  } else {
+    const cached = loadComplianceCachedIssues();
+    if (cached) {
+      complianceModel = transformComplianceData(cached);
+      renderComplianceView(main, complianceModel, false, null);
+    } else {
+      renderComplianceView(main, null, true, null);
+    }
+  }
+
+  fetchComplianceIssues().then((issues) => {
+    complianceModel = transformComplianceData(issues);
+    if (getCurrentRoute().name === 'compliance') {
+      renderComplianceView(main, complianceModel, false, null);
+    }
+  }).catch((err) => {
+    if (!complianceModel && getCurrentRoute().name === 'compliance') {
+      renderComplianceView(main, null, false, err.message);
+    }
+  });
 }
 
 function renderDetailRoute(main, companyId) {
@@ -494,6 +532,8 @@ function onConnect() {
       const rawIssues = await fetchRawIssues();
       model = transformJiraData(rawIssues);
       model.metadata.mode = 'live';
+      model.metadata.snapshotDate = getSnapshotDate();
+      saveModelSnapshot(model);  // guardar modelo transformado (liviano)
       isLive = true;
 
       hideLoadingOverlay();
@@ -505,6 +545,19 @@ function onConnect() {
   }, 2000);
 }
 
+async function onRefresh() {
+  showLoadingOverlay('Actualizando datos desde Jira…');
+  clearCache();
+  const rawIssues = await fetchRawIssues();
+  model = transformJiraData(rawIssues);
+  model.metadata.mode = 'live';
+  model.metadata.snapshotDate = getSnapshotDate();
+  saveModelSnapshot(model);
+  hideLoadingOverlay();
+  renderAppHeader();
+  renderCurrentView(getCurrentRoute());
+}
+
 function onDisconnect() {
   // Stop any pending auth polling
   if (authPollInterval) {
@@ -514,11 +567,19 @@ function onDisconnect() {
 
   logout();
 
-  // Reload offline data
-  model = transformJiraData(OFFLINE_ISSUES);
-  model.metadata.mode = 'offline';
+  // Reload from model snapshot (or empty if no snapshot)
+  const savedModel = loadModelSnapshot();
+  if (savedModel) {
+    model = savedModel;
+    model.metadata.mode = 'snapshot';
+    model.metadata.snapshotDate = getSnapshotDate();
+  } else {
+    model = transformJiraData([]);
+    model.metadata.mode = 'offline';
+    model.metadata.snapshotDate = null;
+  }
   isLive = false;
-  currentFilters = { severity: null, year: null, region: null, status: null };
+  currentFilters = { severity: [], year: [], region: [], status: [], companyStatus: [] };
 
   // Re-render
   renderAppHeader();
@@ -538,8 +599,10 @@ function renderAppHeader() {
   renderHeader(headerEl, {
     isLive,
     alertCount: alerts.length,
+    snapshotDate: model?.metadata?.snapshotDate ?? null,
     onConnect,
     onDisconnect,
+    onRefresh,
     onToggleDarkMode: toggleDarkMode,
     googleUser: getGoogleUser(),
     onSignOut: async () => {
@@ -576,9 +639,17 @@ function handleConnectionChange(newIsLive) {
 /* ------------------------------------------------------------------ */
 
 function bootApp() {
-  // Load offline data by default
-  model = transformJiraData(OFFLINE_ISSUES);
-  model.metadata.mode = 'offline';
+  // Load last known model snapshot (or empty model if none)
+  const savedModel = loadModelSnapshot();
+  if (savedModel) {
+    model = savedModel;
+    model.metadata.mode = 'snapshot';
+    model.metadata.snapshotDate = getSnapshotDate();
+  } else {
+    model = transformJiraData([]);
+    model.metadata.mode = 'offline';
+    model.metadata.snapshotDate = null;
+  }
 
   // Register connection change listener
   onConnectionChange(handleConnectionChange);

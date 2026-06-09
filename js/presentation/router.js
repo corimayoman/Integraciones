@@ -28,6 +28,7 @@ const ROUTES = [
   { pattern: /^#\/company\/(.+)$/, name: 'company-detail', paramName: 'id' },
   { pattern: /^#\/region$/, name: 'region' },
   { pattern: /^#\/alerts$/, name: 'alerts' },
+  { pattern: /^#\/compliance$/, name: 'compliance' },
   { pattern: /^#\/$/, name: 'matrix' },
 ];
 
