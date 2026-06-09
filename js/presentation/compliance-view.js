@@ -482,7 +482,13 @@ function buildTaskList(tasks, showPriority = false) {
 
     const tdKey = document.createElement('td');
     tdKey.className = 'compliance-task-td compliance-task-td--key';
-    tdKey.textContent = task.key;
+    const keyLink = document.createElement('a');
+    keyLink.href = `https://globant.atlassian.net/browse/${task.key}`;
+    keyLink.target = '_blank';
+    keyLink.rel = 'noopener noreferrer';
+    keyLink.textContent = task.key;
+    keyLink.className = 'compliance-jira-link';
+    tdKey.appendChild(keyLink);
     tr.appendChild(tdKey);
 
     const tdSummary = document.createElement('td');
