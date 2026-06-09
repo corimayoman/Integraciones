@@ -1350,3 +1350,52 @@
   font-size: 11px;
   font-weight: var(--font-weight-bold);
 }
+
+/* --- Compliance title row & refresh badge --- */
+.compliance-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.compliance-title-row .compliance-title {
+  margin-bottom: 0;
+}
+
+.compliance-refresh-badge {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  animation: compliance-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes compliance-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* --- Not connected empty state --- */
+.compliance-not-connected {
+  padding: var(--space-6);
+  text-align: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-4);
+}
+
+.compliance-not-connected__title {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.compliance-not-connected__hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+}

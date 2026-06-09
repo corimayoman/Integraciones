@@ -29,28 +29,32 @@ const SOX_DIM_LABELS = {
 /**
  * @param {HTMLElement} container
  * @param {object|null} complianceModel - output of transformComplianceData
- * @param {boolean} loading
+ * @param {boolean} isRefreshing - true while a live fetch is in progress
  * @param {string|null} error
  */
-export function renderComplianceView(container, complianceModel, loading, error) {
+export function renderComplianceView(container, complianceModel, isRefreshing, error) {
   container.textContent = '';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'compliance-view';
 
+  // Header row with title + status banner
+  const titleRow = document.createElement('div');
+  titleRow.className = 'compliance-title-row';
+
   const title = document.createElement('h2');
   title.className = 'compliance-title';
-  title.textContent = 'G4G Compliance Dashboard';  // intentionally English
-  wrapper.appendChild(title);
+  title.textContent = 'G4G Compliance Dashboard';
+  titleRow.appendChild(title);
 
-  if (loading) {
-    const spinner = document.createElement('p');
-    spinner.className = 'compliance-loading';
-    spinner.textContent = 'Loading data from Jira…';
-    wrapper.appendChild(spinner);
-    container.appendChild(wrapper);
-    return;
+  if (isRefreshing) {
+    const badge = document.createElement('span');
+    badge.className = 'compliance-refresh-badge';
+    badge.textContent = '⟳ Refreshing from Jira…';
+    titleRow.appendChild(badge);
   }
+
+  wrapper.appendChild(titleRow);
 
   if (error) {
     const errEl = document.createElement('p');
@@ -62,9 +66,12 @@ export function renderComplianceView(container, complianceModel, loading, error)
   }
 
   if (!complianceModel) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-state__message';
-    empty.textContent = 'No compliance data available.';
+    const empty = document.createElement('div');
+    empty.className = 'compliance-not-connected';
+    empty.innerHTML = `
+      <p class="compliance-not-connected__title">No data available</p>
+      <p class="compliance-not-connected__hint">Connect to Jira using the button above to load compliance data.</p>
+    `;
     wrapper.appendChild(empty);
     container.appendChild(wrapper);
     return;

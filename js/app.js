@@ -20,7 +20,7 @@ import { renderRegionView } from './presentation/region-view.js';
 import { renderAlertsView } from './presentation/alerts-view.js';
 import { renderDetailView } from './presentation/detail-view.js';
 import { renderComplianceView } from './presentation/compliance-view.js';
-import { fetchComplianceIssues, loadComplianceCachedIssues } from './data/compliance-api.js';
+import { fetchComplianceIssues, loadComplianceCachedIssues, clearComplianceCache } from './data/compliance-api.js';
 import { transformComplianceData } from './business/compliance-transformer.js';
 import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
 import { login, logout, checkAuth, fetchRawIssues, onConnectionChange, saveModelSnapshot, loadModelSnapshot, getSnapshotDate, clearCache } from './data/api-client.js';
@@ -392,28 +392,32 @@ function renderAlertsRoute(main) {
   renderAlertsView(main, filteredModel);
 }
 
-function renderComplianceRoute(main) {
+async function renderComplianceRoute(main) {
   main.textContent = '';
 
-  // Always show last known data immediately (in-memory model or localStorage cache)
+  // Step 1 — immediately show whatever we already have (never blank screen)
   if (!complianceModel) {
     const cached = loadComplianceCachedIssues();
     if (cached) complianceModel = transformComplianceData(cached);
   }
-  renderComplianceView(main, complianceModel, false, null);
+  renderComplianceView(main, complianceModel, isLive, null);
 
-  // Only attempt live fetch when there is an active Jira connection
+  // Step 2 — if no live connection, we're done (show cached or "not connected" state)
   if (!isLive) return;
 
-  fetchComplianceIssues().then((issues) => {
-    if (!issues || issues.length === 0) return; // don't overwrite cache with empty response
-    complianceModel = transformComplianceData(issues);
-    if (getCurrentRoute().name === 'compliance') {
-      renderComplianceView(main, complianceModel, false, null);
+  // Step 3 — fetch fresh data, then re-render once (no race condition)
+  try {
+    const issues = await fetchComplianceIssues();
+    if (issues && issues.length > 0) {
+      complianceModel = transformComplianceData(issues);
     }
-  }).catch(() => {
-    // fetch failed — keep showing whatever we already have
-  });
+  } catch {
+    // network error — keep existing data
+  }
+
+  if (getCurrentRoute().name === 'compliance') {
+    renderComplianceView(main, complianceModel, false, null);
+  }
 }
 
 function renderDetailRoute(main, companyId) {
@@ -532,11 +536,6 @@ function onConnect() {
       saveModelSnapshot(model);  // guardar modelo transformado (liviano)
       isLive = true;
 
-      // Refresh compliance data in the background
-      fetchComplianceIssues().then((issues) => {
-        if (issues && issues.length > 0) complianceModel = transformComplianceData(issues);
-      }).catch(() => {});
-
       hideLoadingOverlay();
 
       // Re-render header and current view
@@ -548,12 +547,26 @@ function onConnect() {
 
 async function onRefresh() {
   showLoadingOverlay('Actualizando datos desde Jira…');
+
+  // Clear both caches and fetch both datasets in parallel
   clearCache();
-  const rawIssues = await fetchRawIssues();
-  model = transformJiraData(rawIssues);
+  clearComplianceCache();
+
+  const [rawIssues, complianceIssues] = await Promise.allSettled([
+    fetchRawIssues(),
+    fetchComplianceIssues(),
+  ]);
+
+  const raw = rawIssues.status === 'fulfilled' ? rawIssues.value : [];
+  model = transformJiraData(raw);
   model.metadata.mode = 'live';
   model.metadata.snapshotDate = getSnapshotDate();
   saveModelSnapshot(model);
+
+  if (complianceIssues.status === 'fulfilled' && complianceIssues.value?.length > 0) {
+    complianceModel = transformComplianceData(complianceIssues.value);
+  }
+
   hideLoadingOverlay();
   renderAppHeader();
   renderCurrentView(getCurrentRoute());
