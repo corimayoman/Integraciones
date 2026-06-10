@@ -1,0 +1,297 @@
+/* ==========================================================================
+   SOX Controls Dashboard — view styles
+   Uses design tokens from tokens.css
+   ========================================================================== */
+
+/* --- Layout ---------------------------------------------------------------- */
+.sox-view {
+  padding: var(--space-5) var(--space-6);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.sox-view__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.sox-view__title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sox-view__subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* --- Summary cards --------------------------------------------------------- */
+.sox-summary {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.sox-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  min-width: 140px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sox-card__label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-1);
+}
+
+.sox-card__value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.sox-card__sub {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.sox-card--ok      { border-top: 3px solid var(--color-success); }
+.sox-card--failed  { border-top: 3px solid #e91e8c; }
+.sox-card--alert   { border-top: 3px solid var(--color-status-rejected); }
+.sox-card--warning { border-top: 3px solid var(--color-warning); }
+.sox-card--total   { border-top: 3px solid var(--color-primary); }
+
+/* --- Chart ----------------------------------------------------------------- */
+.sox-chart-wrap {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.sox-chart-wrap__title {
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+  font-weight: var(--font-weight-medium);
+}
+
+#soxTrendChart {
+  width: 100% !important;
+  height: 180px !important;
+}
+
+/* --- Filters -------------------------------------------------------------- */
+.sox-filters {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: var(--space-4);
+}
+
+.sox-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sox-filter-group label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--font-weight-medium);
+}
+
+.sox-filter-group select,
+.sox-filter-group input {
+  padding: 6px var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  min-width: 130px;
+}
+
+.sox-filter-group select:focus,
+.sox-filter-group input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+/* --- Legend ---------------------------------------------------------------- */
+.sox-legend {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.sox-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+/* --- Table ----------------------------------------------------------------- */
+.sox-table-wrap {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+}
+
+.sox-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+
+.sox-table thead th {
+  padding: var(--space-3) var(--space-3);
+  text-align: left;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sox-table thead th.sox-month-col {
+  text-align: center;
+  min-width: 80px;
+}
+
+.sox-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.sox-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.sox-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.sox-table tbody td {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: middle;
+}
+
+.sox-ctrl-id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 140px;
+}
+
+.sox-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.sox-badge--app  { background: var(--color-brand-light); color: var(--color-primary); border: 1px solid #c7d9f0; }
+.sox-badge--ACC  { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+.sox-badge--CHG  { background: #fff3e0; color: #b45309; border: 1px solid #fde68a; }
+.sox-badge--OPE  { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.sox-badge--APD  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* --- Status cells ---------------------------------------------------------- */
+.sox-status-cell {
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 4px 2px;
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
+  display: block;
+}
+
+.sox-status-cell:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.sox-s-ok      { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.sox-s-failed  { background: #fce7f3; color: #9d174d; border: 1px solid #f9a8d4; }
+.sox-s-alert   { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+.sox-s-pending { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+.sox-s-delayed { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.sox-s-tiempo  { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+.sox-s-na      { background: var(--color-bg-secondary); color: var(--color-text-disabled); border: 1px solid var(--color-border); cursor: default; }
+
+.sox-no-results {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.sox-loading {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-secondary);
+}
+
+.sox-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  color: #b91c1c;
+  margin-bottom: var(--space-5);
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] .sox-card,
+[data-theme="dark"] .sox-chart-wrap,
+[data-theme="dark"] .sox-table-wrap {
+  background: var(--color-bg-surface);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .sox-table thead th {
+  background: var(--color-bg-secondary);
+}

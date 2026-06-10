@@ -12,7 +12,48 @@ import {
   RETRY_CONFIG,
 } from '../constants.js';
 import * as Cache from './cache.js';
-import { OFFLINE_ISSUES } from './offline-data.js';
+
+/* ------------------------------------------------------------------ */
+/*  Snapshot (localStorage persistence)                               */
+/* ------------------------------------------------------------------ */
+
+const SNAPSHOT_KEY = 'jira_model_snapshot_v2';
+const SNAPSHOT_DATE_KEY = 'jira_snapshot_date_v2';
+
+/**
+ * Save the transformed dashboard model to localStorage.
+ * Much smaller than raw issues — only keeps what the UI needs.
+ * @param {object} model - DashboardModel
+ */
+export function saveModelSnapshot(model) {
+  try {
+    const slim = {
+      companies: model.companies,
+      metadata: { ...model.metadata, mode: 'snapshot' },
+    };
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
+    localStorage.setItem(SNAPSHOT_DATE_KEY, new Date().toISOString());
+  } catch {
+    // QuotaExceededError — skip silently
+  }
+}
+
+/**
+ * Load the saved dashboard model from localStorage.
+ * @returns {object|null} Saved model or null if none
+ */
+export function loadModelSnapshot() {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getSnapshotDate() {
+  return localStorage.getItem(SNAPSHOT_DATE_KEY) || null;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Internal state                                                     */
@@ -169,10 +210,10 @@ export async function fetchRawIssues() {
   const cached = Cache.get(CACHE_KEY, CACHE_TTL);
   if (cached) return cached;
 
-  // Circuit breaker open → return offline immediately
+  // Circuit breaker open → return empty (model snapshot handled at app level)
   if (isCircuitOpen()) {
     setLive(false);
-    return OFFLINE_ISSUES;
+    return [];
   }
 
   try {
@@ -191,8 +232,8 @@ export async function fetchRawIssues() {
       setLive(false);
     }
 
-    // Fallback to offline data
-    return OFFLINE_ISSUES;
+    // Fallback to empty — model snapshot is loaded at app level
+    return [];
   }
 }
 
@@ -207,6 +248,15 @@ export function onConnectionChange(callback) {
 /* ------------------------------------------------------------------ */
 /*  Exports for testing                                                */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Clear the in-memory cache so the next fetchRawIssues() hits Jira.
+ */
+export function clearCache() {
+  Cache.clear();
+  circuitBreaker.failures = 0;
+  circuitBreaker.state = 'closed';
+}
 
 export const _internals = {
   circuitBreaker,

@@ -19,19 +19,19 @@
     "rewrites": [
       {
         "source": "/dc/**",
-        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+        "function": { "functionId": "api", "region": "us-central1" }
       },
       {
         "source": "/auth/**",
-        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+        "function": { "functionId": "api", "region": "us-central1" }
       },
       {
         "source": "/api/**",
-        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+        "function": { "functionId": "api", "region": "us-central1" }
       },
       {
         "source": "/health",
-        "run": { "serviceId": "ams-proxy", "region": "us-central1" }
+        "function": { "functionId": "api", "region": "us-central1" }
       },
       {
         "source": "**",
@@ -47,6 +47,18 @@
       }
     ]
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   },

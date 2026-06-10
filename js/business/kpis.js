@@ -9,6 +9,16 @@
  */
 
 /**
+ * Effective progress for a track: 100 if Completado, otherwise stored progress.
+ * Handles snapshots saved before the transformer fix was applied.
+ * @param {{ status: string, progress: number }} track
+ * @returns {number}
+ */
+function effectiveProgress(track) {
+  return track.status === 'Completado' ? 100 : track.progress;
+}
+
+/**
  * Calculate top-level KPI metrics from the model.
  *
  * @param {object} model - DashboardModel
@@ -32,7 +42,7 @@ export function calculateKPIs(model) {
     allTracks.length === 0
       ? 0
       : Math.round(
-          allTracks.reduce((sum, t) => sum + t.progress, 0) / allTracks.length,
+          allTracks.reduce((sum, t) => sum + effectiveProgress(t), 0) / allTracks.length,
         );
 
   // Blocked tracks: tracks whose Epic status is "Bloqueado"
@@ -80,7 +90,6 @@ export function calculateYearSummary(model) {
   const summaries = [];
   for (const [year, yearCompanies] of byYear) {
     const avgCompletionBySeverity = {};
-
     for (const sev of severities) {
       const tracks = yearCompanies.flatMap((c) =>
         c.tracks.filter((t) => t.severity === sev),
@@ -89,7 +98,7 @@ export function calculateYearSummary(model) {
         tracks.length === 0
           ? 0
           : Math.round(
-              tracks.reduce((sum, t) => sum + t.progress, 0) / tracks.length,
+              tracks.reduce((sum, t) => sum + effectiveProgress(t), 0) / tracks.length,
             );
     }
 

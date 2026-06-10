@@ -152,6 +152,35 @@
 }
 
 /* --- Header Buttons (visible on dark header) --- */
+.header-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform 0.3s ease;
+}
+
+.header-refresh-btn:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.header-refresh-btn:active svg {
+  animation: spin-once 0.4s linear;
+}
+
+@keyframes spin-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 .header-connect-btn {
   background-color: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -418,4 +447,41 @@
 
 .header-signout-btn:hover {
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* --- Snapshot / Offline Banner --- */
+.snapshot-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(240, 165, 0, 0.15);
+  border-top: 1px solid rgba(240, 165, 0, 0.35);
+  font-size: var(--font-size-small);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.snapshot-banner__icon {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.snapshot-banner__text {
+  flex: 1;
+}
+
+.snapshot-banner__btn {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(240, 165, 0, 0.6);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font-size: var(--font-size-small);
+  transition: background var(--transition-fast);
+}
+
+.snapshot-banner__btn:hover {
+  background: rgba(240, 165, 0, 0.25);
 }

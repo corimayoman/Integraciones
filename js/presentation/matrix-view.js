@@ -55,6 +55,76 @@ export function renderMatrixView(container, model) {
 
   wrapper.appendChild(table);
   container.appendChild(wrapper);
+  container.appendChild(buildLegend());
+}
+
+/**
+ * Build the status dot legend.
+ * @returns {HTMLElement}
+ */
+function buildLegend() {
+  const legend = document.createElement('div');
+  legend.className = 'matrix-legend';
+  legend.setAttribute('aria-label', 'Referencias de color');
+
+  // Estado del track (puntos)
+  const statusItems = [
+    { cls: 'status-completed',   label: 'Completado' },
+    { cls: 'status-in-progress', label: 'En Progreso' },
+    { cls: 'status-not-started', label: 'No Iniciado' },
+    { cls: 'status-blocked',     label: 'Bloqueado' },
+    { cls: 'status-rejected',    label: 'Rechazado' },
+    { cls: 'empty',              label: 'Sin track' },
+  ];
+
+  const statusTitle = document.createElement('span');
+  statusTitle.className = 'matrix-legend__section-title';
+  statusTitle.textContent = 'Estado:';
+  legend.appendChild(statusTitle);
+
+  for (const item of statusItems) {
+    const el = document.createElement('span');
+    el.className = 'matrix-legend__item';
+    const dot = document.createElement('span');
+    dot.className = `matrix-dot matrix-dot--${item.cls} matrix-legend__dot`;
+    el.appendChild(dot);
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    el.appendChild(label);
+    legend.appendChild(el);
+  }
+
+  // Separador
+  const sep = document.createElement('span');
+  sep.className = 'matrix-legend__separator';
+  legend.appendChild(sep);
+
+  // Severidad (barras de color)
+  const sevItems = [
+    { cls: 'critical', label: 'Critical' },
+    { cls: 'high',     label: 'High' },
+    { cls: 'medium',   label: 'Medium' },
+    { cls: 'low',      label: 'Low' },
+  ];
+
+  const sevTitle = document.createElement('span');
+  sevTitle.className = 'matrix-legend__section-title';
+  sevTitle.textContent = 'Severidad (borde):';
+  legend.appendChild(sevTitle);
+
+  for (const item of sevItems) {
+    const el = document.createElement('span');
+    el.className = 'matrix-legend__item';
+    const bar = document.createElement('span');
+    bar.className = `matrix-legend__sev-bar matrix-legend__sev-bar--${item.cls}`;
+    el.appendChild(bar);
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    el.appendChild(label);
+    legend.appendChild(el);
+  }
+
+  return legend;
 }
 
 /**
@@ -85,8 +155,9 @@ function buildTableHead() {
   // One column per track
   for (const track of INTEGRATION_TRACKS) {
     const th = document.createElement('th');
-    th.className = 'matrix-header-track';
+    th.className = `matrix-header-track matrix-header-track--sev-${track.severity.toLowerCase()}`;
     th.setAttribute('scope', 'col');
+    th.title = `${track.name} · Severidad: ${track.severity}`;
 
     const numSpan = document.createElement('span');
     numSpan.className = 'matrix-header-track__number';
@@ -95,14 +166,8 @@ function buildTableHead() {
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'matrix-header-track__name';
-    nameSpan.textContent = abbreviateTrackName(track.name);
+    nameSpan.textContent = track.name;
     th.appendChild(nameSpan);
-
-    // Severity badge icon
-    const sevClass = `severity-${track.severity.toLowerCase()}`;
-    const badge = createBadge(track.severity, sevClass);
-    badge.classList.add('matrix-header-track__severity');
-    th.appendChild(badge);
 
     row.appendChild(th);
   }

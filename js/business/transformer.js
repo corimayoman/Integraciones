@@ -208,13 +208,18 @@ export function transformJiraData(rawIssues) {
         (s) => s.status === 'Completado',
       ).length;
 
+      const epicStatus = mapJiraStatus(epic.fields.status?.name);
+      const progress = epicStatus === 'Completado'
+        ? 100
+        : calculateTrackProgress(epicSubtasks);
+
       tracks.push({
         trackNumber: trackNum,
         trackName: trackDef ? trackDef.name : `Track ${trackNum}`,
         severity: trackDef ? trackDef.severity : 'Medium',
         epicKey: epic.key,
-        progress: calculateTrackProgress(epicSubtasks),
-        status: mapJiraStatus(epic.fields.status?.name),
+        progress,
+        status: epicStatus,
         subtasks: epicSubtasks,
         assignee: epic.fields.assignee?.displayName ?? null,
         totalSubtasks: epicSubtasks.length,

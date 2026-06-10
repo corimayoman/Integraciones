@@ -1,86 +1,78 @@
 /**
  * Filters — AND-logic filter engine for the Dashboard model.
  *
- * Applies severity, year, region, and status filters with AND logic.
- * A filter value of `null` means "all" (no restriction on that dimension).
+ * Each filter accepts an array of selected values. Empty array = no restriction.
  *
  * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
  *
  * @module filters
  */
 
+import { getCompanyOverallStatus } from './presentation-utils.js';
+
 /**
  * Filter companies by acquisition year.
- * If year is null, returns all companies unchanged.
- *
  * @param {Array<object>} companies
- * @param {number | null} year
- * @returns {Array<object>}
+ * @param {number[]} years - empty = all
  */
-export function filterByYear(companies, year) {
-  if (year === null) return companies;
-  return companies.filter((c) => c.year === year);
+export function filterByYear(companies, years) {
+  if (!years || years.length === 0) return companies;
+  return companies.filter((c) => years.includes(c.year));
 }
 
 /**
- * Filter tracks by severity. Returns a new array of companies
- * where each company's tracks are limited to those matching the severity.
- * Companies with zero matching tracks are excluded.
- * If severity is null, returns companies unchanged.
- *
+ * Filter tracks by severity. Companies with zero matching tracks are excluded.
  * @param {Array<object>} companies
- * @param {string | null} severity
- * @returns {Array<object>}
+ * @param {string[]} severities - empty = all
  */
-export function filterBySeverity(companies, severity) {
-  if (severity === null) return companies;
+export function filterBySeverity(companies, severities) {
+  if (!severities || severities.length === 0) return companies;
   return companies
     .map((company) => ({
       ...company,
-      tracks: company.tracks.filter((t) => t.severity === severity),
+      tracks: company.tracks.filter((t) => severities.includes(t.severity)),
     }))
     .filter((company) => company.tracks.length > 0);
 }
 
 /**
  * Filter companies by region.
- * If region is null, returns all companies unchanged.
- *
  * @param {Array<object>} companies
- * @param {string | null} region
- * @returns {Array<object>}
+ * @param {string[]} regions - empty = all
  */
-export function filterByRegion(companies, region) {
-  if (region === null) return companies;
-  return companies.filter((c) => c.region === region);
+export function filterByRegion(companies, regions) {
+  if (!regions || regions.length === 0) return companies;
+  return companies.filter((c) => regions.includes(c.region));
 }
 
 /**
- * Filter companies that have at least one track matching the given status.
- * Tracks that don't match the status are removed from each company.
- * Companies with zero matching tracks are excluded.
- * If status is null, returns companies unchanged.
- *
+ * Filter tracks by status. Companies with zero matching tracks are excluded.
  * @param {Array<object>} companies
- * @param {string | null} status
- * @returns {Array<object>}
+ * @param {string[]} statuses - empty = all
  */
-export function filterByStatus(companies, status) {
-  if (status === null) return companies;
+export function filterByStatus(companies, statuses) {
+  if (!statuses || statuses.length === 0) return companies;
   return companies
     .map((company) => ({
       ...company,
-      tracks: company.tracks.filter((t) => t.status === status),
+      tracks: company.tracks.filter((t) => statuses.includes(t.status)),
     }))
     .filter((company) => company.tracks.length > 0);
 }
 
 /**
+ * Filter companies by their overall integration status.
+ * @param {Array<object>} companies
+ * @param {string[]} companyStatuses - empty = all
+ */
+export function filterByCompanyStatus(companies, companyStatuses) {
+  if (!companyStatuses || companyStatuses.length === 0) return companies;
+  return companies.filter((c) => companyStatuses.includes(getCompanyOverallStatus(c)));
+}
+
+/**
  * Extract unique acquisition years from the model's companies.
  * Returns sorted array (ascending).
- *
- * @param {object} model - DashboardModel
- * @returns {Array<number>}
  */
 export function getAvailableYears(model) {
   const years = new Set();
@@ -93,20 +85,27 @@ export function getAvailableYears(model) {
 }
 
 /**
- * Apply all active filters with AND logic.
- * Returns a new DashboardModel with filtered companies (original is not mutated).
+ * Apply all active filters to the model. Each filter is an array of selected
+ * values; empty array means "show all" for that dimension.
  *
  * @param {object} model - DashboardModel
- * @param {{ severity?: string|null, year?: number|null, region?: string|null, status?: string|null }} filters
- * @returns {object} Filtered DashboardModel
+ * @param {{ severity: string[], year: number[], region: string[], status: string[], companyStatus: string[] }} filters
+ * @returns {object} new model with filtered companies
  */
 export function applyFilters(model, filters) {
-  const { severity = null, year = null, region = null, status = null } = filters;
+  const {
+    severity = [],
+    year = [],
+    region = [],
+    status = [],
+    companyStatus = [],
+  } = filters;
 
   let companies = model.companies;
 
   companies = filterByYear(companies, year);
   companies = filterByRegion(companies, region);
+  companies = filterByCompanyStatus(companies, companyStatus);
   companies = filterBySeverity(companies, severity);
   companies = filterByStatus(companies, status);
 

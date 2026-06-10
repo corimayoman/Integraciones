@@ -13,6 +13,8 @@ if (!admin.apps.length) {
 // Import Jira modules
 const jiraAuth = require('./jira-auth');
 const { fetchAllIssues, fetchComplianceIssues } = require('./jira-client');
+const { fetchSOXData } = require('./sox-jira-client');
+const { transformSOXData } = require('./sox-mapper');
 
 // Import proxy modules (reuse existing code)
 const { initDatabase } = require('./dc-database');
@@ -394,6 +396,7 @@ app.get('/dc/health', (req, res) => {
 // In-memory Jira cache (per-instance, best-effort)
 let jiraCache = { data: null, ts: 0 };
 let complianceCache = { data: null, ts: 0 };
+let soxCache = { data: null, ts: 0 };
 const JIRA_TTL = (parseInt(process.env.CACHE_TTL) || 300) * 1000;
 
 app.get('/auth/login', (req, res) => {
@@ -419,7 +422,9 @@ app.get('/auth/status', async (req, res) => {
 
 app.get('/auth/logout', async (req, res) => {
   await jiraAuth.logout();
-  jiraCache = { data: null, ts: 0 };
+  jiraCache      = { data: null, ts: 0 };
+  complianceCache = { data: null, ts: 0 };
+  soxCache       = { data: null, ts: 0 };
   res.json({ ok: true });
 });
 
@@ -457,6 +462,28 @@ app.get('/api/compliance', async (req, res) => {
     res.json({ issues, count: issues.length, cached: false });
   } catch (err) {
     console.error('Compliance fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/sox', async (req, res) => {
+  try {
+    const authenticated = await jiraAuth.isAuthenticated();
+    if (!authenticated) return res.status(401).json({ error: 'Not authenticated' });
+
+    const now = Date.now();
+    if (soxCache.data && (now - soxCache.ts) < JIRA_TTL) {
+      return res.json({ ...soxCache.data, cached: true });
+    }
+
+    const { subtasks, parentMap } = await fetchSOXData();
+    const siteUrl = await jiraAuth.getSiteUrl();
+    const result  = transformSOXData(subtasks, parentMap, siteUrl);
+    soxCache = { data: result, ts: Date.now() };
+    console.log(`SOX: mapped ${result.controls.length} controls, ${result.months.length} months`);
+    res.json({ ...result, cached: false });
+  } catch (err) {
+    console.error('SOX fetch error:', err);
     res.status(500).json({ error: err.message });
   }
 });

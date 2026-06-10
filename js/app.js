@@ -20,6 +20,7 @@ import { renderRegionView } from './presentation/region-view.js';
 import { renderAlertsView } from './presentation/alerts-view.js';
 import { renderDetailView } from './presentation/detail-view.js';
 import { renderComplianceView } from './presentation/compliance-view.js';
+import { renderSOXView } from './presentation/sox-view.js';
 import { fetchComplianceIssues, loadComplianceCachedIssues, clearComplianceCache } from './data/compliance-api.js';
 import { transformComplianceData } from './business/compliance-transformer.js';
 import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
@@ -211,6 +212,7 @@ function renderNav() {
     const dashLinks = [
       { hash: '#/', label: 'Matriz', title: 'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración' },
       { hash: '#/compliance', label: 'Compliance', title: 'Dashboard de cumplimiento G4G: SOX, Compliance y GIST' },
+      { hash: '#/sox', label: 'SOX Controls', title: 'Estado de ejecución de controles SOX IT — datos en tiempo real desde Jira' },
     ];
 
     if (isAdmin()) {
@@ -229,6 +231,7 @@ function renderNav() {
         (link.hash === '#/' && currentRoute.name === 'matrix') ||
         (link.hash === '#/alerts' && currentRoute.name === 'alerts') ||
         (link.hash === '#/compliance' && currentRoute.name === 'compliance') ||
+        (link.hash === '#/sox' && currentRoute.name === 'sox') ||
         (link.hash === '#/admin' && currentRoute.name === 'admin')
       ) {
         a.classList.add('nav-link--active');
@@ -284,6 +287,9 @@ function renderCurrentView(route) {
       break;
     case 'compliance':
       renderComplianceRoute(main);
+      break;
+    case 'sox':
+      renderSOXView(main);
       break;
     case 'admin':
       if (isAdmin()) {

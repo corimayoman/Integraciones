@@ -30,6 +30,7 @@ const ROUTES = [
   { pattern: /^#\/alerts$/, name: 'alerts' },
   { pattern: /^#\/admin$/, name: 'admin' },
   { pattern: /^#\/compliance$/, name: 'compliance' },
+  { pattern: /^#\/sox$/, name: 'sox' },
   { pattern: /^#\/$/, name: 'matrix' },
 ];
 
