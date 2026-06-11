@@ -49,6 +49,8 @@ async function sendReminder(btn, task) {
   }
 }
 
+let isJiraLive = false;
+
 const PRIORITY_COLORS = {
   Critical: '#D32F2F',
   High:     '#F57C00',
@@ -81,7 +83,8 @@ const TABS = [
 // Remember the last active tab across re-renders
 let _activeTab = 'sox';
 
-export function renderComplianceView(container, complianceModel, isRefreshing, error) {
+export function renderComplianceView(container, complianceModel, isRefreshing, error, jiraLive = false) {
+  isJiraLive = jiraLive;
   container.textContent = '';
 
   const wrapper = document.createElement('div');
@@ -676,8 +679,13 @@ function buildTaskList(tasks, showPriority = false) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
-        remindBtn.title = t('compliance.remindTitle');
-        remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
+        if (isJiraLive) {
+          remindBtn.title = t('compliance.remindTitle');
+          remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
+        } else {
+          remindBtn.disabled = true;
+          remindBtn.title = t('compliance.remindDisabled');
+        }
         tdAction.appendChild(remindBtn);
       }
       tr.appendChild(tdAction);

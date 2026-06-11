@@ -414,7 +414,7 @@ async function renderComplianceRoute(main) {
     const cached = loadComplianceCachedIssues();
     if (cached) complianceModel = transformComplianceData(cached);
   }
-  renderComplianceView(main, complianceModel, false, null);
+  renderComplianceView(main, complianceModel, false, null, isLive);
 
   // 2. If not connected, nothing more to do
   if (!isLive) return;
@@ -435,7 +435,7 @@ async function renderComplianceRoute(main) {
   }
 
   if (getCurrentRoute().name === 'compliance') {
-    renderComplianceView(main, complianceModel, false, fetchError);
+    renderComplianceView(main, complianceModel, false, fetchError, isLive);
   }
 }
 
