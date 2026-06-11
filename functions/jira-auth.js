@@ -103,7 +103,13 @@ async function getSiteUrl() {
 
 async function isAuthenticated() {
   const session = await getSession();
-  return !!(session?.tokens && session?.cloudId);
+  if (!session?.tokens || !session?.cloudId) return false;
+  try {
+    const res = await jiraFetch('/myself');
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function logout() {
