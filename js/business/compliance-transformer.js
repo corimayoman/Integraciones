@@ -3,18 +3,15 @@
  *
  * Hierarchy: Initiative → Epic → Task
  * Dimensions: SOX (5 epics), Compliance (1 epic), GIST (1 epic)
+ * All epics share a single initiative: GLO220-13083 (G4G - Compliance)
  *
  * @module compliance-transformer
  */
 
 import { STATUS_MAP } from '../constants.js';
 
-// Known keys — used to anchor the hierarchy
-const INITIATIVE_KEYS = {
-  sox:        'GLO220-13076',
-  compliance: 'GLO220-13082',
-  gist:       'GLO220-13083',
-};
+// Single shared initiative for all areas
+const INITIATIVE_KEY = 'GLO220-13083';
 
 const SOX_EPIC_KEYS = {
   sap:  'GLO220-13077',
@@ -134,8 +131,10 @@ export function transformComplianceData(rawIssues) {
     return issue ? toEpicOrInit(issue) : { key, summary: key, status: 'No Iniciado', duedate: null };
   }
 
+  const sharedInitiative = buildInitiative(INITIATIVE_KEY);
+
   const sox = {
-    initiative: buildInitiative(INITIATIVE_KEYS.sox),
+    initiative: sharedInitiative,
     dimensions: {
       sap:  buildEpicEntry(SOX_EPIC_KEYS.sap),
       ssff: buildEpicEntry(SOX_EPIC_KEYS.ssff),
@@ -150,24 +149,17 @@ export function transformComplianceData(rawIssues) {
   sox.stats = computeStats(allSoxTasks);
 
   const compliance = {
-    initiative: buildInitiative(INITIATIVE_KEYS.compliance),
+    initiative: sharedInitiative,
     ...buildEpicEntry(COMPLIANCE_EPIC_KEY),
   };
 
-  // GIST: merge tasks from epic children + direct children of initiative
-  // (Vulnerability issues may link directly to the initiative instead of the epic)
   const gistEpicEntry = buildEpicEntry(GIST_EPIC_KEY);
-  const gistInitChildren = (tasksByParent.get(INITIATIVE_KEYS.gist) ?? [])
-    .filter(i => i.key !== GIST_EPIC_KEY)
-    .map(toTask);
-  const gistAllTasks = [...gistEpicEntry.tasks, ...gistInitChildren];
-
   const gist = {
-    initiative: buildInitiative(INITIATIVE_KEYS.gist),
+    initiative: sharedInitiative,
     epic: gistEpicEntry.epic,
-    tasks: gistAllTasks,
-    stats: computeStats(gistAllTasks),
-    vulnGroups: groupVulnerabilities(gistAllTasks),
+    tasks: gistEpicEntry.tasks,
+    stats: gistEpicEntry.stats,
+    vulnGroups: groupVulnerabilities(gistEpicEntry.tasks),
   };
 
   return { sox, compliance, gist };
