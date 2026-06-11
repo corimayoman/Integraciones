@@ -5,6 +5,7 @@
  */
 
 import { listAllowedUsers, saveAllowedUser, deleteAllowedUser } from '../firebase-auth.js';
+import { t } from '../i18n.js';
 
 export function renderAdminPanel(container) {
   container.textContent = '';
@@ -14,12 +15,12 @@ export function renderAdminPanel(container) {
 
   const heading = document.createElement('h2');
   heading.className = 'admin-view__title';
-  heading.textContent = 'User Access Management';
+  heading.textContent = t('admin.title');
   wrap.appendChild(heading);
 
   const sub = document.createElement('p');
   sub.className = 'admin-view__subtitle';
-  sub.textContent = 'Manage who can access the AMS Integration Tracker. Only @globant.com accounts are permitted.';
+  sub.textContent = t('admin.description');
   wrap.appendChild(sub);
 
   // Add user form
@@ -28,7 +29,7 @@ export function renderAdminPanel(container) {
 
   const formTitle = document.createElement('h3');
   formTitle.className = 'admin-form-card__title';
-  formTitle.textContent = 'Add User';
+  formTitle.textContent = t('admin.addUser');
   formCard.appendChild(formTitle);
 
   const formRow = document.createElement('div');
@@ -36,24 +37,24 @@ export function renderAdminPanel(container) {
 
   const emailInput = document.createElement('input');
   emailInput.type = 'email';
-  emailInput.placeholder = 'user@globant.com';
+  emailInput.placeholder = t('admin.placeholder');
   emailInput.className = 'admin-input';
   emailInput.id = 'admin-new-email';
 
   const roleSelect = document.createElement('select');
   roleSelect.className = 'admin-select';
   roleSelect.id = 'admin-new-role';
-  for (const r of ['Viewer', 'Admin']) {
+  for (const [val, key] of [['Viewer', 'admin.viewer'], ['Admin', 'admin.adminRole']]) {
     const opt = document.createElement('option');
-    opt.value = r;
-    opt.textContent = r;
+    opt.value = val;
+    opt.textContent = t(key);
     roleSelect.appendChild(opt);
   }
 
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   addBtn.className = 'admin-btn admin-btn--primary';
-  addBtn.textContent = 'Add';
+  addBtn.textContent = t('admin.add');
 
   const formMsg = document.createElement('span');
   formMsg.className = 'admin-form-msg';
@@ -71,7 +72,7 @@ export function renderAdminPanel(container) {
 
   const tableTitle = document.createElement('h3');
   tableTitle.className = 'admin-form-card__title';
-  tableTitle.textContent = 'Allowed Users';
+  tableTitle.textContent = t('admin.allowedUsers');
   tableCard.appendChild(tableTitle);
 
   const tableWrap = document.createElement('div');
@@ -93,25 +94,25 @@ export function renderAdminPanel(container) {
     formMsg.className = 'admin-form-msg';
 
     if (!email.endsWith('@globant.com')) {
-      formMsg.textContent = 'Only @globant.com accounts are allowed.';
+      formMsg.textContent = t('admin.onlyGlobant');
       formMsg.classList.add('admin-form-msg--error');
       return;
     }
 
     addBtn.disabled = true;
-    addBtn.textContent = 'Saving…';
+    addBtn.textContent = t('admin.saving');
     try {
       await saveAllowedUser(email, role, true);
       emailInput.value = '';
-      formMsg.textContent = `${email} added as ${role}.`;
+      formMsg.textContent = t('admin.added', { email, role });
       formMsg.classList.add('admin-form-msg--ok');
       await loadUsers(tableWrap, formMsg);
     } catch (err) {
-      formMsg.textContent = `Error: ${err.message}`;
+      formMsg.textContent = t('admin.error', { msg: err.message });
       formMsg.classList.add('admin-form-msg--error');
     } finally {
       addBtn.disabled = false;
-      addBtn.textContent = 'Add';
+      addBtn.textContent = t('admin.add');
     }
   });
 }
@@ -121,7 +122,7 @@ async function loadUsers(tableWrap, formMsg) {
 
   const loading = document.createElement('p');
   loading.className = 'admin-loading';
-  loading.textContent = 'Loading…';
+  loading.textContent = t('admin.loading');
   tableWrap.appendChild(loading);
 
   let users;
@@ -131,7 +132,7 @@ async function loadUsers(tableWrap, formMsg) {
     tableWrap.textContent = '';
     const errEl = document.createElement('p');
     errEl.className = 'admin-error';
-    errEl.textContent = `Failed to load users: ${err.message}`;
+    errEl.textContent = t('admin.failedLoad', { msg: err.message });
     tableWrap.appendChild(errEl);
     return;
   }
@@ -143,7 +144,7 @@ async function loadUsers(tableWrap, formMsg) {
 
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
-  for (const col of ['Email', 'Role', 'Status', 'Added', 'Actions']) {
+  for (const col of [t('admin.colEmail'), t('admin.colRole'), t('admin.colStatus'), t('admin.colAdded'), t('admin.colActions')]) {
     const th = document.createElement('th');
     th.textContent = col;
     headRow.appendChild(th);
@@ -164,11 +165,11 @@ async function loadUsers(tableWrap, formMsg) {
     tdRole.className = 'admin-td';
     const roleSelect = document.createElement('select');
     roleSelect.className = 'admin-select admin-select--sm';
-    for (const r of ['Viewer', 'Admin']) {
+    for (const [val, key] of [['Viewer', 'admin.viewer'], ['Admin', 'admin.adminRole']]) {
       const opt = document.createElement('option');
-      opt.value = r;
-      opt.textContent = r;
-      if (r === user.role) opt.selected = true;
+      opt.value = val;
+      opt.textContent = t(key);
+      if (val === user.role) opt.selected = true;
       roleSelect.appendChild(opt);
     }
     tdRole.appendChild(roleSelect);
@@ -177,7 +178,7 @@ async function loadUsers(tableWrap, formMsg) {
     tdStatus.className = 'admin-td';
     const statusBadge = document.createElement('span');
     statusBadge.className = `admin-badge admin-badge--${user.active ? 'active' : 'inactive'}`;
-    statusBadge.textContent = user.active ? 'Active' : 'Inactive';
+    statusBadge.textContent = user.active ? t('admin.active') : t('admin.inactive');
     tdStatus.appendChild(statusBadge);
 
     const tdAdded = document.createElement('td');
@@ -190,23 +191,23 @@ async function loadUsers(tableWrap, formMsg) {
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'admin-btn admin-btn--sm';
-    saveBtn.textContent = 'Save';
+    saveBtn.textContent = t('common.save');
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       try {
         await saveAllowedUser(user.email, roleSelect.value, user.active);
         saveBtn.textContent = '✓';
-        setTimeout(() => { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }, 1500);
+        setTimeout(() => { saveBtn.textContent = t('common.save'); saveBtn.disabled = false; }, 1500);
       } catch (err) {
-        saveBtn.textContent = 'Error';
-        setTimeout(() => { saveBtn.textContent = 'Save'; saveBtn.disabled = false; }, 2000);
+        saveBtn.textContent = t('common.error');
+        setTimeout(() => { saveBtn.textContent = t('common.save'); saveBtn.disabled = false; }, 2000);
       }
     });
 
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = `admin-btn admin-btn--sm admin-btn--${user.active ? 'warn' : 'ok'}`;
-    toggleBtn.textContent = user.active ? 'Deactivate' : 'Activate';
+    toggleBtn.textContent = user.active ? t('admin.deactivate') : t('admin.activate');
     toggleBtn.addEventListener('click', async () => {
       toggleBtn.disabled = true;
       try {
@@ -220,9 +221,9 @@ async function loadUsers(tableWrap, formMsg) {
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'admin-btn admin-btn--sm admin-btn--danger';
-    deleteBtn.textContent = 'Delete';
+    deleteBtn.textContent = t('admin.delete');
     deleteBtn.addEventListener('click', async () => {
-      if (!confirm(`Remove ${user.email} from allowed users?`)) return;
+      if (!confirm(t('admin.confirmDelete', { email: user.email }))) return;
       deleteBtn.disabled = true;
       try {
         await deleteAllowedUser(user.key);

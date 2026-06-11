@@ -12,6 +12,7 @@
 import { fetchCompanies, getCurrentUser } from '../../data/dc-api-client.js';
 import { navigate } from '../router.js';
 import { createSpinner, createErrorState, createEmptyState } from '../components.js';
+import { t } from '../../i18n.js';
 
 /**
  * Render the company list view into the given container.
@@ -29,7 +30,7 @@ export function renderCompanyListView(container) {
 
   const title = document.createElement('h2');
   title.className = 'dc-company-list__title';
-  title.textContent = 'Empresas';
+  title.textContent = t('dc.companies');
   header.appendChild(title);
 
   const user = getCurrentUser();
@@ -37,8 +38,8 @@ export function renderCompanyListView(container) {
     const adminLink = document.createElement('a');
     adminLink.href = '#/data-collection/admin';
     adminLink.className = 'btn btn--secondary dc-company-list__admin-link';
-    adminLink.textContent = 'Panel de Admin';
-    adminLink.setAttribute('aria-label', 'Ir al panel de administración');
+    adminLink.textContent = t('dc.adminPanel');
+    adminLink.setAttribute('aria-label', t('dc.adminPanelTitle'));
     header.appendChild(adminLink);
   }
 
@@ -65,7 +66,7 @@ async function loadCompanies(wrapper, spinnerEl) {
 
     if (!result.ok) {
       const error = createErrorState(
-        result.error || 'Error al cargar empresas.',
+        result.error || t('dc.errorLoad'),
         () => {
           wrapper.textContent = '';
           const header = buildHeader();
@@ -81,7 +82,7 @@ async function loadCompanies(wrapper, spinnerEl) {
 
     const companies = result.data;
     if (!companies || companies.length === 0) {
-      wrapper.appendChild(createEmptyState('No hay empresas asignadas.'));
+      wrapper.appendChild(createEmptyState(t('dc.noCompanies')));
       return;
     }
 
@@ -98,7 +99,7 @@ async function loadCompanies(wrapper, spinnerEl) {
     wrapper.appendChild(grid);
   } catch {
     spinnerEl.remove();
-    const error = createErrorState('Error de conexión al cargar empresas.');
+    const error = createErrorState(t('dc.connectionError'));
     wrapper.appendChild(error);
   }
 }
@@ -145,7 +146,7 @@ function buildHeader() {
 
   const title = document.createElement('h2');
   title.className = 'dc-company-list__title';
-  title.textContent = 'Empresas';
+  title.textContent = t('dc.companies');
   header.appendChild(title);
 
   const user = getCurrentUser();
@@ -153,8 +154,8 @@ function buildHeader() {
     const adminLink = document.createElement('a');
     adminLink.href = '#/data-collection/admin';
     adminLink.className = 'btn btn--secondary dc-company-list__admin-link';
-    adminLink.textContent = 'Panel de Admin';
-    adminLink.setAttribute('aria-label', 'Ir al panel de administración');
+    adminLink.textContent = t('dc.adminPanel');
+    adminLink.setAttribute('aria-label', t('dc.adminPanelTitle'));
     header.appendChild(adminLink);
   }
 

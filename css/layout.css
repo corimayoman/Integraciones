@@ -67,6 +67,24 @@
   border-radius: var(--radius-full);
 }
 
+.header-lang-btn {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-1) var(--space-3);
+  color: var(--color-text-inverse);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: var(--radius-sm);
+  opacity: 0.9;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+  letter-spacing: 0.04em;
+}
+
+.header-lang-btn:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.25);
+}
+
 .header-dark-toggle {
   font-size: var(--font-size-h4);
   padding: var(--space-1) var(--space-2);
@@ -484,4 +502,14 @@
 
 .snapshot-banner__btn:hover {
   background: rgba(240, 165, 0, 0.25);
+}
+
+/* Inline variant — used inside views (e.g. SOX) instead of full-width header band */
+.snapshot-banner--inline {
+  border-top: none;
+  border: 1px solid rgba(240, 165, 0, 0.35);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  background: rgba(240, 165, 0, 0.10);
+  color: var(--color-text-secondary);
 }

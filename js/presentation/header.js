@@ -1,11 +1,13 @@
 /**
  * Header — AMS Integration & Compliance Tracker
  *
- * Renders header with LED connection indicator, alert count, dark mode toggle.
- * No more ugly banners — just a clean LED dot next to the title.
+ * Renders header with LED connection indicator, alert count, dark mode toggle,
+ * and language toggle (EN / ES).
  *
  * @module header
  */
+
+import { t, getLang, setLang } from '../i18n.js';
 
 /** @type {HTMLElement|null} */
 let headerContainer = null;
@@ -55,7 +57,7 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
 
   const title = document.createElement('h1');
   title.className = 'app-title';
-  title.textContent = 'AMS Integration & Compliance Tracker';
+  title.textContent = t('app.title');
   leftGroup.appendChild(title);
 
   // LED connection indicator
@@ -69,7 +71,7 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
 
   ledLabel = document.createElement('span');
   ledLabel.className = 'led-label';
-  ledLabel.textContent = isLive ? 'Live' : 'Offline';
+  ledLabel.textContent = isLive ? t('header.live') : t('header.offline');
   ledContainer.appendChild(ledLabel);
 
   leftGroup.appendChild(ledContainer);
@@ -78,12 +80,12 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
   // Right side: actions
   const actions = document.createElement('div');
   actions.className = 'header-actions';
-  actions.setAttribute('aria-label', 'Acciones del header');
+  actions.setAttribute('aria-label', t('header.headerActions'));
 
   // Alert count badge
   alertBadge = document.createElement('span');
   alertBadge.className = 'header-alert-badge';
-  alertBadge.setAttribute('aria-label', `${alertCount} alertas activas`);
+  alertBadge.setAttribute('aria-label', t('header.alerts', { count: alertCount }));
   alertBadge.textContent = String(alertCount);
   if (alertCount === 0) alertBadge.style.display = 'none';
   actions.appendChild(alertBadge);
@@ -93,8 +95,8 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
     const refreshBtn = document.createElement('button');
     refreshBtn.type = 'button';
     refreshBtn.className = 'btn header-refresh-btn';
-    refreshBtn.setAttribute('aria-label', 'Actualizar datos desde Jira');
-    refreshBtn.title = 'Actualizar datos desde Jira';
+    refreshBtn.setAttribute('aria-label', t('header.refresh'));
+    refreshBtn.title = t('header.refresh');
     refreshBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`;
     refreshBtn.addEventListener('click', onRefresh);
     actions.appendChild(refreshBtn);
@@ -105,21 +107,34 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
   connectBtn.type = 'button';
   connectBtn.className = 'btn header-connect-btn';
   if (isLive) {
-    connectBtn.textContent = 'Desconectar';
-    connectBtn.setAttribute('aria-label', 'Desconectar de Jira');
+    connectBtn.textContent = t('header.disconnect');
+    connectBtn.setAttribute('aria-label', t('header.disconnectLabel'));
     connectBtn.addEventListener('click', onDisconnect);
   } else {
-    connectBtn.textContent = 'Conectar Jira';
-    connectBtn.setAttribute('aria-label', 'Conectar con Jira');
+    connectBtn.textContent = t('header.connect');
+    connectBtn.setAttribute('aria-label', t('header.connectLabel'));
     connectBtn.addEventListener('click', onConnect);
   }
   actions.appendChild(connectBtn);
+
+  // Language toggle (EN / ES)
+  const langBtn = document.createElement('button');
+  langBtn.type = 'button';
+  langBtn.className = 'btn header-lang-btn';
+  langBtn.textContent = getLang() === 'es' ? 'EN' : 'ES';
+  langBtn.setAttribute('aria-label', t('header.langToggle'));
+  langBtn.title = t('header.langToggle');
+  langBtn.addEventListener('click', () => {
+    const next = getLang() === 'es' ? 'en' : 'es';
+    setLang(next);
+  });
+  actions.appendChild(langBtn);
 
   // Dark mode toggle
   const darkToggle = document.createElement('button');
   darkToggle.type = 'button';
   darkToggle.className = 'btn header-dark-toggle';
-  darkToggle.setAttribute('aria-label', 'Alternar modo oscuro');
+  darkToggle.setAttribute('aria-label', t('header.darkMode'));
   darkToggle.textContent = '🌙';
   darkToggle.addEventListener('click', onToggleDarkMode);
   actions.appendChild(darkToggle);
@@ -150,8 +165,8 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
     const signOutBtn = document.createElement('button');
     signOutBtn.type = 'button';
     signOutBtn.className = 'header-signout-btn';
-    signOutBtn.setAttribute('aria-label', 'Cerrar sesión');
-    signOutBtn.title = 'Cerrar sesión';
+    signOutBtn.setAttribute('aria-label', t('header.signOut'));
+    signOutBtn.title = t('header.signOut');
     signOutBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
     signOutBtn.addEventListener('click', onSignOut);
     chip.appendChild(signOutBtn);
@@ -177,15 +192,15 @@ export function renderHeader(container, { isLive, alertCount, snapshotDate, onCo
       });
       banner.innerHTML = `
         <span class="snapshot-banner__icon">📅</span>
-        <span class="snapshot-banner__text">Datos del <strong>${formatted}</strong> — sin conexión a Jira en vivo</span>
-        <button class="snapshot-banner__btn" aria-label="Reconectar a Jira">Reconectar</button>
+        <span class="snapshot-banner__text">${t('header.snapshotData', { date: `<strong>${formatted}</strong>` })}</span>
+        <button class="snapshot-banner__btn" aria-label="${t('header.reconnect')}">${t('header.reconnect')}</button>
       `;
       banner.querySelector('.snapshot-banner__btn').addEventListener('click', onConnect);
     } else {
       banner.innerHTML = `
         <span class="snapshot-banner__icon">⚠️</span>
-        <span class="snapshot-banner__text">Sin conexión a Jira. Conectate para ver datos en tiempo real.</span>
-        <button class="snapshot-banner__btn" aria-label="Conectar Jira">Conectar</button>
+        <span class="snapshot-banner__text">${t('header.noConnection')}</span>
+        <button class="snapshot-banner__btn" aria-label="${t('header.connect')}">${t('header.connect')}</button>
       `;
       banner.querySelector('.snapshot-banner__btn').addEventListener('click', onConnect);
     }
@@ -204,10 +219,10 @@ export function updateConnectionStatus(isLive, snapshotDate) {
     ledIndicator.className = isLive ? 'led led--online' : 'led led--offline';
   }
   if (ledLabel) {
-    ledLabel.textContent = isLive ? 'Live' : 'Offline';
+    ledLabel.textContent = isLive ? t('header.live') : t('header.offline');
   }
   if (connectBtn) {
-    connectBtn.textContent = isLive ? 'Desconectar' : 'Conectar Jira';
+    connectBtn.textContent = isLive ? t('header.disconnect') : t('header.connect');
     connectBtn.disabled = false;
     connectBtn.classList.remove('header-connect-btn--connecting');
   }
@@ -229,14 +244,14 @@ export function updateConnectionStatus(isLive, snapshotDate) {
         });
         banner.innerHTML = `
           <span class="snapshot-banner__icon">📅</span>
-          <span class="snapshot-banner__text">Datos del <strong>${formatted}</strong> — sin conexión a Jira en vivo</span>
-          <button class="snapshot-banner__btn">Reconectar</button>
+          <span class="snapshot-banner__text">${t('header.snapshotData', { date: `<strong>${formatted}</strong>` })}</span>
+          <button class="snapshot-banner__btn">${t('header.reconnect')}</button>
         `;
       } else {
         banner.innerHTML = `
           <span class="snapshot-banner__icon">⚠️</span>
-          <span class="snapshot-banner__text">Sin conexión a Jira. Conectate para ver datos en tiempo real.</span>
-          <button class="snapshot-banner__btn">Conectar</button>
+          <span class="snapshot-banner__text">${t('header.noConnection')}</span>
+          <button class="snapshot-banner__btn">${t('header.connect')}</button>
         `;
       }
       if (_onConnectRef) {
@@ -254,10 +269,10 @@ export function updateConnectionStatus(isLive, snapshotDate) {
 export function setConnectingState() {
   if (!connectBtn) return;
   connectBtn.disabled = true;
-  connectBtn.textContent = 'Conectando…';
+  connectBtn.textContent = t('header.connecting');
   connectBtn.classList.add('header-connect-btn--connecting');
   if (ledIndicator) ledIndicator.className = 'led led--connecting';
-  if (ledLabel) ledLabel.textContent = 'Conectando…';
+  if (ledLabel) ledLabel.textContent = t('header.connecting');
 }
 
 /**
@@ -274,7 +289,7 @@ export function resetConnectingState() {
 export function updateAlertCount(count) {
   if (!alertBadge) return;
   alertBadge.textContent = String(count);
-  alertBadge.setAttribute('aria-label', `${count} alertas activas`);
+  alertBadge.setAttribute('aria-label', t('header.alerts', { count }));
   alertBadge.style.display = count > 0 ? '' : 'none';
 }
 

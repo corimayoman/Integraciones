@@ -12,6 +12,7 @@
 import { detectDelayedTracks } from '../business/alerts.js';
 import { createBadge, createEmptyState } from './components.js';
 import { navigate } from './router.js';
+import { t } from '../i18n.js';
 
 /**
  * Render the alerts view into the given container.
@@ -24,13 +25,13 @@ export function renderAlertsView(container, model) {
 
   const heading = document.createElement('h2');
   heading.className = 'alerts-view__title';
-  heading.textContent = 'Alertas — Tracks Demorados';
+  heading.textContent = t('alerts.title');
   container.appendChild(heading);
 
   const alerts = detectDelayedTracks(model);
 
   if (alerts.length === 0) {
-    const emptyState = createEmptyState('No hay alertas activas. Todos los tracks críticos están en orden.');
+    const emptyState = createEmptyState(t('alerts.noAlerts'));
     container.appendChild(emptyState);
     return;
   }

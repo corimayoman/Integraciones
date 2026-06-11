@@ -3,6 +3,7 @@
  */
 
 import { signInWithGoogle } from '../firebase-auth.js';
+import { t } from '../i18n.js';
 
 /**
  * Renders the Google login screen into the document body.
@@ -25,8 +26,8 @@ export function renderGoogleLoginView(onSuccess) {
         <div class="google-login__logo">
           <span class="google-login__logo-icon">A</span>
         </div>
-        <h1 class="google-login__title">AMS Integration & Compliance Tracker</h1>
-        <p class="google-login__subtitle">Iniciá sesión con tu cuenta de Globant</p>
+        <h1 class="google-login__title">${t('app.title')}</h1>
+        <p class="google-login__subtitle">${t('auth.subtitle')}</p>
         <button class="google-login__btn" id="google-signin-btn">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
@@ -34,10 +35,10 @@ export function renderGoogleLoginView(onSuccess) {
             <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
           </svg>
-          Continuar con Google
+          ${t('auth.continueGoogle')}
         </button>
         <p class="google-login__error" id="google-login-error" hidden></p>
-        <p class="google-login__domain-note">Solo cuentas @globant.com</p>
+        <p class="google-login__domain-note">${t('auth.onlyGlobant')}</p>
       </div>
     </div>
   `;
@@ -49,7 +50,7 @@ export function renderGoogleLoginView(onSuccess) {
     const errorEl = document.getElementById('google-login-error');
     const btn = document.getElementById('google-signin-btn');
     if (!errorEl) return;
-    errorEl.innerHTML = '<strong>Access Denied.</strong> Your account is not authorized to access this application. Contact your administrator.';
+    errorEl.innerHTML = t('auth.accessDenied');
     errorEl.hidden = false;
     if (btn) {
       btn.disabled = false;
@@ -60,7 +61,7 @@ export function renderGoogleLoginView(onSuccess) {
           <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
         </svg>
-        Continuar con Google
+        ${t('auth.continueGoogle')}
       `;
     }
     window.removeEventListener('ams:access-denied', accessDeniedHandler);
@@ -72,7 +73,7 @@ export function renderGoogleLoginView(onSuccess) {
     const errorEl = document.getElementById('google-login-error');
 
     btn.disabled = true;
-    btn.textContent = 'Iniciando sesión...';
+    btn.textContent = t('auth.signingIn');
     errorEl.hidden = true;
 
     try {
@@ -81,9 +82,9 @@ export function renderGoogleLoginView(onSuccess) {
     } catch (err) {
       const isAccessDenied = err.message?.includes('autorizada') || err.message?.includes('authorized');
       if (isAccessDenied) {
-        errorEl.innerHTML = '<strong>Access Denied.</strong> Your account is not authorized to access this application. Contact your administrator.';
+        errorEl.innerHTML = t('auth.accessDenied');
       } else {
-        errorEl.textContent = err.message || 'Sign-in error. Please try again.';
+        errorEl.textContent = err.message || t('auth.error');
       }
       errorEl.hidden = false;
       btn.disabled = false;
@@ -94,7 +95,7 @@ export function renderGoogleLoginView(onSuccess) {
           <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
         </svg>
-        Continuar con Google
+        ${t('auth.continueGoogle')}
       `;
     }
   });

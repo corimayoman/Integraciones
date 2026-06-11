@@ -8,6 +8,7 @@
  */
 
 import { computeStats } from '../business/compliance-transformer.js';
+import { t } from '../i18n.js';
 
 const PRIORITY_COLORS = {
   Critical: '#D32F2F',
@@ -51,7 +52,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   titleRow.className = 'compliance-title-row';
   const title = document.createElement('h2');
   title.className = 'compliance-title';
-  title.textContent = 'G4G Compliance Dashboard';
+  title.textContent = t('compliance.title');
   titleRow.appendChild(title);
   wrapper.appendChild(titleRow);
 
@@ -68,8 +69,8 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
     const empty = document.createElement('div');
     empty.className = 'compliance-not-connected';
     empty.innerHTML = `
-      <p class="compliance-not-connected__title">No compliance data yet</p>
-      <p class="compliance-not-connected__hint">Connect to Jira and click Refresh to load compliance data.</p>
+      <p class="compliance-not-connected__title">${t('compliance.noData')}</p>
+      <p class="compliance-not-connected__hint">${t('compliance.connectPrompt')}</p>
     `;
     wrapper.appendChild(empty);
     container.appendChild(wrapper);
@@ -214,14 +215,14 @@ function buildGistSection(gist) {
   if (vg.total > 0) {
     const note = document.createElement('p');
     note.className = 'compliance-vuln-note';
-    note.textContent = `Critical and High vulnerabilities · ${vg.total} total`;
+    note.textContent = t('compliance.vulns', { total: vg.total });
     section.appendChild(note);
 
     const chartsRow = document.createElement('div');
     chartsRow.className = 'compliance-vuln-charts';
-    chartsRow.appendChild(buildPieCard('Open', vg.open, 'open'));
-    chartsRow.appendChild(buildPieCard('Blocked', vg.blocked, 'blocked'));
-    chartsRow.appendChild(buildPieCard('Closed', vg.closed, 'closed'));
+    chartsRow.appendChild(buildPieCard(t('compliance.open'), vg.open, 'open'));
+    chartsRow.appendChild(buildPieCard(t('compliance.blocked'), vg.blocked, 'blocked'));
+    chartsRow.appendChild(buildPieCard(t('compliance.closed'), vg.closed, 'closed'));
     section.appendChild(chartsRow);
   }
 
@@ -230,7 +231,7 @@ function buildGistSection(gist) {
     const taskSection = document.createElement('details');
     taskSection.className = 'compliance-tasks-details';
     const summary = document.createElement('summary');
-    summary.textContent = `Show tasks (${gist.tasks.length})`;
+    summary.textContent = t('compliance.showTasks', { n: gist.tasks.length });
     taskSection.appendChild(summary);
     taskSection.appendChild(buildTaskList(sortTasksByStatus(gist.tasks), true));
     section.appendChild(taskSection);
@@ -401,7 +402,7 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
     const taskSection = document.createElement('details');
     taskSection.className = 'compliance-tasks-details';
     const summary = document.createElement('summary');
-    summary.textContent = `Show tasks (${tasks.length})`;
+    summary.textContent = t('compliance.showTasks', { n: tasks.length });
     taskSection.appendChild(summary);
     taskSection.appendChild(buildTaskList(sortTasksByStatus(tasks)));
     section.appendChild(taskSection);
@@ -458,11 +459,11 @@ function buildStatsPills(stats) {
   const pills = document.createElement('div');
   pills.className = 'compliance-pills';
 
-  pills.appendChild(makePill(`${stats.completed}/${stats.total} completed`, 'neutral'));
+  pills.appendChild(makePill(t('compliance.completed', { done: stats.completed, total: stats.total }), 'neutral'));
   if (stats.overdue > 0) {
-    pills.appendChild(makePill(`${stats.overdue} overdue`, 'danger'));
+    pills.appendChild(makePill(t('compliance.overdue', { n: stats.overdue }), 'danger'));
   } else {
-    pills.appendChild(makePill('No overdue', 'ok'));
+    pills.appendChild(makePill(t('compliance.noOverdue'), 'ok'));
   }
 
   return pills;
@@ -483,8 +484,8 @@ function buildTaskList(tasks, showPriority = false) {
   const wrap = document.createElement('div');
   wrap.className = 'compliance-task-table-wrap';
 
-  const cols = ['ID', 'Title', 'Assigned To', 'Created', 'Aging (days)', 'Due Date', 'Status'];
-  if (showPriority) cols.splice(6, 0, 'Priority');
+  const cols = [t('compliance.colId'), t('compliance.colTitle'), t('compliance.colAssignedTo'), t('compliance.colCreated'), t('compliance.colAging'), t('compliance.colDueDate'), t('compliance.colStatus')];
+  if (showPriority) cols.splice(6, 0, t('compliance.colPriority'));
 
   // --- build table (just thead + empty tbody to be filled per page) ---
   const table = document.createElement('table');
@@ -513,14 +514,14 @@ function buildTaskList(tasks, showPriority = false) {
 
   const btnPrev = document.createElement('button');
   btnPrev.className = 'compliance-pager-btn';
-  btnPrev.textContent = '← Prev';
+  btnPrev.textContent = t('compliance.prev');
 
   const pageLabel = document.createElement('span');
   pageLabel.className = 'compliance-pager-label';
 
   const btnNext = document.createElement('button');
   btnNext.className = 'compliance-pager-btn';
-  btnNext.textContent = 'Next →';
+  btnNext.textContent = t('compliance.next');
 
   pager.appendChild(btnPrev);
   pager.appendChild(pageLabel);
@@ -588,8 +589,8 @@ function buildTaskList(tasks, showPriority = false) {
         // Red:   not closed and past due date.
         const semClass = (!isClosed && overdue) ? 'semaphore--red' : 'semaphore--green';
         const semTitle = (!isClosed && overdue)
-          ? `Overdue — due ${task.duedate}`
-          : isClosed ? `Closed — due ${task.duedate}` : `On track — due ${task.duedate}`;
+          ? t('compliance.overdueDate', { date: task.duedate })
+          : isClosed ? t('compliance.closedDate', { date: task.duedate }) : t('compliance.onTrackDate', { date: task.duedate });
 
         const dot = document.createElement('span');
         dot.className = `compliance-semaphore ${semClass}`;
@@ -633,7 +634,7 @@ function buildTaskList(tasks, showPriority = false) {
 
     const from = start + 1;
     const to   = Math.min(start + PAGE_SIZE, tasks.length);
-    pageLabel.textContent = `${from}–${to} of ${tasks.length}`;
+    pageLabel.textContent = t('compliance.pager', { from, to, total: tasks.length });
     btnPrev.disabled = currentPage === 0;
     btnNext.disabled = currentPage >= totalPages - 1;
   }
@@ -648,16 +649,15 @@ function buildTaskList(tasks, showPriority = false) {
   return wrap;
 }
 
-const STATUS_EN = {
-  'Completado':  'Closed',
-  'En Progreso': 'Open',
-  'No Iniciado': 'Open',
-  'Bloqueado':   'Blocked',
-  'Rechazado':   'Closed',
-};
-
 function statusLabel(status) {
-  return STATUS_EN[status] ?? status;
+  const map = {
+    'Completado':  t('compliance.closed'),
+    'En Progreso': t('compliance.open'),
+    'No Iniciado': t('compliance.open'),
+    'Bloqueado':   t('compliance.blocked'),
+    'Rechazado':   t('compliance.closed'),
+  };
+  return map[status] ?? status;
 }
 
 const STATUS_SORT_ORDER = { 'Bloqueado': 0, 'En Progreso': 1, 'No Iniciado': 2, 'Completado': 3, 'Rechazado': 4 };

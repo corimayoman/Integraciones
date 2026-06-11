@@ -22,6 +22,7 @@ import { renderDetailView } from './presentation/detail-view.js';
 import { renderComplianceView } from './presentation/compliance-view.js';
 import { renderSOXView } from './presentation/sox-view.js';
 import { fetchComplianceIssues, loadComplianceCachedIssues, clearComplianceCache } from './data/compliance-api.js';
+import { fetchSOXControls, loadSOXCachedData, getSOXCacheDate, clearSOXCache } from './data/sox-api.js';
 import { transformComplianceData } from './business/compliance-transformer.js';
 import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
 import { login, logout, checkAuth, fetchRawIssues, onConnectionChange, saveModelSnapshot, loadModelSnapshot, getSnapshotDate, clearCache } from './data/api-client.js';
@@ -37,6 +38,7 @@ import { renderAdminView } from './presentation/dc/admin-view.js';
 import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken, getUserRole, isAdmin } from './firebase-auth.js';
 import { renderGoogleLoginView, removeGoogleLoginView } from './presentation/google-login-view.js';
 import { renderAdminPanel } from './presentation/admin-view.js';
+import { t, onLangChange } from './i18n.js';
 
 /* ------------------------------------------------------------------ */
 /*  Application state                                                  */
@@ -54,6 +56,9 @@ let activeMatrixSubTab = 'empresas';
 /** @type {object|null} Compliance model */
 let complianceModel = null;
 
+/** @type {object|null} SOX controls data */
+let soxModel = null;
+
 /** @type {boolean} Whether we are connected to Jira */
 let isLive = false;
 
@@ -68,7 +73,7 @@ let authPollInterval = null;
 /*  Loading overlay                                                    */
 /* ------------------------------------------------------------------ */
 
-function showLoadingOverlay(message = 'Cargando…') {
+function showLoadingOverlay(message = t('common.loading')) {
   let overlay = document.getElementById('loading-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -100,10 +105,10 @@ function hideLoadingOverlay() {
  */
 async function handleDCLogin() {
   try {
-    showLoadingOverlay('Autenticando con Google…');
+    showLoadingOverlay(t('app.loadingAuth'));
     const idToken = await getFirebaseIdToken();
 
-    showLoadingOverlay('Verificando acceso al módulo DC…');
+    showLoadingOverlay(t('app.loadingDC'));
     const result = await loginWithGoogle(idToken);
     hideLoadingOverlay();
 
@@ -118,13 +123,13 @@ async function handleDCLogin() {
         navigate('#/data-collection');
       }
     } else {
-      showDCAccessError(result.error || 'Tu cuenta no tiene acceso al módulo de Recolección de Datos. Contactá a tu administrador.');
+      showDCAccessError(result.error || t('app.dcNoAccess'));
     }
   } catch (err) {
     hideLoadingOverlay();
     // Ignore user-cancelled popup
     if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') return;
-    showDCAccessError(err.message || 'Error al autenticar. Intentá nuevamente.');
+    showDCAccessError(err.message || t('app.authError'));
   }
 }
 
@@ -177,7 +182,7 @@ function renderNav() {
 
   if (dcMode) {
     // Modo DC: solo Recolección de Datos + botón para volver al dashboard
-    const dcLink = { hash: '#/data-collection', label: 'Recolección de Datos', title: 'Módulo de carga y seguimiento de datos de integración por empresa' };
+    const dcLink = { hash: '#/data-collection', label: t('nav.dc'), title: t('nav.dcTitle') };
     const li = document.createElement('li');
     li.className = 'nav-item';
     const a = document.createElement('a');
@@ -198,8 +203,8 @@ function renderNav() {
     const exitBtn = document.createElement('button');
     exitBtn.type = 'button';
     exitBtn.className = 'nav-exit-dc-btn';
-    exitBtn.textContent = '← Volver al Dashboard';
-    exitBtn.title = 'Salir del módulo de Recolección de Datos';
+    exitBtn.textContent = t('nav.backToDashboard');
+    exitBtn.title = t('nav.exitDC');
     exitBtn.addEventListener('click', () => {
       clearToken();
       window.location.hash = '#/';
@@ -210,13 +215,13 @@ function renderNav() {
   } else {
     // Modo dashboard: Matriz + Compliance
     const dashLinks = [
-      { hash: '#/', label: 'Matriz', title: 'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración' },
-      { hash: '#/compliance', label: 'Compliance', title: 'Dashboard de cumplimiento G4G: SOX, Compliance y GIST' },
-      { hash: '#/sox', label: 'SOX Controls', title: 'Estado de ejecución de controles SOX IT — datos en tiempo real desde Jira' },
+      { hash: '#/', label: t('nav.matrix'), title: t('nav.matrixTitle') },
+      { hash: '#/compliance', label: t('nav.compliance'), title: t('nav.complianceTitle') },
+      { hash: '#/sox', label: t('nav.sox'), title: t('nav.soxTitle') },
     ];
 
     if (isAdmin()) {
-      dashLinks.push({ hash: '#/admin', label: 'Admin', title: 'User access management' });
+      dashLinks.push({ hash: '#/admin', label: t('nav.admin'), title: t('nav.adminTitle') });
     }
 
     for (const link of dashLinks) {
@@ -289,7 +294,7 @@ function renderCurrentView(route) {
       renderComplianceRoute(main);
       break;
     case 'sox':
-      renderSOXView(main);
+      renderSOXRoute(main);
       break;
     case 'admin':
       if (isAdmin()) {
@@ -345,9 +350,9 @@ function renderMatrixRoute(main) {
   const tabNav = document.createElement('div');
   tabNav.className = 'matrix-subtabs__nav';
   const tabDefs = [
-    { id: 'empresas',  label: 'Estado por Empresa' },
-    { id: 'years',     label: 'Resumen por Año' },
-    { id: 'severity',  label: 'Completitud por Severidad' },
+    { id: 'empresas',  label: t('matrix.tabEmpresas') },
+    { id: 'years',     label: t('matrix.tabYears') },
+    { id: 'severity',  label: t('matrix.tabSeverity') },
   ];
   for (const tab of tabDefs) {
     const btn = document.createElement('button');
@@ -434,6 +439,41 @@ async function renderComplianceRoute(main) {
   }
 }
 
+async function renderSOXRoute(main) {
+  main.textContent = '';
+
+  // 1. Load from in-memory or localStorage cache and render immediately
+  if (!soxModel) {
+    soxModel = loadSOXCachedData();
+  }
+  renderSOXView(main, soxModel, isLive, getSOXCacheDate());
+
+  // 2. If not connected, nothing more to do — cached snapshot is already shown
+  if (!isLive) return;
+
+  // 3. If we already have data (came from cache), don't re-fetch on every navigation
+  if (soxModel) return;
+
+  // 4. Connected but no data yet — fetch now
+  let fetchError = null;
+  try {
+    soxModel = await fetchSOXControls();
+  } catch (err) {
+    console.error('SOX fetch error:', err);
+    fetchError = err.message ?? 'Unknown error';
+  }
+
+  if (getCurrentRoute().name === 'sox') {
+    if (fetchError) {
+      main.textContent = '';
+      renderSOXView(main, null, isLive, null);
+    } else {
+      main.textContent = '';
+      renderSOXView(main, soxModel, isLive, getSOXCacheDate());
+    }
+  }
+}
+
 function renderDetailRoute(main, companyId) {
   main.textContent = '';
   const company = model.companies.find((c) => c.id === companyId);
@@ -442,7 +482,7 @@ function renderDetailRoute(main, companyId) {
   } else {
     const msg = document.createElement('p');
     msg.className = 'empty-state__message';
-    msg.textContent = 'Empresa no encontrada.';
+    msg.textContent = t('app.companyNotFound');
     main.appendChild(msg);
   }
 }
@@ -483,7 +523,7 @@ function renderSheetByPattern(container, empresaId, sheetId) {
     default: {
       const msg = document.createElement('p');
       msg.className = 'empty-state__message';
-      msg.textContent = `Hoja no reconocida: ${sheetId}`;
+      msg.textContent = t('app.unknownSheet', { sheetId });
       container.appendChild(msg);
     }
   }
@@ -540,12 +580,13 @@ function onConnect() {
       clearTimeout(timeoutId);
 
       // Mostrar spinner de carga en el contenido principal
-      showLoadingOverlay('Fetching data from Jira…');
+      showLoadingOverlay(t('app.fetchingJira'));
 
-      // Fetch main + compliance data in parallel — both under the same loading overlay
-      const [rawResult, complianceResult] = await Promise.allSettled([
+      // Fetch main + compliance + sox data in parallel
+      const [rawResult, complianceResult, soxResult] = await Promise.allSettled([
         fetchRawIssues(),
         fetchComplianceIssues(),
+        fetchSOXControls(),
       ]);
 
       const rawIssues = rawResult.status === 'fulfilled' ? rawResult.value : [];
@@ -561,6 +602,12 @@ function onConnect() {
         console.error('Compliance fetch failed during connect:', complianceResult.reason);
       }
 
+      if (soxResult.status === 'fulfilled') {
+        soxModel = soxResult.value;
+      } else {
+        console.error('SOX fetch failed during connect:', soxResult.reason);
+      }
+
       hideLoadingOverlay();
 
       // Re-render header and current view
@@ -571,14 +618,16 @@ function onConnect() {
 }
 
 async function onRefresh() {
-  showLoadingOverlay('Refreshing data from Jira…');
+  showLoadingOverlay(t('app.refreshingJira'));
 
   clearCache();
   clearComplianceCache();
+  clearSOXCache();
 
-  const [rawResult, complianceResult] = await Promise.allSettled([
+  const [rawResult, complianceResult, soxResult] = await Promise.allSettled([
     fetchRawIssues(),
     fetchComplianceIssues(),
+    fetchSOXControls(),
   ]);
 
   const rawIssues = rawResult.status === 'fulfilled' ? rawResult.value : [];
@@ -589,6 +638,10 @@ async function onRefresh() {
 
   if (complianceResult.status === 'fulfilled' && complianceResult.value?.length > 0) {
     complianceModel = transformComplianceData(complianceResult.value);
+  }
+
+  if (soxResult.status === 'fulfilled') {
+    soxModel = soxResult.value;
   }
 
   hideLoadingOverlay();
@@ -689,6 +742,9 @@ function bootApp() {
     model.metadata.snapshotDate = null;
   }
 
+  // Load SOX snapshot from localStorage (if any)
+  soxModel = loadSOXCachedData();
+
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
 
@@ -704,6 +760,19 @@ function bootApp() {
 
   // Render navigation
   renderNav();
+
+  // Re-render the whole UI when language changes
+  onLangChange(() => {
+    // Update static HTML elements
+    const skipLink = document.getElementById('skip-link');
+    if (skipLink) skipLink.textContent = t('app.skip');
+    const footer = document.querySelector('#app-footer p');
+    if (footer) footer.textContent = `© ${t('app.footer')}`;
+
+    renderAppHeader();
+    renderNav();
+    renderCurrentView(getCurrentRoute());
+  });
 
   // Initialize router and handle route changes
   onRouteChange((route) => {

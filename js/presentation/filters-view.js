@@ -9,6 +9,7 @@
 
 import { getAvailableYears } from '../business/filters.js';
 import { SEVERITIES, REGIONS, DASHBOARD_STATUSES, COMPANY_OVERALL_STATUSES } from '../constants.js';
+import { t } from '../i18n.js';
 
 /** @type {HTMLElement|null} */
 let filtersContainer = null;
@@ -35,44 +36,44 @@ export function renderFilters(container, model, onFilterChange) {
   const bar = document.createElement('div');
   bar.className = 'filter-bar';
   bar.setAttribute('role', 'toolbar');
-  bar.setAttribute('aria-label', 'Filtros de la matriz');
+  bar.setAttribute('aria-label', t('filters.label'));
 
   const years = getAvailableYears(model);
 
   const groups = [
     {
-      label: 'Severidad',
+      label: t('filters.severity'),
       id: 'filter-severity',
-      allLabel: 'Todas',
+      allLabel: t('filters.all'),
       options: SEVERITIES.map(s => ({ value: s, label: s })),
       key: 'severity',
     },
     {
-      label: 'Año',
+      label: t('filters.year'),
       id: 'filter-year',
-      allLabel: 'Todos',
+      allLabel: t('filters.all'),
       options: years.map(y => ({ value: String(y), label: String(y) })),
       key: 'year',
       numeric: true,
     },
     {
-      label: 'Región',
+      label: t('filters.region'),
       id: 'filter-region',
-      allLabel: 'Todas',
+      allLabel: t('filters.all'),
       options: REGIONS.map(r => ({ value: r, label: r })),
       key: 'region',
     },
     {
-      label: 'Estado track',
+      label: t('filters.trackStatus'),
       id: 'filter-status',
-      allLabel: 'Todos',
+      allLabel: t('filters.all'),
       options: DASHBOARD_STATUSES.map(s => ({ value: s, label: s })),
       key: 'status',
     },
     {
-      label: 'Estado empresa',
+      label: t('filters.companyStatus'),
       id: 'filter-company-status',
-      allLabel: 'Todas',
+      allLabel: t('filters.all'),
       options: COMPANY_OVERALL_STATUSES.map(s => ({ value: s.value, label: `${s.icon} ${s.label}` })),
       key: 'companyStatus',
     },
@@ -155,7 +156,7 @@ function buildMultiSelect({ label, id, allLabel, options }, onChange) {
     } else if (selected.size === 1) {
       btnLabel.textContent = [...selected][0];
     } else {
-      btnLabel.textContent = `${selected.size} seleccionados`;
+      btnLabel.textContent = t('filters.selected', { n: selected.size });
     }
   };
 
