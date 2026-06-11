@@ -9,7 +9,7 @@
 
 import { computeStats } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
-import { getGoogleUser } from '../firebase-auth.js';
+import { getGoogleUser, isAdmin } from '../firebase-auth.js';
 
 async function sendReminder(btn, task) {
   const senderEmail = getGoogleUser()?.email;
@@ -714,8 +714,8 @@ function buildTaskList(tasks, showPriority = false) {
       tdAction.className = 'compliance-task-td compliance-task-td--action';
       const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
 
-      // Remind button — tasks with a due date, not closed
-      if (task.duedate && !isClosed && task.assigneeAccountId) {
+      // Remind button — tasks with a due date, not closed, admin only
+      if (isAdmin() && task.duedate && !isClosed && task.assigneeAccountId) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
@@ -729,8 +729,8 @@ function buildTaskList(tasks, showPriority = false) {
         tdAction.appendChild(remindBtn);
       }
 
-      // Escalate button — all non-closed tasks; enabled only when Jira live AND overdue
-      if (!isClosed && task.assigneeAccountId) {
+      // Escalate button — all non-closed tasks, admin only; enabled only when Jira live AND overdue
+      if (isAdmin() && !isClosed && task.assigneeAccountId) {
         const escalateBtn = document.createElement('button');
         escalateBtn.className = 'compliance-escalate-btn';
         escalateBtn.textContent = t('compliance.escalate');
