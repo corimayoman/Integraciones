@@ -558,6 +558,112 @@ app.post('/api/jira/remind', async (req, res) => {
   }
 });
 
+app.post('/api/jira/escalate', async (req, res) => {
+  try {
+    const authenticated = await jiraAuth.isAuthenticated();
+    if (!authenticated) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { issueKey, issueSummary, dueDate, status, assigneeAccountId, senderEmail } = req.body;
+    if (!issueKey || !assigneeAccountId || !senderEmail) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Days overdue
+    const today = new Date().toISOString().slice(0, 10);
+    const msPerDay = 86_400_000;
+    const daysOverdue = Math.floor((Date.parse(today) - Date.parse(dueDate)) / msPerDay);
+
+    // Look up sender's Jira accountId by email
+    const userSearchRes = await jiraAuth.jiraFetch(`/user/search?query=${encodeURIComponent(senderEmail)}`);
+    let senderAccountId = null;
+    if (userSearchRes.ok) {
+      const users = await userSearchRes.json();
+      if (users.length > 0) senderAccountId = users[0].accountId;
+    }
+
+    const senderNode = senderAccountId
+      ? { type: 'mention', attrs: { id: senderAccountId } }
+      : { type: 'text', text: senderEmail };
+
+    const content = [
+      {
+        type: 'heading',
+        attrs: { level: 3 },
+        content: [{ type: 'text', text: '⚠ Overdue Notice — Action Required' }],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Hi ' },
+          { type: 'mention', attrs: { id: assigneeAccountId } },
+          { type: 'text', text: ' — ' },
+          { type: 'text', text: `${issueKey} · ${issueSummary}`, marks: [{ type: 'strong' }] },
+          { type: 'text', text: ' was due on ' },
+          { type: 'text', text: dueDate, marks: [{ type: 'strong' }] },
+          { type: 'text', text: ' and is currently ' },
+          { type: 'text', text: status, marks: [{ type: 'strong' }] },
+          { type: 'text', text: '. This task is now ' },
+          { type: 'text', text: `${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`, marks: [{ type: 'strong' }] },
+          { type: 'text', text: ' and may have downstream impact on the compliance program.' },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [{ type: 'text', text: 'Please take the following actions directly in this issue:' }],
+      },
+      {
+        type: 'orderedList',
+        content: [
+          {
+            type: 'listItem',
+            content: [{
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Document a contingency plan', marks: [{ type: 'strong' }] },
+                { type: 'text', text: ' — describe the steps you will take to resolve this, any dependencies, and how downstream risk will be mitigated.' },
+              ],
+            }],
+          },
+          {
+            type: 'listItem',
+            content: [{
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: 'Commit to a new target date', marks: [{ type: 'strong' }] },
+                { type: 'text', text: ' — provide a revised due date with a realistic estimate.' },
+              ],
+            }],
+          },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'This notice was sent by ' },
+          senderNode,
+          { type: 'text', text: ' from the Compliance Dashboard.' },
+        ],
+      },
+    ];
+
+    const commentRes = await jiraAuth.jiraFetch(`/issue/${issueKey}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ body: { version: 1, type: 'doc', content } }),
+    });
+
+    if (!commentRes.ok) {
+      const err = await commentRes.text();
+      return res.status(commentRes.status).json({ error: `Jira comment failed: ${err}` });
+    }
+
+    const comment = await commentRes.json();
+    res.json({ success: true, commentId: comment.id });
+  } catch (err) {
+    console.error('Escalate error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });

@@ -49,6 +49,44 @@ async function sendReminder(btn, task) {
   }
 }
 
+async function sendEscalation(btn, task) {
+  const senderEmail = getGoogleUser()?.email;
+  if (!senderEmail) return;
+
+  btn.disabled = true;
+  btn.textContent = t('compliance.escalateSending');
+
+  try {
+    const res = await fetch('/api/jira/escalate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        issueKey:          task.key,
+        issueSummary:      task.summary,
+        dueDate:           task.duedate,
+        status:            task.status,
+        assigneeAccountId: task.assigneeAccountId,
+        senderEmail,
+      }),
+    });
+
+    if (res.ok) {
+      btn.textContent = t('compliance.escalateSent');
+      btn.classList.add('compliance-escalate-btn--sent');
+    } else {
+      const { error } = await res.json().catch(() => ({}));
+      btn.textContent = t('compliance.escalateError');
+      btn.classList.add('compliance-escalate-btn--error');
+      btn.title = error ?? 'Unknown error';
+      btn.disabled = false;
+    }
+  } catch {
+    btn.textContent = t('compliance.escalateError');
+    btn.classList.add('compliance-escalate-btn--error');
+    btn.disabled = false;
+  }
+}
+
 let isJiraLive = false;
 
 const PRIORITY_COLORS = {
@@ -671,10 +709,12 @@ function buildTaskList(tasks, showPriority = false) {
       tdStatus.appendChild(badge);
       tr.appendChild(tdStatus);
 
-      // Remind button — only for tasks with a due date that are not closed
+      // Action buttons column
       const tdAction = document.createElement('td');
       tdAction.className = 'compliance-task-td compliance-task-td--action';
       const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
+
+      // Remind button — tasks with a due date, not closed
       if (task.duedate && !isClosed && task.assigneeAccountId) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
@@ -688,6 +728,22 @@ function buildTaskList(tasks, showPriority = false) {
         }
         tdAction.appendChild(remindBtn);
       }
+
+      // Escalate button — only for overdue tasks
+      if (overdue && task.assigneeAccountId) {
+        const escalateBtn = document.createElement('button');
+        escalateBtn.className = 'compliance-escalate-btn';
+        escalateBtn.textContent = t('compliance.escalate');
+        if (isJiraLive) {
+          escalateBtn.title = t('compliance.escalateTitle');
+          escalateBtn.addEventListener('click', () => sendEscalation(escalateBtn, task));
+        } else {
+          escalateBtn.disabled = true;
+          escalateBtn.title = t('compliance.remindDisabled');
+        }
+        tdAction.appendChild(escalateBtn);
+      }
+
       tr.appendChild(tdAction);
 
       tbody.appendChild(tr);
