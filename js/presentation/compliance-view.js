@@ -9,80 +9,121 @@
 
 import { computeStats } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
-import { getGoogleUser, isAdmin } from '../firebase-auth.js';
+import { getGoogleUser, isAdmin, getGoogleAccessToken } from '../firebase-auth.js';
+
+async function lookupAssigneeEmail(accountId) {
+  const res = await fetch(`/api/jira/user-email?accountId=${encodeURIComponent(accountId)}`);
+  if (!res.ok) return null;
+  const { email } = await res.json();
+  return email ?? null;
+}
+
+function buildMimeEmail({ from, to, cc, subject, body }) {
+  const lines = [
+    `From: ${from}`,
+    `To: ${to}`,
+    ...(cc ? [`Cc: ${cc}`] : []),
+    'Content-Type: text/html; charset=utf-8',
+    'MIME-Version: 1.0',
+    `Subject: ${subject}`,
+    '',
+    body,
+  ];
+  return btoa(unescape(encodeURIComponent(lines.join('\r\n'))))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function sendGmailEmail({ subject, htmlBody, assigneeAccountId }) {
+  const senderEmail = getGoogleUser()?.email;
+  const accessToken  = getGoogleAccessToken();
+  if (!senderEmail || !accessToken) throw new Error('Not signed in');
+
+  const assigneeEmail = await lookupAssigneeEmail(assigneeAccountId);
+  if (!assigneeEmail) throw new Error('Could not resolve assignee email');
+
+  const raw = buildMimeEmail({
+    from: senderEmail,
+    to:   assigneeEmail,
+    cc:   senderEmail,
+    subject,
+    body: htmlBody,
+  });
+
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      Authorization:  `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ raw }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message ?? `Gmail API error ${res.status}`);
+  }
+}
 
 async function sendReminder(btn, task) {
-  const senderEmail = getGoogleUser()?.email;
-  if (!senderEmail) return;
-
   btn.disabled = true;
   btn.textContent = t('compliance.remindSending');
 
-  try {
-    const res = await fetch('/api/jira/remind', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        issueKey:          task.key,
-        issueSummary:      task.summary,
-        dueDate:           task.duedate,
-        status:            task.status,
-        assigneeAccountId: task.assigneeAccountId,
-        senderEmail,
-      }),
-    });
+  const subject  = `Reminder: ${task.key} · ${task.summary} — due ${task.duedate}`;
+  const htmlBody = `
+    <p>Hi ${task.assignee ?? 'there'},</p>
+    <p>This is a friendly reminder that <strong>${task.key} · ${task.summary}</strong>
+    has a due date of <strong>${task.duedate}</strong> and is currently
+    in status <strong>${task.status}</strong>.</p>
+    <p>Could you please confirm the steps you have in place to meet this deadline,
+    or flag any blockers that may affect delivery?</p>
+    <p>Sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
+  `;
 
-    if (res.ok) {
-      btn.textContent = t('compliance.remindSent');
-      btn.classList.add('compliance-remind-btn--sent');
-    } else {
-      const { error } = await res.json().catch(() => ({}));
-      btn.textContent = t('compliance.remindError');
-      btn.classList.add('compliance-remind-btn--error');
-      btn.title = error ?? 'Unknown error';
-      btn.disabled = false;
-    }
-  } catch {
+  try {
+    await sendGmailEmail({ subject, htmlBody, assigneeAccountId: task.assigneeAccountId });
+    btn.textContent = t('compliance.remindSent');
+    btn.classList.add('compliance-remind-btn--sent');
+  } catch (err) {
     btn.textContent = t('compliance.remindError');
     btn.classList.add('compliance-remind-btn--error');
+    btn.title = err.message;
     btn.disabled = false;
   }
 }
 
 async function sendEscalation(btn, task) {
-  const senderEmail = getGoogleUser()?.email;
-  if (!senderEmail) return;
-
   btn.disabled = true;
   btn.textContent = t('compliance.escalateSending');
 
-  try {
-    const res = await fetch('/api/jira/escalate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        issueKey:          task.key,
-        issueSummary:      task.summary,
-        dueDate:           task.duedate,
-        status:            task.status,
-        assigneeAccountId: task.assigneeAccountId,
-        senderEmail,
-      }),
-    });
+  const today       = new Date().toISOString().slice(0, 10);
+  const msPerDay    = 86_400_000;
+  const daysOverdue = Math.floor((Date.parse(today) - Date.parse(task.duedate)) / msPerDay);
+  const subject     = `⚠ Overdue Notice: ${task.key} · ${task.summary} — ${daysOverdue} days past due`;
+  const htmlBody    = `
+    <h3>⚠ Overdue Notice — Action Required</h3>
+    <p>Hi ${task.assignee ?? 'there'},</p>
+    <p><strong>${task.key} · ${task.summary}</strong> was due on
+    <strong>${task.duedate}</strong> and is currently <strong>${task.status}</strong>.
+    This task is now <strong>${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue</strong>
+    and may have downstream impact on the compliance program.</p>
+    <p>Please take the following actions:</p>
+    <ol>
+      <li><strong>Document a contingency plan</strong> — describe the steps you will take
+      to resolve this, any dependencies, and how downstream risk will be mitigated.</li>
+      <li><strong>Commit to a new target date</strong> — provide a revised due date
+      with a realistic estimate.</li>
+    </ol>
+    <p>This notice was sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
+  `;
 
-    if (res.ok) {
-      btn.textContent = t('compliance.escalateSent');
-      btn.classList.add('compliance-escalate-btn--sent');
-    } else {
-      const { error } = await res.json().catch(() => ({}));
-      btn.textContent = t('compliance.escalateError');
-      btn.classList.add('compliance-escalate-btn--error');
-      btn.title = error ?? 'Unknown error';
-      btn.disabled = false;
-    }
-  } catch {
+  try {
+    await sendGmailEmail({ subject, htmlBody, assigneeAccountId: task.assigneeAccountId });
+    btn.textContent = t('compliance.escalateSent');
+    btn.classList.add('compliance-escalate-btn--sent');
+  } catch (err) {
     btn.textContent = t('compliance.escalateError');
     btn.classList.add('compliance-escalate-btn--error');
+    btn.title = err.message;
     btn.disabled = false;
   }
 }

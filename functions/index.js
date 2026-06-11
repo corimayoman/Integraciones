@@ -488,6 +488,25 @@ app.get('/api/sox', async (req, res) => {
   }
 });
 
+app.get('/api/jira/user-email', async (req, res) => {
+  try {
+    const authenticated = await jiraAuth.isAuthenticated();
+    if (!authenticated) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { accountId } = req.query;
+    if (!accountId) return res.status(400).json({ error: 'Missing accountId' });
+
+    const userRes = await jiraAuth.jiraFetch(`/user?accountId=${encodeURIComponent(accountId)}`);
+    if (!userRes.ok) return res.status(userRes.status).json({ error: 'User not found' });
+
+    const user = await userRes.json();
+    res.json({ email: user.emailAddress ?? null, displayName: user.displayName ?? null });
+  } catch (err) {
+    console.error('User email lookup error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/jira/remind', async (req, res) => {
   try {
     const authenticated = await jiraAuth.isAuthenticated();

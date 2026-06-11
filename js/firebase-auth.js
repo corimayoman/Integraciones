@@ -30,12 +30,20 @@ const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+provider.addScope('https://www.googleapis.com/auth/gmail.send');
 
 /** @type {object|null} Current Firebase user */
 let currentGoogleUser = null;
 
 /** @type {string|null} Role of the currently signed-in user */
 let currentUserRole = null;
+
+/** @type {string|null} Google OAuth access token (includes Gmail send scope) */
+let googleAccessToken = null;
+
+export function getGoogleAccessToken() {
+  return googleAccessToken;
+}
 
 /**
  * Codifica un email como clave de RTDB.
@@ -85,6 +93,8 @@ export function getGoogleUser() {
  */
 export async function signInWithGoogle() {
   const result = await signInWithPopup(auth, provider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  googleAccessToken = credential?.accessToken ?? null;
   const user = result.user;
   const email = user.email;
 
