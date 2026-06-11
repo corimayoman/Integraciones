@@ -109,6 +109,11 @@ const DICTIONARIES = {
     'compliance.overdueDate':   'Overdue — due {date}',
     'compliance.closedDate':    'Closed — due {date}',
     'compliance.onTrackDate':   'On track — due {date}',
+    'compliance.remind':        'Remind',
+    'compliance.remindTitle':   'Send a due-date reminder comment to the assignee in Jira',
+    'compliance.remindSending': 'Sending…',
+    'compliance.remindSent':    'Sent ✓',
+    'compliance.remindError':   'Failed',
 
     /* --- SOX Controls --------------------------------------------------- */
     'sox.title':                'SOX Controls',
@@ -310,6 +315,11 @@ const DICTIONARIES = {
     'compliance.overdueDate':   'Vencido — límite {date}',
     'compliance.closedDate':    'Cerrado — límite {date}',
     'compliance.onTrackDate':   'En plazo — límite {date}',
+    'compliance.remind':        'Recordar',
+    'compliance.remindTitle':   'Enviar un comentario de recordatorio al asignado en Jira',
+    'compliance.remindSending': 'Enviando…',
+    'compliance.remindSent':    'Enviado ✓',
+    'compliance.remindError':   'Error',
 
     /* --- SOX Controls --------------------------------------------------- */
     'sox.title':                'Controles SOX',

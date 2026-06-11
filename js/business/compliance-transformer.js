@@ -42,6 +42,7 @@ function toTask(issue) {
     duedate:         issue.fields.duedate ?? null,
     created:         issue.fields.created ? issue.fields.created.slice(0, 10) : null,
     assignee:        issue.fields.assignee?.displayName ?? null,
+    assigneeAccountId: issue.fields.assignee?.accountId ?? null,
     priority:        issue.fields.priority?.name ?? null,
     isVulnerability: issue.fields.issuetype?.name === 'Vulnerability',
   };

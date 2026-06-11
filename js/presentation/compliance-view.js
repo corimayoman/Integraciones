@@ -9,6 +9,45 @@
 
 import { computeStats } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
+import { getGoogleUser } from '../firebase-auth.js';
+
+async function sendReminder(btn, task) {
+  const senderEmail = getGoogleUser()?.email;
+  if (!senderEmail) return;
+
+  btn.disabled = true;
+  btn.textContent = t('compliance.remindSending');
+
+  try {
+    const res = await fetch('/api/jira/remind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        issueKey:          task.key,
+        issueSummary:      task.summary,
+        dueDate:           task.duedate,
+        status:            task.status,
+        assigneeAccountId: task.assigneeAccountId,
+        senderEmail,
+      }),
+    });
+
+    if (res.ok) {
+      btn.textContent = t('compliance.remindSent');
+      btn.classList.add('compliance-remind-btn--sent');
+    } else {
+      const { error } = await res.json().catch(() => ({}));
+      btn.textContent = t('compliance.remindError');
+      btn.classList.add('compliance-remind-btn--error');
+      btn.title = error ?? 'Unknown error';
+      btn.disabled = false;
+    }
+  } catch {
+    btn.textContent = t('compliance.remindError');
+    btn.classList.add('compliance-remind-btn--error');
+    btn.disabled = false;
+  }
+}
 
 const PRIORITY_COLORS = {
   Critical: '#D32F2F',
@@ -484,7 +523,7 @@ function buildTaskList(tasks, showPriority = false) {
   const wrap = document.createElement('div');
   wrap.className = 'compliance-task-table-wrap';
 
-  const cols = [t('compliance.colId'), t('compliance.colTitle'), t('compliance.colAssignedTo'), t('compliance.colCreated'), t('compliance.colAging'), t('compliance.colDueDate'), t('compliance.colStatus')];
+  const cols = [t('compliance.colId'), t('compliance.colTitle'), t('compliance.colAssignedTo'), t('compliance.colCreated'), t('compliance.colAging'), t('compliance.colDueDate'), t('compliance.colStatus'), ''];
   if (showPriority) cols.splice(6, 0, t('compliance.colPriority'));
 
   // --- build table (just thead + empty tbody to be filled per page) ---
@@ -628,6 +667,20 @@ function buildTaskList(tasks, showPriority = false) {
       badge.textContent = statusLabel(task.status);
       tdStatus.appendChild(badge);
       tr.appendChild(tdStatus);
+
+      // Remind button — only for tasks with a due date that are not closed
+      const tdAction = document.createElement('td');
+      tdAction.className = 'compliance-task-td compliance-task-td--action';
+      const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
+      if (task.duedate && !isClosed && task.assigneeAccountId) {
+        const remindBtn = document.createElement('button');
+        remindBtn.className = 'compliance-remind-btn';
+        remindBtn.textContent = t('compliance.remind');
+        remindBtn.title = t('compliance.remindTitle');
+        remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
+        tdAction.appendChild(remindBtn);
+      }
+      tr.appendChild(tdAction);
 
       tbody.appendChild(tr);
     }

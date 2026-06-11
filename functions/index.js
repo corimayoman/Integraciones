@@ -488,6 +488,76 @@ app.get('/api/sox', async (req, res) => {
   }
 });
 
+app.post('/api/jira/remind', async (req, res) => {
+  try {
+    const authenticated = await jiraAuth.isAuthenticated();
+    if (!authenticated) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { issueKey, issueSummary, dueDate, status, assigneeAccountId, senderEmail } = req.body;
+    if (!issueKey || !assigneeAccountId || !senderEmail) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Look up the sender's Jira accountId by email
+    const userSearchRes = await jiraAuth.jiraFetch(`/user/search?query=${encodeURIComponent(senderEmail)}`);
+    let senderAccountId = null;
+    if (userSearchRes.ok) {
+      const users = await userSearchRes.json();
+      if (users.length > 0) senderAccountId = users[0].accountId;
+    }
+
+    // Build ADF comment body
+    const content = [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Hi ' },
+          { type: 'mention', attrs: { id: assigneeAccountId } },
+          { type: 'text', text: ` — this is a friendly reminder that ` },
+          { type: 'text', text: `${issueKey} · ${issueSummary}`, marks: [{ type: 'strong' }] },
+          { type: 'text', text: ` has a due date of ` },
+          { type: 'text', text: dueDate, marks: [{ type: 'strong' }] },
+          { type: 'text', text: ` and is currently in status ` },
+          { type: 'text', text: status, marks: [{ type: 'strong' }] },
+          { type: 'text', text: '.' },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Could you please confirm the steps you have in place to meet this deadline, or flag any blockers that may affect delivery?' },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Sent by ' },
+          ...(senderAccountId
+            ? [{ type: 'mention', attrs: { id: senderAccountId } }]
+            : [{ type: 'text', text: senderEmail }]),
+          { type: 'text', text: ' from the Compliance Dashboard.' },
+        ],
+      },
+    ];
+
+    const commentRes = await jiraAuth.jiraFetch(`/issue/${issueKey}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ body: { version: 1, type: 'doc', content } }),
+    });
+
+    if (!commentRes.ok) {
+      const err = await commentRes.text();
+      return res.status(commentRes.status).json({ error: `Jira comment failed: ${err}` });
+    }
+
+    const comment = await commentRes.json();
+    res.json({ success: true, commentId: comment.id });
+  } catch (err) {
+    console.error('Remind error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
