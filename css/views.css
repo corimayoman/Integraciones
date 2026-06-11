@@ -1696,8 +1696,14 @@
 
 /* --- Compliance Remind Button -------------------------------------------- */
 .compliance-task-td--action {
-  width: 80px;
+  width: 90px;
   text-align: center;
+}
+
+.compliance-remind-btn,
+.compliance-escalate-btn {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .compliance-remind-btn {
@@ -1735,7 +1741,6 @@
 
 /* --- Compliance Escalate Button ------------------------------------------ */
 .compliance-escalate-btn {
-  display: block;
   margin-top: 4px;
   padding: 2px 10px;
   font-size: var(--font-size-small);
