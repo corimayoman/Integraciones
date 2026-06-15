@@ -130,14 +130,16 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
 }
 
 async function sendReminder(btn, task) {
+  const jiraUrl  = `https://globant.atlassian.net/browse/${task.key}`;
   const subject  = `Reminder: ${task.key} · ${task.summary} — due ${task.duedate}`;
   const htmlBody = `
     <p>Hi ${task.assignee ?? 'there'},</p>
-    <p>This is a friendly reminder that <strong>${task.key} · ${task.summary}</strong>
+    <p>This is a friendly reminder that <a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
     has a due date of <strong>${task.duedate}</strong> and is currently
     in status <strong>${task.status}</strong>.</p>
     <p>Could you please confirm the steps you have in place to meet this deadline,
     or flag any blockers that may affect delivery?</p>
+    <p>→ <a href="${jiraUrl}">View ticket in Jira</a></p>
     <p>Sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
   `;
 
@@ -167,6 +169,7 @@ async function sendReminder(btn, task) {
 }
 
 async function sendEscalation(btn, task) {
+  const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
   const today       = new Date().toISOString().slice(0, 10);
   const msPerDay    = 86_400_000;
   const daysOverdue = Math.floor((Date.parse(today) - Date.parse(task.duedate)) / msPerDay);
@@ -174,7 +177,7 @@ async function sendEscalation(btn, task) {
   const htmlBody    = `
     <h3>⚠ Overdue Notice — Action Required</h3>
     <p>Hi ${task.assignee ?? 'there'},</p>
-    <p><strong>${task.key} · ${task.summary}</strong> was due on
+    <p><a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a> was due on
     <strong>${task.duedate}</strong> and is currently <strong>${task.status}</strong>.
     This task is now <strong>${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue</strong>
     and may have downstream impact on the compliance program.</p>
@@ -185,6 +188,7 @@ async function sendEscalation(btn, task) {
       <li><strong>Commit to a new target date</strong> — provide a revised due date
       with a realistic estimate.</li>
     </ol>
+    <p>→ <a href="${jiraUrl}">View ticket in Jira</a></p>
     <p>This notice was sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
   `;
 
