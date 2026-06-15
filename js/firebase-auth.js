@@ -29,7 +29,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
-provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
+provider.setCustomParameters({ hd: ALLOWED_DOMAIN, prompt: 'consent' });
 provider.addScope('https://www.googleapis.com/auth/gmail.send');
 
 /** @type {object|null} Current Firebase user */
