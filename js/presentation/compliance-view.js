@@ -35,18 +35,6 @@ function buildMimeEmail({ from, to, cc, subject, body }) {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function postJiraComment(endpoint, issueKey, senderEmail) {
-  try {
-    const res = await fetch(`${PROXY_BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ issueKey, senderEmail }),
-    });
-    if (!res.ok) console.warn('[jira comment] failed:', res.status);
-  } catch (err) {
-    console.warn('[jira comment] error:', err.message);
-  }
-}
 
 async function sendGmailEmail({ subject, htmlBody, to, cc }) {
   const senderEmail = getGoogleUser()?.email;
@@ -166,7 +154,6 @@ async function sendReminder(btn, task) {
       btn.textContent = t('compliance.remindSending');
       try {
         await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
-        postJiraComment('/api/jira/remind', task.key, senderEmail);
         btn.textContent = t('compliance.remindSent');
         btn.classList.add('compliance-remind-btn--sent');
       } catch (err) {
@@ -214,7 +201,6 @@ async function sendEscalation(btn, task) {
       btn.textContent = t('compliance.escalateSending');
       try {
         await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
-        postJiraComment('/api/jira/escalate', task.key, senderEmail);
         btn.textContent = t('compliance.escalateSent');
         btn.classList.add('compliance-escalate-btn--sent');
       } catch (err) {
