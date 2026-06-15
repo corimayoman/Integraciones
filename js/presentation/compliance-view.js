@@ -218,6 +218,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
       try {
         const text = await file.text();
         const issues = parseComplianceCSV(text);
+        statusMsg.textContent = `Parsed ${issues.length} issues…`;
 
         const res = await fetch(`${PROXY_BASE_URL}/api/compliance/upload`, {
           method: 'POST',
@@ -234,13 +235,11 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
         statusMsg.textContent = t('compliance.uploadSuccess', { n: count });
         statusMsg.className = 'compliance-upload-status compliance-upload-status--ok';
 
-        // Re-render the view with the newly uploaded data
         const newModel = transformComplianceData(issues);
-        // Small delay so the user sees the success message before re-render
         setTimeout(() => renderComplianceView(container, newModel, false, null, false), 800);
       } catch (err) {
         console.error('CSV upload error:', err);
-        statusMsg.textContent = `${t('compliance.uploadError')}: ${err.message}`;
+        statusMsg.textContent = `Error: ${err.message}`;
         statusMsg.className = 'compliance-upload-status compliance-upload-status--error';
         uploadBtn.disabled = false;
       }
