@@ -838,29 +838,22 @@ function buildTaskList(tasks, showPriority = false) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
-        if (isJiraLive) {
-          remindBtn.title = t('compliance.remindTitle');
-          remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
-        } else {
-          remindBtn.disabled = true;
-          remindBtn.title = t('compliance.remindDisabled');
-        }
+        remindBtn.title = t('compliance.remindTitle');
+        remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
         tdAction.appendChild(remindBtn);
       }
 
-      // Escalate button — all non-closed tasks, admin only; enabled only when Jira live AND overdue
+      // Escalate button — all non-closed tasks, admin only; enabled only when overdue
       if (isAdmin() && !isClosed && task.assigneeAccountId) {
         const escalateBtn = document.createElement('button');
         escalateBtn.className = 'compliance-escalate-btn';
         escalateBtn.textContent = t('compliance.escalate');
-        if (isJiraLive && overdue) {
+        if (overdue) {
           escalateBtn.title = t('compliance.escalateTitle');
           escalateBtn.addEventListener('click', () => sendEscalation(escalateBtn, task));
         } else {
           escalateBtn.disabled = true;
-          escalateBtn.title = !isJiraLive
-            ? t('compliance.remindDisabled')
-            : t('compliance.escalateNotOverdue');
+          escalateBtn.title = t('compliance.escalateNotOverdue');
         }
         tdAction.appendChild(escalateBtn);
       }
