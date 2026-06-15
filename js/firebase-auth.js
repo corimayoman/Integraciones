@@ -39,7 +39,7 @@ let currentGoogleUser = null;
 let currentUserRole = null;
 
 /** @type {string|null} Google OAuth access token (includes Gmail send scope) */
-let googleAccessToken = null;
+let googleAccessToken = sessionStorage.getItem('gat') ?? null;
 
 export function getGoogleAccessToken() {
   return googleAccessToken;
@@ -95,6 +95,7 @@ export async function signInWithGoogle() {
   const result = await signInWithPopup(auth, provider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
   googleAccessToken = credential?.accessToken ?? null;
+  if (googleAccessToken) sessionStorage.setItem('gat', googleAccessToken);
   const user = result.user;
   const email = user.email;
 
@@ -118,6 +119,8 @@ export async function signInWithGoogle() {
  * Signs out the current user.
  */
 export async function signOutGoogle() {
+  googleAccessToken = null;
+  sessionStorage.removeItem('gat');
   await signOut(auth);
 }
 
