@@ -49,62 +49,58 @@ export function parseJiraDate(raw) {
  * @returns {Array<Record<string, string>>}
  */
 export function parseCSV(text) {
-  // Normalise line endings
-  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  if (lines.length < 2) return [];
+  // Normalise line endings to \n
+  const src = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/^﻿/, '');
 
-  const headers = splitCSVRow(lines[0]);
-  const rows = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const values = splitCSVRow(lines[i]);
-    const row = {};
-    for (let j = 0; j < headers.length; j++) {
-      row[headers[j]] = values[j] ?? '';
-    }
-    rows.push(row);
-  }
-
-  return rows;
-}
-
-/**
- * Split a single CSV row, honouring double-quoted fields.
- *
- * @param {string} line
- * @returns {string[]}
- */
-function splitCSVRow(line) {
-  const result = [];
+  // Full RFC 4180 parse — reads char-by-char so embedded newlines inside
+  // quoted fields don't break row boundaries (Jira CSV uses them heavily).
+  const allRows = [];
   let cur = '';
   let inQuotes = false;
+  let row = [];
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
     if (inQuotes) {
       if (ch === '"') {
-        if (line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
+        if (src[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
       } else {
         cur += ch;
       }
     } else if (ch === '"') {
       inQuotes = true;
     } else if (ch === ',') {
-      result.push(cur.trim());
+      row.push(cur);
       cur = '';
+    } else if (ch === '\n') {
+      row.push(cur);
+      cur = '';
+      allRows.push(row);
+      row = [];
     } else {
       cur += ch;
     }
   }
-  result.push(cur.trim());
-  return result;
+  // flush last field/row
+  row.push(cur);
+  if (row.some(v => v !== '')) allRows.push(row);
+
+  if (allRows.length < 2) return [];
+
+  const headers = allRows[0].map(h => h.trim());
+  const rows = [];
+  for (let i = 1; i < allRows.length; i++) {
+    const values = allRows[i];
+    // skip completely empty rows
+    if (values.every(v => !v.trim())) continue;
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = values[j] ?? '';
+    }
+    rows.push(obj);
+  }
+  return rows;
 }
 
 /**
