@@ -20,23 +20,25 @@ async function lookupAssigneeEmail(accountId) {
   return email ?? null;
 }
 
-function encodeMimeWord(str) {
-  return `=?UTF-8?B?${btoa(unescape(encodeURIComponent(str)))}?=`;
-}
-
 function buildMimeEmail({ from, to, cc, subject, body }) {
+  // Encode subject as RFC 2047 UTF-8 Base64 word to handle non-ASCII chars
+  const encodedSubject = `=?UTF-8?B?${btoa(encodeURIComponent(subject).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))))}?=`;
   const lines = [
     `From: ${from}`,
     `To: ${to}`,
     ...(cc ? [`Cc: ${cc}`] : []),
-    'Content-Type: text/html; charset=utf-8',
     'MIME-Version: 1.0',
-    `Subject: ${encodeMimeWord(subject)}`,
+    'Content-Type: text/html; charset=utf-8',
+    `Subject: ${encodedSubject}`,
     '',
     body,
   ];
-  return btoa(unescape(encodeURIComponent(lines.join('\r\n'))))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  // Build raw message: encode entire email as UTF-8 bytes then base64url
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(lines.join('\r\n'));
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 
