@@ -21,24 +21,18 @@ async function lookupAssigneeEmail(accountId) {
 }
 
 function buildMimeEmail({ from, to, cc, subject, body }) {
-  // Encode subject as RFC 2047 UTF-8 Base64 word to handle non-ASCII chars
-  const encodedSubject = `=?UTF-8?B?${btoa(encodeURIComponent(subject).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16))))}?=`;
   const lines = [
     `From: ${from}`,
     `To: ${to}`,
     ...(cc ? [`Cc: ${cc}`] : []),
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
-    `Subject: ${encodedSubject}`,
+    `Subject: ${subject}`,
     '',
     body,
   ];
-  // Build raw message: encode entire email as UTF-8 bytes then base64url
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(lines.join('\r\n'));
-  let binary = '';
-  bytes.forEach(b => binary += String.fromCharCode(b));
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return btoa(unescape(encodeURIComponent(lines.join('\r\n'))))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 
@@ -166,7 +160,7 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
 
 async function sendReminder(btn, task) {
   const jiraUrl  = `https://globant.atlassian.net/browse/${task.key}`;
-  const subject  = `Reminder: ${task.key} · ${task.summary} — due ${task.duedate}`;
+  const subject  = `Reminder: ${task.key} - ${task.summary} - due ${task.duedate}`;
   const htmlBody = `
     <p>Hi ${task.assignee ?? 'there'},</p>
     <p>This is a friendly reminder that <a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
@@ -208,7 +202,7 @@ async function sendEscalation(btn, task) {
   const today       = new Date().toISOString().slice(0, 10);
   const msPerDay    = 86_400_000;
   const daysOverdue = Math.floor((Date.parse(today) - Date.parse(task.duedate)) / msPerDay);
-  const subject     = `⚠ Overdue Notice: ${task.key} · ${task.summary} — ${daysOverdue} days past due`;
+  const subject     = `[OVERDUE] ${task.key} - ${task.summary} - ${daysOverdue} days past due`;
   const htmlBody    = `
     <h3>⚠ Overdue Notice — Action Required</h3>
     <p>Hi ${task.assignee ?? 'there'},</p>
