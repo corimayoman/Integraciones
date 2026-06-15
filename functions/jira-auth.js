@@ -15,7 +15,7 @@ function getAuthUrl() {
   const params = new URLSearchParams({
     audience: 'api.atlassian.com',
     client_id: process.env.ATLASSIAN_CLIENT_ID,
-    scope: 'read:jira-work read:jira-user offline_access',
+    scope: 'read:jira-work write:jira-work read:jira-user offline_access',
     redirect_uri: process.env.ATLASSIAN_CALLBACK_URL,
     response_type: 'code',
     prompt: 'consent',
