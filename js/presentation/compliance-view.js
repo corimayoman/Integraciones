@@ -20,6 +20,10 @@ async function lookupAssigneeEmail(accountId) {
   return email ?? null;
 }
 
+function encodeMimeWord(str) {
+  return `=?UTF-8?B?${btoa(unescape(encodeURIComponent(str)))}?=`;
+}
+
 function buildMimeEmail({ from, to, cc, subject, body }) {
   const lines = [
     `From: ${from}`,
@@ -27,7 +31,7 @@ function buildMimeEmail({ from, to, cc, subject, body }) {
     ...(cc ? [`Cc: ${cc}`] : []),
     'Content-Type: text/html; charset=utf-8',
     'MIME-Version: 1.0',
-    `Subject: ${subject}`,
+    `Subject: ${encodeMimeWord(subject)}`,
     '',
     body,
   ];
