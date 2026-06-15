@@ -87,13 +87,37 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
   closeBtn.addEventListener('click', () => { overlay.remove(); onCancel?.(); });
   header.appendChild(closeBtn);
 
+  const unresolved = !toEmail || toEmail === '(could not resolve)';
+
   const meta = document.createElement('div');
   meta.style.cssText = 'padding:12px 20px;border-bottom:1px solid var(--border,#45475a);font-size:.85rem;line-height:1.8;background:var(--bg-sidebar,#181825);';
-  meta.innerHTML = `
-    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">To:</span> ${toEmail}</div>
+
+  const toInput = document.createElement('input');
+  toInput.type = 'email';
+  toInput.value = unresolved ? '' : toEmail;
+  toInput.placeholder = 'recipient@globant.com';
+  toInput.style.cssText = `
+    background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);
+    border:1px solid ${unresolved ? '#f38ba8' : 'var(--border,#45475a)'};
+    border-radius:4px;padding:3px 8px;font-size:.85rem;width:280px;
+  `;
+
+  const toRow = document.createElement('div');
+  toRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  toRow.innerHTML = `<span style="color:var(--text-muted,#6c7086);min-width:60px;">To:</span>`;
+  toRow.appendChild(toInput);
+  if (unresolved) {
+    const warn = document.createElement('span');
+    warn.textContent = 'Email not resolved — enter manually';
+    warn.style.cssText = 'color:#f38ba8;font-size:.78rem;';
+    toRow.appendChild(warn);
+  }
+
+  meta.appendChild(toRow);
+  meta.insertAdjacentHTML('beforeend', `
     <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">CC:</span> ${ccEmail}</div>
     <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">Subject:</span> <strong>${subject}</strong></div>
-  `;
+  `);
 
   const body = document.createElement('div');
   body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;';
@@ -113,7 +137,12 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
   const sendBtn = document.createElement('button');
   sendBtn.textContent = 'Send Email';
   sendBtn.style.cssText = 'padding:8px 20px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:600;cursor:pointer;font-size:.9rem;';
-  sendBtn.addEventListener('click', () => { overlay.remove(); onSend(); });
+  sendBtn.addEventListener('click', () => {
+    const finalTo = toInput.value.trim();
+    if (!finalTo) { toInput.style.border = '1px solid #f38ba8'; toInput.focus(); return; }
+    overlay.remove();
+    onSend(finalTo);
+  });
 
   footer.appendChild(cancelBtn);
   footer.appendChild(sendBtn);
@@ -151,11 +180,11 @@ async function sendReminder(btn, task) {
     toEmail: assigneeEmail,
     ccEmail: senderEmail,
     onCancel: () => {},
-    onSend: async () => {
+    onSend: async (finalTo) => {
       btn.disabled = true;
       btn.textContent = t('compliance.remindSending');
       try {
-        await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
+        await sendGmailEmail({ subject, htmlBody, to: finalTo });
         btn.textContent = t('compliance.remindSent');
         btn.classList.add('compliance-remind-btn--sent');
       } catch (err) {
@@ -200,11 +229,11 @@ async function sendEscalation(btn, task) {
     toEmail: assigneeEmail,
     ccEmail: senderEmail,
     onCancel: () => {},
-    onSend: async () => {
+    onSend: async (finalTo) => {
       btn.disabled = true;
       btn.textContent = t('compliance.escalateSending');
       try {
-        await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
+        await sendGmailEmail({ subject, htmlBody, to: finalTo });
         btn.textContent = t('compliance.escalateSent');
         btn.classList.add('compliance-escalate-btn--sent');
       } catch (err) {
