@@ -748,6 +748,15 @@ function bootApp() {
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
 
+  // When a CSV is uploaded via the compliance view, update the global model and re-render
+  window.addEventListener('compliance:csv-uploaded', (e) => {
+    complianceModel = e.detail.model;
+    const main = document.getElementById('main-content');
+    if (main && getCurrentRoute().name === 'compliance') {
+      renderComplianceView(main, complianceModel, false, null, false);
+    }
+  });
+
   // Listen for DC auth expiration — go back to dashboard
   window.addEventListener('dc:auth-expired', () => {
     clearToken();

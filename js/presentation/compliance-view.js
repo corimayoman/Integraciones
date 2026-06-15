@@ -239,7 +239,9 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
         statusMsg.className = 'compliance-upload-status compliance-upload-status--ok';
 
         const newModel = transformComplianceData(issues);
-        setTimeout(() => renderComplianceView(container, newModel, false, null, false), 800);
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('compliance:csv-uploaded', { detail: { model: newModel } }));
+        }, 800);
       } catch (err) {
         console.error('CSV upload error:', err);
         statusMsg.textContent = `Error: ${err.message}`;
