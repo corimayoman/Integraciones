@@ -121,6 +121,11 @@ const DICTIONARIES = {
     'compliance.remindSending': 'Sending…',
     'compliance.remindSent':    'Sent ✓',
     'compliance.remindError':   'Failed',
+    'compliance.uploadBtn':     'Upload Jira CSV',
+    'compliance.uploading':     'Loading...',
+    'compliance.uploadSuccess': 'Loaded {n} issues',
+    'compliance.uploadError':   'Error loading file',
+    'compliance.uploadHint':    'Jira not connected — upload a CSV export to refresh data',
 
     /* --- SOX Controls --------------------------------------------------- */
     'sox.title':                'SOX Controls',
@@ -334,6 +339,11 @@ const DICTIONARIES = {
     'compliance.remindSending': 'Enviando…',
     'compliance.remindSent':    'Enviado ✓',
     'compliance.remindError':   'Error',
+    'compliance.uploadBtn':     'Subir CSV de Jira',
+    'compliance.uploading':     'Cargando...',
+    'compliance.uploadSuccess': '{n} issues cargados',
+    'compliance.uploadError':   'Error al cargar el archivo',
+    'compliance.uploadHint':    'Jira no conectado — subí un export CSV para actualizar los datos',
 
     /* --- SOX Controls --------------------------------------------------- */
     'sox.title':                'Controles SOX',

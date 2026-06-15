@@ -7,9 +7,11 @@
  * @module compliance-view
  */
 
-import { computeStats } from '../business/compliance-transformer.js';
+import { computeStats, transformComplianceData } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
 import { getGoogleUser, isAdmin, getGoogleAccessToken } from '../firebase-auth.js';
+import { parseComplianceCSV } from '../data/compliance-csv.js';
+import { PROXY_BASE_URL } from '../constants.js';
 
 async function lookupAssigneeEmail(accountId) {
   const res = await fetch(`/api/jira/user-email?accountId=${encodeURIComponent(accountId)}`);
@@ -175,6 +177,77 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   title.className = 'compliance-title';
   title.textContent = t('compliance.title');
   titleRow.appendChild(title);
+
+  // CSV upload fallback — only shown when Jira is NOT live
+  if (!jiraLive) {
+    const uploadWrap = document.createElement('div');
+    uploadWrap.className = 'compliance-upload-wrap';
+
+    const hint = document.createElement('span');
+    hint.className = 'compliance-upload-hint';
+    hint.textContent = t('compliance.uploadHint');
+    uploadWrap.appendChild(hint);
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv';
+    fileInput.style.display = 'none';
+    fileInput.id = 'compliance-csv-input';
+    uploadWrap.appendChild(fileInput);
+
+    const uploadBtn = document.createElement('button');
+    uploadBtn.className = 'compliance-upload-btn';
+    uploadBtn.textContent = t('compliance.uploadBtn');
+    uploadBtn.setAttribute('aria-label', t('compliance.uploadBtn'));
+    uploadWrap.appendChild(uploadBtn);
+
+    const statusMsg = document.createElement('span');
+    statusMsg.className = 'compliance-upload-status';
+    uploadWrap.appendChild(statusMsg);
+
+    uploadBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadBtn.disabled = true;
+      statusMsg.textContent = t('compliance.uploading');
+      statusMsg.className = 'compliance-upload-status';
+
+      try {
+        const text = await file.text();
+        const issues = parseComplianceCSV(text);
+
+        const res = await fetch(`${PROXY_BASE_URL}/api/compliance/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ issues }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `HTTP ${res.status}`);
+        }
+
+        const { count } = await res.json();
+        statusMsg.textContent = t('compliance.uploadSuccess', { n: count });
+        statusMsg.className = 'compliance-upload-status compliance-upload-status--ok';
+
+        // Re-render the view with the newly uploaded data
+        const newModel = transformComplianceData(issues);
+        renderComplianceView(container, newModel, false, null, false);
+      } catch (err) {
+        console.error('CSV upload error:', err);
+        statusMsg.textContent = t('compliance.uploadError');
+        statusMsg.className = 'compliance-upload-status compliance-upload-status--error';
+        uploadBtn.disabled = false;
+      }
+    });
+
+    titleRow.appendChild(uploadWrap);
+  }
+
   wrapper.appendChild(titleRow);
 
   if (error) {

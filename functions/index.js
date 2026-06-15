@@ -447,6 +447,20 @@ app.get('/api/raw', async (req, res) => {
   }
 });
 
+app.post('/api/compliance/upload', (req, res) => {
+  try {
+    const { issues } = req.body;
+    if (!issues || !Array.isArray(issues)) {
+      return res.status(400).json({ ok: false, error: 'issues array required' });
+    }
+    complianceCache = { data: issues, ts: Date.now() };
+    return res.json({ ok: true, count: issues.length });
+  } catch (err) {
+    console.error('Compliance upload error:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get('/api/compliance', async (req, res) => {
   try {
     const authenticated = await jiraAuth.isAuthenticated();
