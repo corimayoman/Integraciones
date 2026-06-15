@@ -35,21 +35,12 @@ function buildMimeEmail({ from, to, cc, subject, body }) {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function sendGmailEmail({ subject, htmlBody, assigneeAccountId }) {
+async function sendGmailEmail({ subject, htmlBody, to, cc }) {
   const senderEmail = getGoogleUser()?.email;
   const accessToken  = getGoogleAccessToken();
   if (!senderEmail || !accessToken) throw new Error('Not signed in');
 
-  const assigneeEmail = await lookupAssigneeEmail(assigneeAccountId);
-  if (!assigneeEmail) throw new Error('Could not resolve assignee email');
-
-  const raw = buildMimeEmail({
-    from: senderEmail,
-    to:   assigneeEmail,
-    cc:   senderEmail,
-    subject,
-    body: htmlBody,
-  });
+  const raw = buildMimeEmail({ from: senderEmail, to, cc: cc ?? senderEmail, subject, body: htmlBody });
 
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -66,10 +57,78 @@ async function sendGmailEmail({ subject, htmlBody, assigneeAccountId }) {
   }
 }
 
-async function sendReminder(btn, task) {
-  btn.disabled = true;
-  btn.textContent = t('compliance.remindSending');
+function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, onCancel }) {
+  // Remove any existing modal
+  document.getElementById('email-preview-modal')?.remove();
 
+  const overlay = document.createElement('div');
+  overlay.id = 'email-preview-modal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);
+    display:flex;align-items:center;justify-content:center;padding:16px;
+  `;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);
+    border-radius:10px;border:1px solid var(--border,#45475a);
+    width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;
+  `;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:16px 20px;border-bottom:1px solid var(--border,#45475a);display:flex;justify-content:space-between;align-items:center;';
+  header.innerHTML = `<strong style="font-size:1rem">Email Preview</strong>`;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;color:inherit;font-size:1.1rem;cursor:pointer;padding:4px 8px;';
+  closeBtn.addEventListener('click', () => { overlay.remove(); onCancel?.(); });
+  header.appendChild(closeBtn);
+
+  const meta = document.createElement('div');
+  meta.style.cssText = 'padding:12px 20px;border-bottom:1px solid var(--border,#45475a);font-size:.85rem;line-height:1.8;background:var(--bg-sidebar,#181825);';
+  meta.innerHTML = `
+    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">To:</span> ${toEmail}</div>
+    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">CC:</span> ${ccEmail}</div>
+    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">Subject:</span> <strong>${subject}</strong></div>
+  `;
+
+  const body = document.createElement('div');
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;';
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;min-height:260px;border:none;background:#fff;border-radius:6px;';
+  iframe.srcdoc = `<html><body style="font-family:sans-serif;font-size:14px;color:#333;padding:12px;">${htmlBody}</body></html>`;
+  body.appendChild(iframe);
+
+  const footer = document.createElement('div');
+  footer.style.cssText = 'padding:14px 20px;border-top:1px solid var(--border,#45475a);display:flex;justify-content:flex-end;gap:10px;';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'padding:8px 20px;border-radius:6px;border:1px solid var(--border,#45475a);background:none;color:inherit;cursor:pointer;font-size:.9rem;';
+  cancelBtn.addEventListener('click', () => { overlay.remove(); onCancel?.(); });
+
+  const sendBtn = document.createElement('button');
+  sendBtn.textContent = 'Send Email';
+  sendBtn.style.cssText = 'padding:8px 20px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:600;cursor:pointer;font-size:.9rem;';
+  sendBtn.addEventListener('click', () => { overlay.remove(); onSend(); });
+
+  footer.appendChild(cancelBtn);
+  footer.appendChild(sendBtn);
+  modal.appendChild(header);
+  modal.appendChild(meta);
+  modal.appendChild(body);
+  modal.appendChild(footer);
+  overlay.appendChild(modal);
+
+  // Close on backdrop click
+  overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); onCancel?.(); } });
+
+  document.body.appendChild(overlay);
+}
+
+async function sendReminder(btn, task) {
   const subject  = `Reminder: ${task.key} · ${task.summary} — due ${task.duedate}`;
   const htmlBody = `
     <p>Hi ${task.assignee ?? 'there'},</p>
@@ -81,22 +140,32 @@ async function sendReminder(btn, task) {
     <p>Sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
   `;
 
-  try {
-    await sendGmailEmail({ subject, htmlBody, assigneeAccountId: task.assigneeAccountId });
-    btn.textContent = t('compliance.remindSent');
-    btn.classList.add('compliance-remind-btn--sent');
-  } catch (err) {
-    btn.textContent = t('compliance.remindError');
-    btn.classList.add('compliance-remind-btn--error');
-    btn.title = err.message;
-    btn.disabled = false;
-  }
+  const senderEmail = getGoogleUser()?.email ?? '';
+  const assigneeEmail = await lookupAssigneeEmail(task.assigneeAccountId) ?? '(could not resolve)';
+
+  showEmailPreviewModal({
+    subject, htmlBody,
+    toEmail: assigneeEmail,
+    ccEmail: senderEmail,
+    onCancel: () => {},
+    onSend: async () => {
+      btn.disabled = true;
+      btn.textContent = t('compliance.remindSending');
+      try {
+        await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
+        btn.textContent = t('compliance.remindSent');
+        btn.classList.add('compliance-remind-btn--sent');
+      } catch (err) {
+        btn.textContent = t('compliance.remindError');
+        btn.classList.add('compliance-remind-btn--error');
+        btn.title = err.message;
+        btn.disabled = false;
+      }
+    },
+  });
 }
 
 async function sendEscalation(btn, task) {
-  btn.disabled = true;
-  btn.textContent = t('compliance.escalateSending');
-
   const today       = new Date().toISOString().slice(0, 10);
   const msPerDay    = 86_400_000;
   const daysOverdue = Math.floor((Date.parse(today) - Date.parse(task.duedate)) / msPerDay);
@@ -118,16 +187,29 @@ async function sendEscalation(btn, task) {
     <p>This notice was sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
   `;
 
-  try {
-    await sendGmailEmail({ subject, htmlBody, assigneeAccountId: task.assigneeAccountId });
-    btn.textContent = t('compliance.escalateSent');
-    btn.classList.add('compliance-escalate-btn--sent');
-  } catch (err) {
-    btn.textContent = t('compliance.escalateError');
-    btn.classList.add('compliance-escalate-btn--error');
-    btn.title = err.message;
-    btn.disabled = false;
-  }
+  const senderEmail = getGoogleUser()?.email ?? '';
+  const assigneeEmail = await lookupAssigneeEmail(task.assigneeAccountId) ?? '(could not resolve)';
+
+  showEmailPreviewModal({
+    subject, htmlBody,
+    toEmail: assigneeEmail,
+    ccEmail: senderEmail,
+    onCancel: () => {},
+    onSend: async () => {
+      btn.disabled = true;
+      btn.textContent = t('compliance.escalateSending');
+      try {
+        await sendGmailEmail({ subject, htmlBody, to: assigneeEmail });
+        btn.textContent = t('compliance.escalateSent');
+        btn.classList.add('compliance-escalate-btn--sent');
+      } catch (err) {
+        btn.textContent = t('compliance.escalateError');
+        btn.classList.add('compliance-escalate-btn--error');
+        btn.title = err.message;
+        btn.disabled = false;
+      }
+    },
+  });
 }
 
 let isJiraLive = false;
