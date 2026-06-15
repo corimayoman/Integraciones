@@ -20,6 +20,15 @@ async function lookupAssigneeEmail(accountId) {
   return email ?? null;
 }
 
+function toAsciiSubject(str) {
+  return str
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/·/g, '-')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
 function buildMimeEmail({ from, to, cc, subject, body }) {
   const lines = [
     `From: ${from}`,
@@ -27,7 +36,7 @@ function buildMimeEmail({ from, to, cc, subject, body }) {
     ...(cc ? [`Cc: ${cc}`] : []),
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
-    `Subject: ${subject}`,
+    `Subject: ${toAsciiSubject(subject)}`,
     '',
     body,
   ];
