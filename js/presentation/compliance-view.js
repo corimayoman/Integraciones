@@ -236,10 +236,11 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
 
         // Re-render the view with the newly uploaded data
         const newModel = transformComplianceData(issues);
-        renderComplianceView(container, newModel, false, null, false);
+        // Small delay so the user sees the success message before re-render
+        setTimeout(() => renderComplianceView(container, newModel, false, null, false), 800);
       } catch (err) {
         console.error('CSV upload error:', err);
-        statusMsg.textContent = t('compliance.uploadError');
+        statusMsg.textContent = `${t('compliance.uploadError')}: ${err.message}`;
         statusMsg.className = 'compliance-upload-status compliance-upload-status--error';
         uploadBtn.disabled = false;
       }
