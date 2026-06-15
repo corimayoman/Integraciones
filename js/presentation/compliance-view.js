@@ -188,12 +188,15 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
     hint.textContent = t('compliance.uploadHint');
     uploadWrap.appendChild(hint);
 
+    // Remove any stale file input from a previous render
+    document.getElementById('compliance-csv-input')?.remove();
+
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv';
-    fileInput.style.display = 'none';
+    fileInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
     fileInput.id = 'compliance-csv-input';
-    uploadWrap.appendChild(fileInput);
+    document.body.appendChild(fileInput);
 
     const uploadBtn = document.createElement('button');
     uploadBtn.className = 'compliance-upload-btn';
