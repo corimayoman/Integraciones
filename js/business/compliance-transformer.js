@@ -149,9 +149,11 @@ export function transformComplianceData(rawIssues) {
   const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);
   sox.stats = computeStats(allSoxTasks);
 
+  const complianceEntry = buildEpicEntry(COMPLIANCE_EPIC_KEY);
   const compliance = {
     initiative: sharedInitiative,
-    ...buildEpicEntry(COMPLIANCE_EPIC_KEY),
+    ...complianceEntry,
+    vulnGroups: groupVulnerabilities(complianceEntry.tasks),
   };
 
   const gistEpicEntry = buildEpicEntry(GIST_EPIC_KEY);

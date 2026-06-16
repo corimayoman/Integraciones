@@ -408,7 +408,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
 
   const panels = {
     sox:        buildSoxSection(complianceModel.sox),
-    compliance: buildDimensionCard('Compliance', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance'),
+    compliance: buildDimensionCard('Offense', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance', complianceModel.compliance.vulnGroups),
     gist:       buildGistSection(complianceModel.gist),
   };
 
@@ -699,7 +699,7 @@ function buildPieLegend(bucket) {
 /*  Generic dimension card (Compliance, GIST)                         */
 /* ------------------------------------------------------------------ */
 
-function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorClass) {
+function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorClass, vulnGroups) {
   const section = document.createElement('div');
   section.className = `compliance-section compliance-section--${colorClass}`;
 
@@ -721,6 +721,20 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
   section.appendChild(epicEl);
 
   section.appendChild(buildStatsBar(stats, colorClass));
+
+  if (vulnGroups && vulnGroups.total > 0) {
+    const note = document.createElement('p');
+    note.className = 'compliance-vuln-note';
+    note.textContent = t('compliance.vulns', { total: vulnGroups.total });
+    section.appendChild(note);
+
+    const chartsRow = document.createElement('div');
+    chartsRow.className = 'compliance-vuln-charts';
+    chartsRow.appendChild(buildPieCard(t('compliance.open'),    vulnGroups.open,    'open'));
+    chartsRow.appendChild(buildPieCard(t('compliance.blocked'), vulnGroups.blocked, 'blocked'));
+    chartsRow.appendChild(buildPieCard(t('compliance.closed'),  vulnGroups.closed,  'closed'));
+    section.appendChild(chartsRow);
+  }
 
   if (tasks.length > 0) {
     const taskSection = document.createElement('details');
