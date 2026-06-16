@@ -282,7 +282,7 @@ const SOX_DIM_LABELS = {
  */
 const TABS = [
   { id: 'sox',        label: 'SOX' },
-  { id: 'compliance', label: 'Compliance' },
+  { id: 'compliance', label: 'Offense' },
   { id: 'gist',       label: 'GIST Compliance' },
 ];
 
