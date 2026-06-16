@@ -10,6 +10,7 @@
  */
 
 import { calculateKPIs, calculateYearSummary, calculateSeverityChart } from '../business/kpis.js';
+import { t } from '../i18n.js';
 
 /** @type {HTMLElement|null} */
 let kpiContainer = null;
@@ -73,13 +74,13 @@ export function renderSeverityChartPanel(container, model) {
 function buildKPICards(kpis) {
   const section = document.createElement('section');
   section.className = 'kpi-cards';
-  section.setAttribute('aria-label', 'Indicadores clave de rendimiento');
+  section.setAttribute('aria-label', t('kpi.activeCompanies'));
 
   const cards = [
-    { label: 'Empresas Activas', value: String(kpis.totalActiveCompanies), icon: '🏢' },
-    { label: 'Completitud Global', value: `${kpis.globalCompletionPercent}%`, icon: '📊' },
-    { label: 'Tracks Bloqueados', value: String(kpis.blockedTracksCount), icon: '🚫' },
-    { label: 'Críticos en Progreso', value: String(kpis.criticalInProgressCount), icon: '⚠' },
+    { label: t('kpi.activeCompanies'),    value: String(kpis.totalActiveCompanies),      icon: '🏢' },
+    { label: t('kpi.globalCompletion'),   value: `${kpis.globalCompletionPercent}%`,      icon: '📊' },
+    { label: t('kpi.blockedTracks'),      value: String(kpis.blockedTracksCount),         icon: '🚫' },
+    { label: t('kpi.criticalInProgress'), value: String(kpis.criticalInProgressCount),    icon: '⚠' },
   ];
 
   for (const cardData of cards) {
@@ -119,7 +120,7 @@ function buildYearSummaryTable(yearSummary) {
 
   const heading = document.createElement('h3');
   heading.className = 'kpi-section-title';
-  heading.textContent = 'Resumen por Año';
+  heading.textContent = t('kpi.yearSummary');
   section.appendChild(heading);
 
   const table = document.createElement('table');
@@ -128,7 +129,7 @@ function buildYearSummaryTable(yearSummary) {
   // Header
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  const headers = ['Año', 'Empresas', 'Critical', 'High', 'Medium', 'Low'];
+  const headers = [t('kpi.colYear'), t('kpi.colCompanies'), 'Critical', 'High', 'Medium', 'Low'];
   for (const h of headers) {
     const th = document.createElement('th');
     th.setAttribute('scope', 'col');
@@ -178,7 +179,7 @@ function buildSeverityChart(chartData) {
 
   const heading = document.createElement('h3');
   heading.className = 'kpi-section-title';
-  heading.textContent = 'Actividades Completadas por Severidad';
+  heading.textContent = t('kpi.completedBySeverity');
   section.appendChild(heading);
 
   // Legend

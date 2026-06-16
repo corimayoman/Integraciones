@@ -61,6 +61,16 @@ const DICTIONARIES = {
     'header.reconnect':         'Reconnect',
     'header.langToggle':        'Cambiar a Español',
 
+    /* --- KPI cards ------------------------------------------------------ */
+    'kpi.activeCompanies':      'Active Companies',
+    'kpi.globalCompletion':     'Global Completion',
+    'kpi.blockedTracks':        'Blocked Tracks',
+    'kpi.criticalInProgress':   'Critical In Progress',
+    'kpi.yearSummary':          'Year Summary',
+    'kpi.completedBySeverity':  'Completed Activities by Severity',
+    'kpi.colYear':              'Year',
+    'kpi.colCompanies':         'Companies',
+
     /* --- Matrix --------------------------------------------------------- */
     'matrix.title':             'Integration Matrix',
     'matrix.noResults':         'No companies to show with the current filters.',
@@ -289,6 +299,16 @@ const DICTIONARIES = {
     'header.noConnection':      'Sin conexión a Jira. Conectate para ver datos en tiempo real.',
     'header.reconnect':         'Reconectar',
     'header.langToggle':        'Switch to English',
+
+    /* --- KPI cards ------------------------------------------------------ */
+    'kpi.activeCompanies':      'Empresas Activas',
+    'kpi.globalCompletion':     'Completitud Global',
+    'kpi.blockedTracks':        'Tracks Bloqueados',
+    'kpi.criticalInProgress':   'Críticos en Progreso',
+    'kpi.yearSummary':          'Resumen por Año',
+    'kpi.completedBySeverity':  'Actividades Completadas por Severidad',
+    'kpi.colYear':              'Año',
+    'kpi.colCompanies':         'Empresas',
 
     /* --- Matrix --------------------------------------------------------- */
     'matrix.title':             'Matriz de Integración',

@@ -17,6 +17,7 @@ import {
   getCompanyOverallStatus,
 } from '../business/presentation-utils.js';
 import { createBadge, createTooltip } from './components.js';
+import { t } from '../i18n.js';
 
 /** @type {HTMLElement|null} */
 let matrixContainer = null;
@@ -37,7 +38,7 @@ export function renderMatrixView(container, model) {
   if (sorted.length === 0) {
     const msg = document.createElement('p');
     msg.className = 'empty-state__message';
-    msg.textContent = 'No hay empresas para mostrar con los filtros actuales.';
+    msg.textContent = t('matrix.noResults');
     container.appendChild(msg);
     return;
   }
@@ -48,7 +49,7 @@ export function renderMatrixView(container, model) {
   const table = document.createElement('table');
   table.className = 'table matrix-table';
   table.setAttribute('role', 'grid');
-  table.setAttribute('aria-label', 'Matriz de Integración');
+  table.setAttribute('aria-label', t('matrix.title'));
 
   table.appendChild(buildTableHead());
   table.appendChild(buildTableBody(sorted));
@@ -69,17 +70,17 @@ function buildLegend() {
 
   // Estado del track (puntos)
   const statusItems = [
-    { cls: 'status-completed',   label: 'Completado' },
-    { cls: 'status-in-progress', label: 'En Progreso' },
-    { cls: 'status-not-started', label: 'No Iniciado' },
-    { cls: 'status-blocked',     label: 'Bloqueado' },
-    { cls: 'status-rejected',    label: 'Rechazado' },
-    { cls: 'empty',              label: 'Sin track' },
+    { cls: 'status-completed',   label: t('matrix.completed') },
+    { cls: 'status-in-progress', label: t('matrix.inProgress') },
+    { cls: 'status-not-started', label: t('matrix.notStarted') },
+    { cls: 'status-blocked',     label: t('matrix.blocked') },
+    { cls: 'status-rejected',    label: t('matrix.rejected') },
+    { cls: 'empty',              label: t('matrix.noTrack') },
   ];
 
   const statusTitle = document.createElement('span');
   statusTitle.className = 'matrix-legend__section-title';
-  statusTitle.textContent = 'Estado:';
+  statusTitle.textContent = t('matrix.statusLabel');
   legend.appendChild(statusTitle);
 
   for (const item of statusItems) {
@@ -109,7 +110,7 @@ function buildLegend() {
 
   const sevTitle = document.createElement('span');
   sevTitle.className = 'matrix-legend__section-title';
-  sevTitle.textContent = 'Severidad (borde):';
+  sevTitle.textContent = t('matrix.severity');
   legend.appendChild(sevTitle);
 
   for (const item of sevItems) {
@@ -149,7 +150,7 @@ function buildTableHead() {
   const thCompany = document.createElement('th');
   thCompany.className = 'matrix-header-company';
   thCompany.setAttribute('scope', 'col');
-  thCompany.textContent = 'Empresa';
+  thCompany.textContent = t('matrix.company');
   row.appendChild(thCompany);
 
   // One column per track
@@ -157,7 +158,7 @@ function buildTableHead() {
     const th = document.createElement('th');
     th.className = `matrix-header-track matrix-header-track--sev-${track.severity.toLowerCase()}`;
     th.setAttribute('scope', 'col');
-    th.title = `${track.name} · Severidad: ${track.severity}`;
+    th.title = `${track.name} · ${t('matrix.severity').replace(':', '')} ${track.severity}`;
 
     const numSpan = document.createElement('span');
     numSpan.className = 'matrix-header-track__number';
@@ -209,10 +210,10 @@ function buildCompanyRow(company) {
   // Overall company status indicator — placed before the name
   const overallStatus = getCompanyOverallStatus(company);
   const badgeConfig = {
-    'Completado':  { mod: 'completed',   icon: '✓', label: 'Integración completada' },
-    'En Progreso': { mod: 'in-progress', icon: '●', label: 'Integración en progreso' },
-    'No Iniciado': { mod: 'not-started', icon: '○', label: 'Integración no iniciada' },
-    'Estancado':   { mod: 'stalled',     icon: '⏸', label: 'Integración estancada — sin actividad reciente' },
+    'Completado':  { mod: 'completed',   icon: '✓', label: t('matrix.integrationDone') },
+    'En Progreso': { mod: 'in-progress', icon: '●', label: t('matrix.integrationProg') },
+    'No Iniciado': { mod: 'not-started', icon: '○', label: t('matrix.integrationNone') },
+    'Estancado':   { mod: 'stalled',     icon: '⏸', label: t('matrix.integrationStalled') },
   }[overallStatus] ?? { mod: 'not-started', icon: '○', label: '' };
   const statusBadge = document.createElement('span');
   statusBadge.className = `company-status-badge company-status-badge--${badgeConfig.mod}`;
