@@ -38,6 +38,19 @@ let currentGoogleUser = null;
 /** @type {string|null} Role of the currently signed-in user */
 let currentUserRole = null;
 
+/** @type {string[]|null} Sections the current user can access. null = all. */
+let currentUserSections = null;
+
+export const ALL_SECTIONS = ['matrix', 'compliance', 'sox'];
+
+export function getUserSections() { return currentUserSections; }
+
+export function canAccessSection(key) {
+  if (currentUserRole === 'Admin') return true;
+  if (!currentUserSections) return true;
+  return currentUserSections.includes(key);
+}
+
 /** @type {string|null} Google OAuth access token (includes Gmail send scope) */
 let googleAccessToken = sessionStorage.getItem('gat') ?? null;
 
@@ -71,11 +84,11 @@ async function checkWhitelist(email) {
     const snapshot = await get(ref(db, `allowedUsers/${key}`));
     if (!snapshot.exists()) return { status: 'denied', role: null };
     const data = snapshot.val();
-    if (data && data.active === false) return { status: 'denied', role: null };
-    return { status: 'allowed', role: data?.role ?? 'Viewer' };
+    if (data && data.active === false) return { status: 'denied', role: null, sections: null };
+    return { status: 'allowed', role: data?.role ?? 'Viewer', sections: data?.sections ?? null };
   } catch {
     console.warn('[AMS Auth] Whitelist no disponible, usando solo restricción de dominio.');
-    return { status: 'unavailable', role: null };
+    return { status: 'unavailable', role: null, sections: null };
   }
 }
 
@@ -111,7 +124,8 @@ export async function signInWithGoogle() {
     await signOut(auth);
     throw new Error('Tu cuenta no está autorizada para acceder a esta aplicación. Contactá a tu administrador.');
   }
-  currentUserRole = whitelistResult.role;
+  currentUserRole     = whitelistResult.role;
+  currentUserSections = whitelistResult.sections;
   return user;
 }
 
@@ -154,11 +168,12 @@ export async function listAllowedUsers() {
   const raw = snapshot.val();
   return Object.entries(raw).map(([key, val]) => ({
     key,
-    email: val.email ?? '',
-    role: val.role ?? 'Viewer',
-    active: val.active !== false,
-    addedBy: val.addedBy ?? null,
-    addedAt: val.addedAt ?? null,
+    email:    val.email    ?? '',
+    role:     val.role     ?? 'Viewer',
+    active:   val.active   !== false,
+    sections: val.sections ?? null,
+    addedBy:  val.addedBy  ?? null,
+    addedAt:  val.addedAt  ?? null,
   })).sort((a, b) => a.email.localeCompare(b.email));
 }
 
@@ -168,15 +183,17 @@ export async function listAllowedUsers() {
  * @param {'Admin'|'Viewer'} role
  * @param {boolean} active
  */
-export async function saveAllowedUser(email, role, active = true) {
-  const key = encodeEmail(email.toLowerCase().trim());
-  await set(ref(db, `allowedUsers/${key}`), {
+export async function saveAllowedUser(email, role, active = true, sections = null) {
+  const key  = encodeEmail(email.toLowerCase().trim());
+  const data = {
     email: email.toLowerCase().trim(),
     role,
     active,
     addedBy: auth.currentUser?.email ?? 'unknown',
     addedAt: new Date().toISOString().slice(0, 10),
-  });
+  };
+  if (sections !== null) data.sections = sections;
+  await set(ref(db, `allowedUsers/${key}`), data);
 }
 
 /**
@@ -230,7 +247,8 @@ export function waitForAuthState(onChange) {
         window.dispatchEvent(new CustomEvent('ams:access-denied', { detail: { email: user.email } }));
         return;
       }
-      currentUserRole = whitelistResult.role;
+      currentUserRole     = whitelistResult.role;
+      currentUserSections = whitelistResult.sections;
       done(user);
     });
   });

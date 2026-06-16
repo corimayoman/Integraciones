@@ -35,7 +35,7 @@ import { renderQAMgmtSheet } from './presentation/dc/qa-mgmt-sheet.js';
 import { renderQASimpleSheet } from './presentation/dc/qa-simple-sheet.js';
 import { getSheetPattern, SHEET_TABS } from './business/sheet-logic.js';
 import { renderAdminView } from './presentation/dc/admin-view.js';
-import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken, getUserRole, isAdmin } from './firebase-auth.js';
+import { waitForAuthState, signOutGoogle, getGoogleUser, getFirebaseIdToken, getUserRole, isAdmin, canAccessSection } from './firebase-auth.js';
 import { renderGoogleLoginView, removeGoogleLoginView } from './presentation/google-login-view.js';
 import { renderAdminPanel } from './presentation/admin-view.js';
 import { t, onLangChange } from './i18n.js';
@@ -214,11 +214,12 @@ function renderNav() {
 
   } else {
     // Modo dashboard: Matriz + Compliance
-    const dashLinks = [
-      { hash: '#/', label: t('nav.matrix'), title: t('nav.matrixTitle') },
-      { hash: '#/compliance', label: t('nav.compliance'), title: t('nav.complianceTitle') },
-      { hash: '#/sox', label: t('nav.sox'), title: t('nav.soxTitle') },
+    const allDashLinks = [
+      { hash: '#/',           label: t('nav.matrix'),     title: t('nav.matrixTitle'),     section: 'matrix' },
+      { hash: '#/compliance', label: t('nav.compliance'), title: t('nav.complianceTitle'), section: 'compliance' },
+      { hash: '#/sox',        label: t('nav.sox'),        title: t('nav.soxTitle'),        section: 'sox' },
     ];
+    const dashLinks = allDashLinks.filter(l => canAccessSection(l.section));
 
     if (isAdmin()) {
       dashLinks.push({ hash: '#/admin', label: t('nav.admin'), title: t('nav.adminTitle') });
@@ -278,6 +279,14 @@ function renderCurrentView(route) {
       window.location.hash = '#/data-collection';
       return;
     }
+  }
+
+  const SECTION_GUARD = { matrix: 'matrix', compliance: 'compliance', sox: 'sox' };
+  if (SECTION_GUARD[route.name] && !canAccessSection(SECTION_GUARD[route.name])) {
+    // Redirect to first accessible section
+    const first = ['matrix', 'compliance', 'sox'].find(s => canAccessSection(s));
+    window.location.hash = first === 'compliance' ? '#/compliance' : first === 'sox' ? '#/sox' : '#/';
+    return;
   }
 
   switch (route.name) {

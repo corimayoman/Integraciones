@@ -4,7 +4,7 @@
  * @module admin-view
  */
 
-import { listAllowedUsers, saveAllowedUser, deleteAllowedUser } from '../firebase-auth.js';
+import { listAllowedUsers, saveAllowedUser, deleteAllowedUser, ALL_SECTIONS } from '../firebase-auth.js';
 import { t } from '../i18n.js';
 
 export function renderAdminPanel(container) {
@@ -144,7 +144,7 @@ async function loadUsers(tableWrap, formMsg) {
 
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
-  for (const col of [t('admin.colEmail'), t('admin.colRole'), t('admin.colStatus'), t('admin.colAdded'), t('admin.colActions')]) {
+  for (const col of [t('admin.colEmail'), t('admin.colRole'), t('admin.colSections'), t('admin.colStatus'), t('admin.colAdded'), t('admin.colActions')]) {
     const th = document.createElement('th');
     th.textContent = col;
     headRow.appendChild(th);
@@ -174,6 +174,39 @@ async function loadUsers(tableWrap, formMsg) {
     }
     tdRole.appendChild(roleSelect);
 
+    // Sections checkboxes
+    const tdSections = document.createElement('td');
+    tdSections.className = 'admin-td';
+    const SECTION_LABELS = { matrix: t('nav.matrix'), compliance: t('nav.compliance'), sox: t('nav.sox') };
+    const sectionChecks = {};
+    const sectionsWrap = document.createElement('div');
+    sectionsWrap.className = 'admin-sections';
+    for (const sec of ALL_SECTIONS) {
+      const label = document.createElement('label');
+      label.className = 'admin-section-label';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = sec;
+      cb.className = 'admin-section-cb';
+      // null sections = all access; checked if null or included
+      cb.checked = !user.sections || user.sections.includes(sec);
+      sectionChecks[sec] = cb;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + (SECTION_LABELS[sec] || sec)));
+      sectionsWrap.appendChild(label);
+    }
+    // If role is Admin, disable (admins always see everything)
+    const updateSectionDisable = () => {
+      const isAdm = roleSelect.value === 'Admin';
+      Object.values(sectionChecks).forEach(cb => {
+        cb.disabled = isAdm;
+        if (isAdm) cb.checked = true;
+      });
+    };
+    roleSelect.addEventListener('change', updateSectionDisable);
+    updateSectionDisable();
+    tdSections.appendChild(sectionsWrap);
+
     const tdStatus = document.createElement('td');
     tdStatus.className = 'admin-td';
     const statusBadge = document.createElement('span');
@@ -195,7 +228,13 @@ async function loadUsers(tableWrap, formMsg) {
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       try {
-        await saveAllowedUser(user.email, roleSelect.value, user.active);
+        const role = roleSelect.value;
+        // null sections = full access (Admin or all boxes checked)
+        const checked = ALL_SECTIONS.filter(s => sectionChecks[s].checked);
+        const sections = (role === 'Admin' || checked.length === ALL_SECTIONS.length)
+          ? null
+          : checked;
+        await saveAllowedUser(user.email, role, user.active, sections);
         saveBtn.textContent = '✓';
         setTimeout(() => { saveBtn.textContent = t('common.save'); saveBtn.disabled = false; }, 1500);
       } catch (err) {
@@ -239,6 +278,7 @@ async function loadUsers(tableWrap, formMsg) {
 
     tr.appendChild(tdEmail);
     tr.appendChild(tdRole);
+    tr.appendChild(tdSections);
     tr.appendChild(tdStatus);
     tr.appendChild(tdAdded);
     tr.appendChild(tdActions);
