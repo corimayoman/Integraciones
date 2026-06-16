@@ -154,6 +154,10 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
   tableWrap.id = 'sox-table-wrap';
   view.appendChild(tableWrap);
 
+  // Shared state for report generation — updated on every refresh()
+  let _currentFiltered   = [];
+  let _currentVisibleIdx = [];
+
   // Populate filters
   buildFilters(filtersEl, controls, months, monthLabels, onChange);
 
@@ -168,10 +172,6 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
     filterSearch = filtersEl.querySelector('#soxFilterSearch')?.value || '';
     refresh();
   }
-
-  // Shared state for report generation — updated on every refresh()
-  let _currentFiltered  = [];
-  let _currentVisibleIdx = [];
 
   function refresh() {
     _currentFiltered   = getFiltered(controls, monthlyData, months);
