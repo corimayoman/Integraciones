@@ -732,7 +732,7 @@ function renderTable(wrap, data, months, monthLabels, monthlyLinks, monthlyLinke
             <td colspan="${totalCols}" style="padding:0 12px 10px 28px;">
               <div class="sox-linked-issues-panel">
                 <div class="sox-linked-issues-header">
-                  <span>Issues relacionados (${monthLabels[visibleIdx.indexOf(i)] || ''})</span>
+                  <span>${t('sox.relatedIssues')} (${monthLabels[visibleIdx.indexOf(i)] || ''})</span>
                 </div>
                 ${issueRows}
               </div>
