@@ -280,9 +280,11 @@ async function loadUsers(tableWrap, formMsg) {
       }
     });
 
-    tdActions.appendChild(saveBtn);
-    tdActions.appendChild(toggleBtn);
-    tdActions.appendChild(deleteBtn);
+    const actionsDiv = document.createElement('div');
+    actionsDiv.appendChild(saveBtn);
+    actionsDiv.appendChild(toggleBtn);
+    actionsDiv.appendChild(deleteBtn);
+    tdActions.appendChild(actionsDiv);
 
     tr.appendChild(tdEmail);
     tr.appendChild(tdRole);
