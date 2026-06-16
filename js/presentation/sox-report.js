@@ -120,9 +120,9 @@ export function buildActionSummary(matrix, months) {
 
   const lines = [];
   lines.push(`Current compliance rate: ${currentPct}% (${okCount}/${total} controls OK). Resolving all non-OK controls would add ${targetGain} percentage points to reach 100%.`);
-  if (critical.length)  lines.push(`${critical.length} control${critical.length > 1 ? 's' : ''} are CRITICAL (high severity + high impact) and require immediate action: ${critical.slice(0, 5).map(c => c.id).join(', ')}${critical.length > 5 ? '…' : ''}.`);
-  if (escalate.length)  lines.push(`${escalate.length} control${escalate.length > 1 ? 's' : ''} should be escalated (high severity, moderate impact): ${escalate.slice(0, 5).map(c => c.id).join(', ')}${escalate.length > 5 ? '…' : ''}.`);
-  if (quickwins.length) lines.push(`${quickwins.length} quick win${quickwins.length > 1 ? 's' : ''} identified (low severity, high impact) — resolving these would have outsized effect on the score: ${quickwins.slice(0, 5).map(c => c.id).join(', ')}${quickwins.length > 5 ? '…' : ''}.`);
+  if (critical.length)  lines.push(`CRITICAL (${critical.length}): ${critical.slice(0, 5).map(c => c.id).join(', ')}${critical.length > 5 ? '...' : ''} - high severity and high impact, require immediate action.`);
+  if (escalate.length)  lines.push(`ESCALATE (${escalate.length}): ${escalate.slice(0, 5).map(c => c.id).join(', ')}${escalate.length > 5 ? '...' : ''} - high severity, should be escalated.`);
+  if (quickwins.length) lines.push(`QUICK WINS (${quickwins.length}): ${quickwins.slice(0, 5).map(c => c.id).join(', ')}${quickwins.length > 5 ? '...' : ''} - resolving these would have outsized effect on the score.`);
   if (topOwners)        lines.push(`Owners with most critical/escalated controls: ${topOwners}.`);
 
   return lines.join('\n\n');
@@ -156,10 +156,10 @@ const QUADRANT_COLORS = {
   monitor:  '#94A3B8',
 };
 const QUADRANT_LABELS = {
-  critical: '🔴 Critical — Resolve Now',
-  escalate: '🟠 Escalate',
-  quickwin: '🟢 Quick Win',
-  monitor:  '⚪ Monitor',
+  critical: '[!!] Critical — Resolve Now',
+  escalate: '[!]  Escalate',
+  quickwin: '[+]  Quick Win',
+  monitor:  '[-]  Monitor',
 };
 
 /**
