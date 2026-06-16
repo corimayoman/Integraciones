@@ -196,7 +196,7 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
   }
 
   function getReportPayload() {
-    const matrix = computePriorityMatrix(controls, monthlyData, months);
+    const matrix = computePriorityMatrix(_currentFiltered, monthlyData, months);
     const actionSummary = buildActionSummary(matrix, months);
     return {
       soxData,

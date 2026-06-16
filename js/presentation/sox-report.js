@@ -288,17 +288,17 @@ export async function generateSOXReportPDF(opts) {
     doc.setFontSize(6.5).setFont('helvetica', 'normal').setTextColor(203, 213, 225);
     doc.text(kpi.label, kx + (kpiW - 2) / 2, kpiY0 + 14.5, { align: 'center' });
   }
-  y = kpiY0 + 22;
+  y = kpiY0 + 26;
 
   // ── Trend chart ─────────────────────────────────────────────────────────────
   const chartCanvas = document.getElementById('soxTrendChart');
   if (chartCanvas) {
     heading1('Control Execution Trend');
     const imgData = chartCanvas.toDataURL('image/png');
-    const chartH  = Math.round(CONTENT_W * 0.42);
-    checkPage(chartH + 5);
+    const chartH  = 58; // fixed height in mm — fits cleanly on page
+    checkPage(chartH + 10);
     doc.addImage(imgData, 'PNG', MARGIN, y, CONTENT_W, chartH);
-    y += chartH + 6;
+    y += chartH + 10;
   }
 
   // ── Priority matrix ─────────────────────────────────────────────────────────
