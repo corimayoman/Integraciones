@@ -7,7 +7,7 @@
  * @module compliance-view
  */
 
-import { computeStats, transformComplianceData } from '../business/compliance-transformer.js';
+import { computeStats, transformComplianceData, groupTasksByStatus } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
 import { getGoogleUser, isAdmin, getGoogleAccessToken } from '../firebase-auth.js';
 import { parseComplianceCSV } from '../data/compliance-csv.js';
@@ -408,7 +408,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
 
   const panels = {
     sox:        buildSoxSection(complianceModel.sox),
-    compliance: buildDimensionCard('Offense', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance', complianceModel.compliance.vulnGroups),
+    compliance: buildDimensionCard('Offense', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance', complianceModel.compliance.vulnGroups ?? groupTasksByStatus(complianceModel.compliance.tasks)),
     gist:       buildGistSection(complianceModel.gist),
   };
 
