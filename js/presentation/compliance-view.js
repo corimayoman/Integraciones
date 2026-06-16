@@ -464,8 +464,6 @@ function buildSoxSection(sox) {
   titleEl.textContent = 'SOX Compliance';
   header.appendChild(titleEl);
 
-  const initiativeTag = buildInitiativeTag(sox.initiative);
-  header.appendChild(initiativeTag);
 
   header.appendChild(buildStatsBar(sox.stats, 'sox-aggregate'));
 
@@ -525,7 +523,6 @@ function buildGistSection(gist) {
   titleEl.textContent = 'GIST Compliance';
   header.appendChild(titleEl);
 
-  header.appendChild(buildInitiativeTag(gist.initiative));
   section.appendChild(header);
 
   const epicEl = document.createElement('div');
@@ -717,7 +714,6 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
   titleEl.textContent = sectionLabel;
   header.appendChild(titleEl);
 
-  header.appendChild(buildInitiativeTag(initiative));
   section.appendChild(header);
 
   const epicEl = document.createElement('div');
