@@ -54,7 +54,7 @@ function toTask(issue) {
  * @returns {{ open, blocked, closed }} Each is { critical: number, high: number }
  */
 export function groupTasksByStatus(tasks) {
-  const bucket = () => ({ critical: 0, high: 0, total: 0 });
+  const bucket = () => ({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
   const open    = bucket();
   const blocked = bucket();
   const closed  = bucket();
@@ -63,8 +63,10 @@ export function groupTasksByStatus(tasks) {
     const b = task.status === 'Completado' ? closed
             : task.status === 'Bloqueado'  ? blocked
             : open;
-    if (task.priority === 'Critical') b.critical++;
-    else if (task.priority === 'High') b.high++;
+    if      (task.priority === 'Critical') b.critical++;
+    else if (task.priority === 'High')     b.high++;
+    else if (task.priority === 'Medium')   b.medium++;
+    else                                   b.low++;
     b.total++;
   }
 

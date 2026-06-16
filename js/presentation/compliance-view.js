@@ -260,6 +260,8 @@ let isJiraLive = false;
 const PRIORITY_COLORS = {
   Critical: '#D32F2F',
   High:     '#F57C00',
+  Medium:   '#1976D2',
+  Low:      '#388E3C',
 };
 
 const SOX_DIM_LABELS = {
@@ -590,11 +592,13 @@ function buildDonutSVG(bucket) {
   const r  = 22;   // inner radius (hole)
 
   const segments = [
-    { label: 'Critical', value: bucket.critical, color: PRIORITY_COLORS.Critical },
-    { label: 'High',     value: bucket.high,     color: PRIORITY_COLORS.High },
+    { label: 'Critical', value: bucket.critical ?? 0, color: PRIORITY_COLORS.Critical },
+    { label: 'High',     value: bucket.high     ?? 0, color: PRIORITY_COLORS.High },
+    { label: 'Medium',   value: bucket.medium   ?? 0, color: PRIORITY_COLORS.Medium },
+    { label: 'Low',      value: bucket.low      ?? 0, color: PRIORITY_COLORS.Low },
   ].filter(s => s.value > 0);
 
-  const total = bucket.critical + bucket.high;
+  const total = bucket.total ?? (bucket.critical + bucket.high);
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
@@ -674,8 +678,10 @@ function buildPieLegend(bucket) {
   legend.className = 'compliance-pie-legend';
 
   for (const [label, value, color] of [
-    ['Critical', bucket.critical, PRIORITY_COLORS.Critical],
-    ['High',     bucket.high,     PRIORITY_COLORS.High],
+    ['Critical', bucket.critical ?? 0, PRIORITY_COLORS.Critical],
+    ['High',     bucket.high     ?? 0, PRIORITY_COLORS.High],
+    ['Medium',   bucket.medium   ?? 0, PRIORITY_COLORS.Medium],
+    ['Low',      bucket.low      ?? 0, PRIORITY_COLORS.Low],
   ]) {
     const item = document.createElement('div');
     item.className = 'compliance-pie-legend-item';
