@@ -757,6 +757,18 @@ function bootApp() {
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
 
+  // When the admin changes sections for the current user, re-render nav immediately
+  window.addEventListener('ams:sections-changed', () => {
+    renderNav();
+    // If currently on a section that's no longer accessible, redirect
+    const route = getCurrentRoute();
+    const guard = { matrix: 'matrix', compliance: 'compliance', sox: 'sox' };
+    if (guard[route.name] && !canAccessSection(guard[route.name])) {
+      const first = ['matrix', 'compliance', 'sox'].find(s => canAccessSection(s));
+      window.location.hash = first === 'compliance' ? '#/compliance' : first === 'sox' ? '#/sox' : '#/';
+    }
+  });
+
   // When a CSV is uploaded via the compliance view, update the global model and re-render
   window.addEventListener('compliance:csv-uploaded', (e) => {
     complianceModel = e.detail.model;

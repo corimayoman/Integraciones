@@ -4,7 +4,7 @@
  * @module admin-view
  */
 
-import { listAllowedUsers, saveAllowedUser, deleteAllowedUser, ALL_SECTIONS } from '../firebase-auth.js';
+import { listAllowedUsers, saveAllowedUser, deleteAllowedUser, ALL_SECTIONS, refreshCurrentUserSections, getGoogleUser } from '../firebase-auth.js';
 import { t } from '../i18n.js';
 
 export function renderAdminPanel(container) {
@@ -235,6 +235,14 @@ async function loadUsers(tableWrap, formMsg) {
           ? null
           : checked;
         await saveAllowedUser(user.email, role, user.active, sections);
+
+        // If the saved user is the currently logged-in user, refresh in-memory state
+        // and trigger a nav re-render so section visibility updates immediately.
+        if (user.email === getGoogleUser()?.email?.toLowerCase()) {
+          await refreshCurrentUserSections();
+          window.dispatchEvent(new CustomEvent('ams:sections-changed'));
+        }
+
         saveBtn.textContent = '✓';
         setTimeout(() => { saveBtn.textContent = t('common.save'); saveBtn.disabled = false; }, 1500);
       } catch (err) {

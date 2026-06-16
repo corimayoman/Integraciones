@@ -51,6 +51,20 @@ export function canAccessSection(key) {
   return currentUserSections.includes(key);
 }
 
+/**
+ * Re-reads the current user's sections from RTDB and updates in-memory state.
+ * Call after an admin saves changes that may affect the logged-in user.
+ */
+export async function refreshCurrentUserSections() {
+  const user = auth.currentUser;
+  if (!user) return;
+  const result = await checkWhitelist(user.email);
+  if (result.status === 'allowed') {
+    currentUserRole     = result.role;
+    currentUserSections = result.sections;
+  }
+}
+
 /** @type {string|null} Google OAuth access token (includes Gmail send scope) */
 let googleAccessToken = sessionStorage.getItem('gat') ?? null;
 
