@@ -38,12 +38,30 @@ const RESPONSIBLE_MAP = {
   Lumen:'INFR Team', Cirion:'INFR Team',
 };
 
+function isAffectedByLink(link) {
+  const inward = (link.type?.inward || '').toLowerCase();
+  const name   = (link.type?.name   || '').toLowerCase();
+  return inward.includes('affected by') || name.includes('affected by') || name.includes('affects');
+}
+
 function hasFindings(issueLinks) {
-  return (issueLinks || []).some(link => {
-    const inward = (link.type?.inward || '').toLowerCase();
-    const name   = (link.type?.name   || '').toLowerCase();
-    return inward.includes('affected by') || name.includes('affected by') || name.includes('affects');
-  });
+  return (issueLinks || []).some(isAffectedByLink);
+}
+
+function extractLinkedIssues(issueLinks, siteUrl) {
+  return (issueLinks || [])
+    .filter(isAffectedByLink)
+    .map(link => {
+      const issue = link.inwardIssue || link.outwardIssue;
+      if (!issue) return null;
+      return {
+        key:     issue.key,
+        summary: issue.fields?.summary || '',
+        status:  issue.fields?.status?.name || '',
+        url:     siteUrl ? `${siteUrl}/browse/${issue.key}` : null,
+      };
+    })
+    .filter(Boolean);
 }
 
 function mapStatus(jiraStatus, dueDate, issueLinks) {
@@ -117,9 +135,10 @@ function transformSOXData(subtasks, parentMap, siteUrl) {
     const platform   = parsePlatform(parentSummary);
     const dueDate    = parseDueDate(parent.fields?.description);
     const jiraStatus = issue.fields?.status?.name || '';
-    const issueLinks = issue.fields?.issuelinks || [];
-    const status     = mapStatus(jiraStatus, dueDate, issueLinks);
-    const jiraUrl    = siteUrl ? `${siteUrl}/browse/${issue.key}` : null;
+    const issueLinks   = issue.fields?.issuelinks || [];
+    const status       = mapStatus(jiraStatus, dueDate, issueLinks);
+    const jiraUrl      = siteUrl ? `${siteUrl}/browse/${issue.key}` : null;
+    const linkedIssues = status === 'failed' ? extractLinkedIssues(issueLinks, siteUrl) : [];
 
     if (!controlMap.has(controlId)) {
       controlMap.set(controlId, {
@@ -132,7 +151,7 @@ function transformSOXData(subtasks, parentMap, siteUrl) {
         monthData: new Map(),
       });
     }
-    controlMap.get(controlId).monthData.set(monthKey, { status, url: jiraUrl });
+    controlMap.get(controlId).monthData.set(monthKey, { status, url: jiraUrl, linkedIssues });
   }
 
   // Sort months chronologically
@@ -149,17 +168,19 @@ function transformSOXData(subtasks, parentMap, siteUrl) {
     return `${MONTH_LABEL_MAP[m] || m.toUpperCase()} ${y}`;
   });
 
-  const controls     = [];
-  const monthlyData  = {};
-  const monthlyLinks = {};
+  const controls            = [];
+  const monthlyData         = {};
+  const monthlyLinks        = {};
+  const monthlyLinkedIssues = {};
 
   for (const [id, data] of controlMap) {
     controls.push(data.control);
-    monthlyData[id]  = sortedMonthKeys.map(k => (data.monthData.get(k) || {}).status || 'na');
-    monthlyLinks[id] = sortedMonthKeys.map(k => (data.monthData.get(k) || {}).url   || null);
+    monthlyData[id]         = sortedMonthKeys.map(k => (data.monthData.get(k) || {}).status       || 'na');
+    monthlyLinks[id]        = sortedMonthKeys.map(k => (data.monthData.get(k) || {}).url          || null);
+    monthlyLinkedIssues[id] = sortedMonthKeys.map(k => (data.monthData.get(k) || {}).linkedIssues || []);
   }
 
-  return { controls, monthlyData, monthlyLinks, months, monthLabels };
+  return { controls, monthlyData, monthlyLinks, monthlyLinkedIssues, months, monthLabels };
 }
 
 module.exports = { transformSOXData };

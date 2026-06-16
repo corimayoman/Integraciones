@@ -105,7 +105,7 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
     view.appendChild(banner);
   }
 
-  const { controls, monthlyData, monthlyLinks, months, monthLabels } = soxData;
+  const { controls, monthlyData, monthlyLinks, monthlyLinkedIssues = {}, months, monthLabels } = soxData;
 
   // State
   let filterApp    = '';
@@ -180,7 +180,7 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
     );
     renderSummary(summaryEl, _currentFiltered, months, monthLabels, _currentVisibleIdx);
     renderChart(_currentFiltered, months, monthLabels, _currentVisibleIdx);
-    renderTable(tableWrap, _currentFiltered, months, monthLabels, monthlyLinks, _currentVisibleIdx);
+    renderTable(tableWrap, _currentFiltered, months, monthLabels, monthlyLinks, monthlyLinkedIssues, _currentVisibleIdx);
   }
 
   function getFiltered(ctrls, mData, mths) {
@@ -620,12 +620,27 @@ function renderChart(data, months, monthLabels, visibleIdx) {
   });
 }
 
-function renderTable(wrap, data, months, monthLabels, monthlyLinks, visibleIdx) {
+const ISSUE_STATUS_COLOR = {
+  open:         '#f38ba8',
+  'in progress':'#89b4fa',
+  resolved:     '#a6e3a1',
+  closed:       '#a6e3a1',
+  done:         '#a6e3a1',
+  'to do':      '#cba6f7',
+  blocked:      '#fab387',
+};
+
+function issueStatusColor(status) {
+  return ISSUE_STATUS_COLOR[(status || '').toLowerCase()] || '#6c7086';
+}
+
+function renderTable(wrap, data, months, monthLabels, monthlyLinks, monthlyLinkedIssues, visibleIdx) {
   if (!data.length) {
     wrap.innerHTML = `<div class="sox-no-results">${t('sox.noResults')}</div>`;
     return;
   }
 
+  const totalCols = 5 + visibleIdx.length;
   const staticCols = [t('sox.colId'), t('sox.colApp'), t('sox.colType'), t('sox.colFreq'), t('sox.colOwner')];
   const monthCols  = visibleIdx.map(i =>
     `<th class="sox-month-col">${monthLabels[i].replace(' ', '<br>')}</th>`
@@ -641,21 +656,47 @@ function renderTable(wrap, data, months, monthLabels, monthlyLinks, visibleIdx) 
   `;
 
   const STATUS_LABEL = getStatusLabel();
-  const rows = data.map(c => {
+
+  // Build rows + linked-issue expansion rows
+  const rowEls = [];
+  data.forEach((c, rowIdx) => {
     const tipo  = tipoCode(c.id);
+
+    // Collect all linked issues across all visible months for this control
+    // key = issue.key → avoid duplicates if same issue appears in multiple months
+    const linkedByMonth = {}; // monthIndex → issues[]
+    let hasAnyLinked = false;
+
     const cells = visibleIdx.map(i => {
       const s   = c.months[i];
       const url = (monthlyLinks[c.id] || [])[i];
       const cls = CELL_CLASS[s] || 'sox-s-na';
       const lbl = STATUS_LABEL[s] || t('sox.na');
-      const onclick = url
-        ? `onclick="window.open('${url}','_blank')" title="${t('sox.openInJira')}"`
+
+      const linked = (monthlyLinkedIssues[c.id] || [])[i] || [];
+      if (s === 'failed' && linked.length) {
+        linkedByMonth[i] = linked;
+        hasAnyLinked = true;
+      }
+
+      const hasLinked = s === 'failed' && linked.length > 0;
+      const cellId    = `sox-linked-${rowIdx}-${i}`;
+
+      const onclick = hasLinked
+        ? `data-toggle="${cellId}"`
+        : url
+          ? `onclick="window.open('${url}','_blank')" title="${t('sox.openInJira')}"`
+          : '';
+
+      const badge = hasLinked
+        ? `<span class="sox-linked-badge" title="Ver issue relacionado">${linked.length}</span>`
         : '';
-      return `<td><div class="sox-status-cell ${cls}" ${onclick}>${lbl}</div></td>`;
+
+      return `<td><div class="sox-status-cell ${cls}${hasLinked ? ' sox-has-linked' : ''}" ${onclick}>${lbl}${badge}</div></td>`;
     }).join('');
 
-    return `
-      <tr>
+    rowEls.push(`
+      <tr data-row-id="${rowIdx}">
         <td><span class="sox-ctrl-id" title="${c.id}">${c.id}</span></td>
         <td><span class="sox-badge sox-badge--app">${c.app}</span></td>
         <td><span class="sox-badge sox-badge--${tipo}">${tipo}</span></td>
@@ -663,13 +704,61 @@ function renderTable(wrap, data, months, monthLabels, monthlyLinks, visibleIdx) 
         <td style="font-size:var(--font-size-small);color:var(--color-text-secondary)">${c.resp}</td>
         ${cells}
       </tr>
-    `;
-  }).join('');
+    `);
+
+    // Pre-render per-month linked issue rows (hidden)
+    if (hasAnyLinked) {
+      visibleIdx.forEach(i => {
+        const linked = linkedByMonth[i];
+        if (!linked || !linked.length) return;
+        const cellId = `sox-linked-${rowIdx}-${i}`;
+        const issueRows = linked.map(issue => {
+          const color = issueStatusColor(issue.status);
+          const link  = issue.url
+            ? `<a href="${issue.url}" target="_blank" style="color:#89b4fa;text-decoration:none;" title="Abrir en Jira">${issue.key}</a>`
+            : `<strong>${issue.key}</strong>`;
+          const safeSummary = issue.summary.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          return `
+            <div class="sox-linked-issue-row">
+              <span class="sox-linked-issue-key">${link}</span>
+              <span class="sox-linked-issue-summary" title="${safeSummary}">${safeSummary}</span>
+              <span class="sox-linked-issue-status" style="background:${color}22;color:${color};border:1px solid ${color}55;">${issue.status || 'Unknown'}</span>
+            </div>
+          `;
+        }).join('');
+
+        rowEls.push(`
+          <tr id="${cellId}" class="sox-linked-row" style="display:none;">
+            <td colspan="${totalCols}" style="padding:0 12px 10px 28px;">
+              <div class="sox-linked-issues-panel">
+                <div class="sox-linked-issues-header">
+                  <span>Issues relacionados (${monthLabels[visibleIdx.indexOf(i)] || ''})</span>
+                </div>
+                ${issueRows}
+              </div>
+            </td>
+          </tr>
+        `);
+      });
+    }
+  });
 
   wrap.innerHTML = `
     <table class="sox-table">
       ${thead}
-      <tbody>${rows}</tbody>
+      <tbody>${rowEls.join('')}</tbody>
     </table>
   `;
+
+  // Wire up toggle clicks
+  wrap.querySelectorAll('[data-toggle]').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const targetId  = cell.getAttribute('data-toggle');
+      const targetRow = wrap.querySelector(`#${targetId}`);
+      if (!targetRow) return;
+      const isOpen = targetRow.style.display !== 'none';
+      targetRow.style.display = isOpen ? 'none' : 'table-row';
+      cell.classList.toggle('sox-linked-open', !isOpen);
+    });
+  });
 }
