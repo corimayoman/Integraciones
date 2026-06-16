@@ -725,7 +725,7 @@ function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorC
   if (vulnGroups && vulnGroups.total > 0) {
     const note = document.createElement('p');
     note.className = 'compliance-vuln-note';
-    note.textContent = t('compliance.vulns', { total: vulnGroups.total });
+    note.textContent = t('compliance.taskCount', { total: vulnGroups.total });
     section.appendChild(note);
 
     const chartsRow = document.createElement('div');

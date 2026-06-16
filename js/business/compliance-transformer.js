@@ -53,6 +53,24 @@ function toTask(issue) {
  * @param {Array} tasks
  * @returns {{ open, blocked, closed }} Each is { critical: number, high: number }
  */
+export function groupTasksByStatus(tasks) {
+  const bucket = () => ({ critical: 0, high: 0, total: 0 });
+  const open    = bucket();
+  const blocked = bucket();
+  const closed  = bucket();
+
+  for (const task of tasks) {
+    const b = task.status === 'Completado' ? closed
+            : task.status === 'Bloqueado'  ? blocked
+            : open;
+    if (task.priority === 'Critical') b.critical++;
+    else if (task.priority === 'High') b.high++;
+    b.total++;
+  }
+
+  return { open, blocked, closed, total: tasks.length };
+}
+
 export function groupVulnerabilities(tasks) {
   const vulns = tasks.filter(
     t => t.isVulnerability && (t.priority === 'Critical' || t.priority === 'High')
@@ -153,7 +171,7 @@ export function transformComplianceData(rawIssues) {
   const compliance = {
     initiative: sharedInitiative,
     ...complianceEntry,
-    vulnGroups: groupVulnerabilities(complianceEntry.tasks),
+    vulnGroups: groupTasksByStatus(complianceEntry.tasks),
   };
 
   const gistEpicEntry = buildEpicEntry(GIST_EPIC_KEY);
