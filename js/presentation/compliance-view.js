@@ -282,11 +282,13 @@ const SOX_DIM_LABELS = {
  * @param {boolean} isRefreshing - true while a live fetch is in progress
  * @param {string|null} error
  */
-const TABS = [
-  { id: 'sox',        label: 'SOX' },
-  { id: 'compliance', label: 'Offense' },
-  { id: 'gist',       label: 'GIST Compliance' },
-];
+function getTabs() {
+  return [
+    { id: 'sox',        label: 'SOX' },
+    { id: 'compliance', label: 'Offense' },
+    { id: 'gist',       label: t('compliance.gistLabel') },
+  ];
+}
 
 // Remember the last active tab across re-renders
 let _activeTab = 'sox';
@@ -415,7 +417,7 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   };
 
   const tabEls = {};
-  for (const tab of TABS) {
+  for (const tab of getTabs()) {
     const btn = document.createElement('button');
     btn.className = 'compliance-tab-btn';
     btn.setAttribute('role', 'tab');
@@ -520,7 +522,7 @@ function buildGistSection(gist) {
 
   const titleEl = document.createElement('h3');
   titleEl.className = 'compliance-section-title';
-  titleEl.textContent = 'GIST Compliance';
+  titleEl.textContent = t('compliance.gistLabel');
   header.appendChild(titleEl);
 
   section.appendChild(header);
