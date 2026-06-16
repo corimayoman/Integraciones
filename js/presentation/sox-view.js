@@ -12,6 +12,8 @@
  */
 
 import { t } from '../i18n.js';
+import { computePriorityMatrix, buildActionSummary, generateSOXReportPDF, sendSOXReportEmail } from './sox-report.js';
+import { isAdmin, getGoogleUser } from '../firebase-auth.js';
 
 function getStatusLabel() {
   return {
@@ -56,6 +58,26 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
     <h2 class="sox-view__title">${t('sox.title')}</h2>
     <span class="sox-view__subtitle">${t('sox.subtitle')}</span>
   `;
+
+  if (isAdmin() && soxData) {
+    const actions = document.createElement('div');
+    actions.className = 'sox-report-actions';
+
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'sox-report-btn sox-report-btn--export';
+    exportBtn.textContent = t('sox.exportPDF');
+    exportBtn.addEventListener('click', () => handleExportPDF(exportBtn));
+
+    const sendBtn = document.createElement('button');
+    sendBtn.className = 'sox-report-btn sox-report-btn--send';
+    sendBtn.textContent = t('sox.sendReport');
+    sendBtn.addEventListener('click', () => handleSendReport(sendBtn));
+
+    actions.appendChild(exportBtn);
+    actions.appendChild(sendBtn);
+    header.appendChild(actions);
+  }
+
   view.appendChild(header);
 
   // ── No data at all (never fetched + offline) ──────────────────────────────
@@ -147,14 +169,18 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
     refresh();
   }
 
+  // Shared state for report generation — updated on every refresh()
+  let _currentFiltered  = [];
+  let _currentVisibleIdx = [];
+
   function refresh() {
-    const filtered  = getFiltered(controls, monthlyData, months);
-    const visibleIdx = months.map((_, i) => i).filter(i =>
+    _currentFiltered   = getFiltered(controls, monthlyData, months);
+    _currentVisibleIdx = months.map((_, i) => i).filter(i =>
       !filterMonth || monthLabels[i] === filterMonth
     );
-    renderSummary(summaryEl, filtered, months, monthLabels, visibleIdx);
-    renderChart(filtered, months, monthLabels, visibleIdx);
-    renderTable(tableWrap, filtered, months, monthLabels, monthlyLinks, visibleIdx);
+    renderSummary(summaryEl, _currentFiltered, months, monthLabels, _currentVisibleIdx);
+    renderChart(_currentFiltered, months, monthLabels, _currentVisibleIdx);
+    renderTable(tableWrap, _currentFiltered, months, monthLabels, monthlyLinks, _currentVisibleIdx);
   }
 
   function getFiltered(ctrls, mData, mths) {
@@ -168,6 +194,109 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
                           c.resp.toLowerCase().includes(filterSearch.toLowerCase()))
       );
   }
+
+  function getReportPayload() {
+    const matrix = computePriorityMatrix(controls, monthlyData, months);
+    const actionSummary = buildActionSummary(matrix, months);
+    return {
+      soxData,
+      filteredControls: _currentFiltered,
+      visibleIdx: _currentVisibleIdx,
+      matrix,
+      actionSummary,
+      activeFilters: { app: filterApp, tipo: filterTipo, freq: filterFreq, month: filterMonth, search: filterSearch },
+      snapshotDate,
+    };
+  }
+
+  async function handleExportPDF(btn) {
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('sox.generatingPDF');
+    try {
+      const payload = getReportPayload();
+      const ab = await generateSOXReportPDF(payload);
+      const blob = new Blob([ab], { type: 'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `SOX_Controls_Report_${new Date().toISOString().slice(0,10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      btn.textContent = t('sox.pdfReady');
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2500);
+    } catch (err) {
+      console.error('[SOX Report]', err);
+      btn.textContent = t('sox.pdfError');
+      btn.disabled = false;
+    }
+  }
+
+  async function handleSendReport(btn) {
+    // Show modal to collect recipient email
+    showSendReportModal(async (to) => {
+      btn.disabled = true;
+      btn.textContent = t('sox.sendingReport');
+      try {
+        const payload = getReportPayload();
+        const ab      = await generateSOXReportPDF(payload);
+        const today   = new Date().toISOString().slice(0, 10);
+        const subject = `SOX Controls Report - ${today}`;
+        const bodyHtml = `
+          <p>Please find attached the SOX Controls Report generated on ${today}.</p>
+          <p>This report includes the current control execution status, trend analysis, and recommended actions based on the priority matrix.</p>
+          <p>→ <a href="https://prj-istsecintegration-gp-5s.web.app/#/sox">View live dashboard</a></p>
+          <p>Sent from the IST Security Integration Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
+        `;
+        await sendSOXReportEmail({
+          to, subject, bodyHtml,
+          pdfArrayBuffer: ab,
+          pdfFilename: `SOX_Controls_Report_${today}.pdf`,
+        });
+        btn.textContent = t('sox.reportSent');
+        setTimeout(() => { btn.textContent = t('sox.sendReport'); btn.disabled = false; }, 2500);
+      } catch (err) {
+        console.error('[SOX Send]', err);
+        btn.textContent = t('sox.sendError');
+        btn.disabled = false;
+      }
+    });
+  }
+}
+
+function showSendReportModal(onSend) {
+  document.getElementById('sox-send-modal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sox-send-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);border-radius:10px;border:1px solid var(--border,#45475a);width:100%;max-width:440px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,.5);';
+
+  modal.innerHTML = `
+    <h3 style="margin:0 0 16px;font-size:1rem;">Send SOX Controls Report</h3>
+    <p style="font-size:.85rem;color:var(--text-muted,#6c7086);margin:0 0 12px;">The report will be generated with current filters and sent as a PDF attachment.</p>
+    <label style="font-size:.85rem;display:block;margin-bottom:6px;">Recipient email</label>
+    <input id="sox-send-to" type="email" placeholder="recipient@globant.com"
+      style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid var(--border,#45475a);background:var(--bg-sidebar,#181825);color:inherit;font-size:.9rem;margin-bottom:16px;">
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button id="sox-send-cancel" style="padding:8px 20px;border-radius:6px;border:1px solid var(--border,#45475a);background:none;color:inherit;cursor:pointer;">Cancel</button>
+      <button id="sox-send-confirm" style="padding:8px 20px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:600;cursor:pointer;">Send Report</button>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  modal.querySelector('#sox-send-cancel').addEventListener('click', () => overlay.remove());
+  modal.querySelector('#sox-send-confirm').addEventListener('click', () => {
+    const to = modal.querySelector('#sox-send-to').value.trim();
+    if (!to) { modal.querySelector('#sox-send-to').style.border = '1px solid #f38ba8'; return; }
+    overlay.remove();
+    onSend(to);
+  });
 }
 
 function dotColor(status) {

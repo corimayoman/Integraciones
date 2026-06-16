@@ -347,3 +347,43 @@
 [data-theme="dark"] .sox-table thead th {
   background: var(--color-bg-secondary);
 }
+
+/* ── Report action buttons ─────────────────────────────────────────────── */
+.sox-report-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sox-report-btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+}
+
+.sox-report-btn:disabled { opacity: .5; cursor: default; }
+
+.sox-report-btn--export {
+  background: #6366f1;
+  color: #fff;
+}
+
+.sox-report-btn--send {
+  background: #89b4fa;
+  color: #1e1e2e;
+}
+
+.sox-report-btn:not(:disabled):hover { opacity: .85; }
+
+.sox-view__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}

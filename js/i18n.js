@@ -162,6 +162,14 @@ const DICTIONARIES = {
     'sox.okCount':              '{ok} of {total} passed',
     'sox.pendingCount':         '{pending} pending / on time',
     'sox.onTimeCount':          'on time',
+    'sox.exportPDF':            '⬇ Export PDF',
+    'sox.sendReport':           '✉ Send Report',
+    'sox.generatingPDF':        'Generating…',
+    'sox.pdfReady':             '✓ Downloaded',
+    'sox.pdfError':             'PDF Error',
+    'sox.sendingReport':        'Sending…',
+    'sox.reportSent':           '✓ Sent',
+    'sox.sendError':            'Send Error',
 
     /* --- Alerts --------------------------------------------------------- */
     'alerts.title':             'Alerts — Delayed Tracks',
@@ -380,6 +388,14 @@ const DICTIONARIES = {
     'sox.okCount':              '{ok} de {total} aprobados',
     'sox.pendingCount':         '{pending} pendientes / a tiempo',
     'sox.onTimeCount':          'a tiempo',
+    'sox.exportPDF':            '⬇ Exportar PDF',
+    'sox.sendReport':           '✉ Enviar Reporte',
+    'sox.generatingPDF':        'Generando…',
+    'sox.pdfReady':             '✓ Descargado',
+    'sox.pdfError':             'Error PDF',
+    'sox.sendingReport':        'Enviando…',
+    'sox.reportSent':           '✓ Enviado',
+    'sox.sendError':            'Error al enviar',
 
     /* --- Alerts --------------------------------------------------------- */
     'alerts.title':             'Alertas — Tracks Demorados',
