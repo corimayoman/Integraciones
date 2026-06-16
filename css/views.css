@@ -1663,6 +1663,42 @@
   overflow-x: auto;
 }
 
+.admin-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.admin-search-input {
+  flex: 1;
+  max-width: 320px;
+}
+
+.admin-search-count {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.admin-page-btn {
+  min-width: 36px;
+  font-size: 1rem;
+}
+
+.admin-page-info {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

@@ -117,6 +117,8 @@ export function renderAdminPanel(container) {
   });
 }
 
+const PAGE_SIZE = 10;
+
 async function loadUsers(tableWrap, formMsg) {
   tableWrap.textContent = '';
 
@@ -125,9 +127,9 @@ async function loadUsers(tableWrap, formMsg) {
   loading.textContent = t('admin.loading');
   tableWrap.appendChild(loading);
 
-  let users;
+  let allUsers;
   try {
-    users = await listAllowedUsers();
+    allUsers = await listAllowedUsers();
   } catch (err) {
     tableWrap.textContent = '';
     const errEl = document.createElement('p');
@@ -139,6 +141,27 @@ async function loadUsers(tableWrap, formMsg) {
 
   tableWrap.textContent = '';
 
+  // ── Search bar ──────────────────────────────────────────────────────
+  let searchQuery = '';
+  let currentPage = 0;
+
+  const searchWrap = document.createElement('div');
+  searchWrap.className = 'admin-search-wrap';
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.placeholder = t('admin.searchPlaceholder');
+  searchInput.className = 'admin-input admin-search-input';
+  searchInput.setAttribute('aria-label', t('admin.searchPlaceholder'));
+
+  const searchCount = document.createElement('span');
+  searchCount.className = 'admin-search-count';
+
+  searchWrap.appendChild(searchInput);
+  searchWrap.appendChild(searchCount);
+  tableWrap.appendChild(searchWrap);
+
+  // ── Table ────────────────────────────────────────────────────────────
   const table = document.createElement('table');
   table.className = 'admin-table';
 
@@ -153,7 +176,72 @@ async function loadUsers(tableWrap, formMsg) {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-  for (const user of users) {
+  table.appendChild(tbody);
+  tableWrap.appendChild(table);
+
+  // ── Pagination bar ───────────────────────────────────────────────────
+  const paginationWrap = document.createElement('div');
+  paginationWrap.className = 'admin-pagination';
+  tableWrap.appendChild(paginationWrap);
+
+  // ── Render logic ─────────────────────────────────────────────────────
+  function getFiltered() {
+    const q = searchQuery.toLowerCase().trim();
+    return q ? allUsers.filter(u => u.email.toLowerCase().includes(q)) : allUsers;
+  }
+
+  function renderPage() {
+    const filtered = getFiltered();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage >= totalPages) currentPage = totalPages - 1;
+    const pageUsers = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+    // Count label
+    searchCount.textContent = searchQuery
+      ? t('admin.searchResults', { n: filtered.length, total: allUsers.length })
+      : t('admin.userCount', { n: allUsers.length });
+
+    // Rows
+    tbody.textContent = '';
+    for (const user of pageUsers) {
+      tbody.appendChild(buildUserRow(user, tableWrap, formMsg, renderPage));
+    }
+
+    // Pagination
+    paginationWrap.textContent = '';
+    if (totalPages <= 1) return;
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'admin-btn admin-btn--sm admin-page-btn';
+    prevBtn.textContent = '←';
+    prevBtn.disabled = currentPage === 0;
+    prevBtn.addEventListener('click', () => { currentPage--; renderPage(); });
+
+    const pageInfo = document.createElement('span');
+    pageInfo.className = 'admin-page-info';
+    pageInfo.textContent = t('admin.pageOf', { page: currentPage + 1, total: totalPages });
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'admin-btn admin-btn--sm admin-page-btn';
+    nextBtn.textContent = '→';
+    nextBtn.disabled = currentPage >= totalPages - 1;
+    nextBtn.addEventListener('click', () => { currentPage++; renderPage(); });
+
+    paginationWrap.appendChild(prevBtn);
+    paginationWrap.appendChild(pageInfo);
+    paginationWrap.appendChild(nextBtn);
+  }
+
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    currentPage = 0;
+    renderPage();
+  });
+
+  renderPage();
+}
+
+function buildUserRow(user, tableWrap, formMsg, onSaved) {
     const tr = document.createElement('tr');
     if (!user.active) tr.classList.add('admin-row--inactive');
 
@@ -292,8 +380,5 @@ async function loadUsers(tableWrap, formMsg) {
     tr.appendChild(tdStatus);
     tr.appendChild(tdAdded);
     tr.appendChild(tdActions);
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-  tableWrap.appendChild(table);
+    return tr;
 }
