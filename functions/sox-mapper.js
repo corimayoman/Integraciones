@@ -48,6 +48,18 @@ function hasFindings(issueLinks) {
   return (issueLinks || []).some(isAffectedByLink);
 }
 
+const CLOSED_STATUSES = new Set(['closed', 'resolved', 'done', 'complete', 'completed']);
+
+function allLinkedClosed(issueLinks) {
+  const findings = (issueLinks || []).filter(isAffectedByLink);
+  if (!findings.length) return false;
+  return findings.every(link => {
+    const issue  = link.inwardIssue || link.outwardIssue;
+    const status = (issue?.fields?.status?.name || '').toLowerCase().trim();
+    return CLOSED_STATUSES.has(status);
+  });
+}
+
 function extractLinkedIssues(issueLinks, siteUrl) {
   return (issueLinks || [])
     .filter(isAffectedByLink)
@@ -70,7 +82,8 @@ function mapStatus(jiraStatus, dueDate, issueLinks) {
   const s = (jiraStatus || '').toLowerCase().trim();
 
   if (s === 'closed' || s === 'resolved') {
-    return hasFindings(issueLinks) ? 'failed' : 'ok';
+    if (!hasFindings(issueLinks)) return 'ok';
+    return allLinkedClosed(issueLinks) ? 'remediated' : 'failed';
   }
   if (['pending to be deployed','in progress','in testing','planned','refined','backlog','open'].includes(s)) {
     return overdue ? 'delayed' : 'pending';
@@ -138,7 +151,7 @@ function transformSOXData(subtasks, parentMap, siteUrl) {
     const issueLinks   = issue.fields?.issuelinks || [];
     const status       = mapStatus(jiraStatus, dueDate, issueLinks);
     const jiraUrl      = siteUrl ? `${siteUrl}/browse/${issue.key}` : null;
-    const linkedIssues = status === 'failed' ? extractLinkedIssues(issueLinks, siteUrl) : [];
+    const linkedIssues = (status === 'failed' || status === 'remediated') ? extractLinkedIssues(issueLinks, siteUrl) : [];
 
     if (!controlMap.has(controlId)) {
       controlMap.set(controlId, {

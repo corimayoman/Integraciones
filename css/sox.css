@@ -306,9 +306,10 @@
   transform: scale(1.05);
 }
 
-.sox-s-ok      { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-.sox-s-failed  { background: #fce7f3; color: #9d174d; border: 1px solid #f9a8d4; }
-.sox-s-alert   { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+.sox-s-ok         { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.sox-s-failed     { background: #fce7f3; color: #9d174d; border: 1px solid #f9a8d4; }
+.sox-s-remediated { background: #ccfbf1; color: #0f766e; border: 1px solid #5eead4; }
+.sox-s-alert      { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
 .sox-s-pending { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
 .sox-s-delayed { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 .sox-s-tiempo  { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }

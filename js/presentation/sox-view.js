@@ -17,22 +17,24 @@ import { isAdmin, getGoogleUser } from '../firebase-auth.js';
 
 function getStatusLabel() {
   return {
-    ok:      t('sox.ok'),
-    failed:  t('sox.failed'),
-    alert:   t('sox.alert'),
-    pending: t('sox.pending'),
-    tiempo:  t('sox.onTime'),
-    delayed: t('sox.delayed'),
-    na:      t('sox.na'),
+    ok:         t('sox.ok'),
+    failed:     t('sox.failed'),
+    remediated: t('sox.remediated'),
+    alert:      t('sox.alert'),
+    pending:    t('sox.pending'),
+    tiempo:     t('sox.onTime'),
+    delayed:    t('sox.delayed'),
+    na:         t('sox.na'),
   };
 }
 
 const CELL_CLASS = {
-  ok:      'sox-s-ok',
-  failed:  'sox-s-failed',
-  alert:   'sox-s-alert',
-  pending: 'sox-s-pending',
-  tiempo:  'sox-s-tiempo',
+  ok:         'sox-s-ok',
+  failed:     'sox-s-failed',
+  remediated: 'sox-s-remediated',
+  alert:      'sox-s-alert',
+  pending:    'sox-s-pending',
+  tiempo:     'sox-s-tiempo',
   delayed: 'sox-s-delayed',
   na:      'sox-s-na',
 };
@@ -388,7 +390,7 @@ function showSendReportModal({ defaultSubject, defaultBody }, onSend) {
 
 function dotColor(status) {
   return {
-    ok: '#27AE60', failed: '#e91e8c', alert: '#8E44AD',
+    ok: '#27AE60', failed: '#e91e8c', remediated: '#2dd4bf', alert: '#8E44AD',
     pending: '#E67E22', tiempo: '#3498DB', delayed: '#DC3545',
   }[status] || '#95A5A6';
 }
@@ -435,13 +437,14 @@ function buildFilters(el, controls, months, monthLabels, onChange) {
 /* ── SVG donut helpers ─────────────────────────────────────────────────── */
 
 const STATUS_COLORS = {
-  ok:      '#27AE60',
-  failed:  '#e91e8c',
-  alert:   '#8E44AD',
-  delayed: '#DC3545',
-  pending: '#E67E22',
-  tiempo:  '#3498DB',
-  na:      '#CBD5E1',
+  ok:         '#27AE60',
+  failed:     '#e91e8c',
+  remediated: '#2dd4bf',
+  alert:      '#8E44AD',
+  delayed:    '#DC3545',
+  pending:    '#E67E22',
+  tiempo:     '#3498DB',
+  na:         '#CBD5E1',
 };
 
 /**
@@ -528,12 +531,13 @@ function renderSummary(el, data, months, monthLabels, visibleIdx) {
   // ── One donut card per visible month ──────────────────────────────────
   for (const i of visibleIdx) {
     const counts = {
-      ok:      data.filter(c => c.months[i] === 'ok').length,
-      failed:  data.filter(c => c.months[i] === 'failed').length,
-      alert:   data.filter(c => c.months[i] === 'alert').length,
-      delayed: data.filter(c => c.months[i] === 'delayed').length,
-      pending: data.filter(c => ['pending','tiempo'].includes(c.months[i])).length,
-      na:      data.filter(c => c.months[i] === 'na').length,
+      ok:         data.filter(c => c.months[i] === 'ok').length,
+      failed:     data.filter(c => c.months[i] === 'failed').length,
+      remediated: data.filter(c => c.months[i] === 'remediated').length,
+      alert:      data.filter(c => c.months[i] === 'alert').length,
+      delayed:    data.filter(c => c.months[i] === 'delayed').length,
+      pending:    data.filter(c => ['pending','tiempo'].includes(c.months[i])).length,
+      na:         data.filter(c => c.months[i] === 'na').length,
     };
 
     const hasProblems = counts.failed > 0 || counts.alert > 0 || counts.delayed > 0;
@@ -545,12 +549,13 @@ function renderSummary(el, data, months, monthLabels, visibleIdx) {
 
     // Segments — only non-zero, in a meaningful order
     const segments = [
-      { key: 'ok',      value: counts.ok },
-      { key: 'pending', value: counts.pending },
-      { key: 'delayed', value: counts.delayed },
-      { key: 'alert',   value: counts.alert },
-      { key: 'failed',  value: counts.failed },
-      { key: 'na',      value: counts.na },
+      { key: 'ok',         value: counts.ok },
+      { key: 'remediated', value: counts.remediated },
+      { key: 'pending',    value: counts.pending },
+      { key: 'delayed',    value: counts.delayed },
+      { key: 'alert',      value: counts.alert },
+      { key: 'failed',     value: counts.failed },
+      { key: 'na',         value: counts.na },
     ].map(s => ({ ...s, color: STATUS_COLORS[s.key] }));
 
     const card = document.createElement('div');
@@ -597,12 +602,13 @@ function renderChart(data, months, monthLabels, visibleIdx) {
     data: {
       labels,
       datasets: [
-        { label: t('sox.ok'),      data: mkSeries('ok'),               borderColor: '#27AE60', backgroundColor: 'rgba(39,174,96,0.08)',   tension: 0.4, pointRadius: 5, fill: true },
-        { label: t('sox.failed'),  data: mkSeries('failed'),           borderColor: '#e91e8c', backgroundColor: 'rgba(233,30,140,0.06)',  tension: 0.4, pointRadius: 5, fill: false },
-        { label: t('sox.alert'),   data: mkSeries('alert'),            borderColor: '#8E44AD', backgroundColor: 'rgba(142,68,173,0.06)', tension: 0.4, pointRadius: 5, fill: false },
-        { label: t('sox.delayed'), data: mkSeries('delayed'),          borderColor: '#DC3545', backgroundColor: 'rgba(220,53,69,0.06)',  tension: 0.4, pointRadius: 5, fill: false },
-        { label: t('sox.pending'), data: mkMulti('pending','tiempo'),  borderColor: '#E67E22', backgroundColor: 'rgba(230,126,34,0.06)', tension: 0.4, pointRadius: 4, fill: false },
-        { label: t('sox.na'),      data: mkSeries('na'),               borderColor: '#95A5A6', backgroundColor: 'rgba(149,165,166,0.04)', tension: 0.4, pointRadius: 3, fill: false },
+        { label: t('sox.ok'),         data: mkSeries('ok'),              borderColor: '#27AE60', backgroundColor: 'rgba(39,174,96,0.08)',   tension: 0.4, pointRadius: 5, fill: true },
+        { label: t('sox.remediated'), data: mkSeries('remediated'),     borderColor: '#2dd4bf', backgroundColor: 'rgba(45,212,191,0.06)',  tension: 0.4, pointRadius: 5, fill: false },
+        { label: t('sox.failed'),     data: mkSeries('failed'),         borderColor: '#e91e8c', backgroundColor: 'rgba(233,30,140,0.06)',  tension: 0.4, pointRadius: 5, fill: false },
+        { label: t('sox.alert'),      data: mkSeries('alert'),          borderColor: '#8E44AD', backgroundColor: 'rgba(142,68,173,0.06)', tension: 0.4, pointRadius: 5, fill: false },
+        { label: t('sox.delayed'),    data: mkSeries('delayed'),        borderColor: '#DC3545', backgroundColor: 'rgba(220,53,69,0.06)',  tension: 0.4, pointRadius: 5, fill: false },
+        { label: t('sox.pending'),    data: mkMulti('pending','tiempo'), borderColor: '#E67E22', backgroundColor: 'rgba(230,126,34,0.06)', tension: 0.4, pointRadius: 4, fill: false },
+        { label: t('sox.na'),         data: mkSeries('na'),             borderColor: '#95A5A6', backgroundColor: 'rgba(149,165,166,0.04)', tension: 0.4, pointRadius: 3, fill: false },
       ],
     },
     options: {
@@ -674,12 +680,12 @@ function renderTable(wrap, data, months, monthLabels, monthlyLinks, monthlyLinke
       const lbl = STATUS_LABEL[s] || t('sox.na');
 
       const linked = (monthlyLinkedIssues[c.id] || [])[i] || [];
-      if (s === 'failed' && linked.length) {
+      if ((s === 'failed' || s === 'remediated') && linked.length) {
         linkedByMonth[i] = linked;
         hasAnyLinked = true;
       }
 
-      const hasLinked = s === 'failed' && linked.length > 0;
+      const hasLinked = (s === 'failed' || s === 'remediated') && linked.length > 0;
       const cellId    = `sox-linked-${rowIdx}-${i}`;
 
       const onclick = hasLinked
