@@ -32,7 +32,7 @@ const DICTIONARIES = {
 
     'nav.matrix':               'Matrix',
     'nav.matrixTitle':          'Overview of all acquired companies and their integration track status',
-    'nav.compliance':           'Compliance',
+    'nav.compliance':           'Offense',
     'nav.complianceTitle':      'G4G compliance dashboard: SOX, Compliance and GIST',
     'nav.sox':                  'SOX Controls',
     'nav.soxTitle':             'SOX IT control execution status — real-time data from Jira',
@@ -275,7 +275,7 @@ const DICTIONARIES = {
 
     'nav.matrix':               'Matriz',
     'nav.matrixTitle':          'Vista general de todas las empresas adquiridas con el estado de sus tracks de integración',
-    'nav.compliance':           'Compliance',
+    'nav.compliance':           'Offense',
     'nav.complianceTitle':      'Dashboard de cumplimiento G4G: SOX, Compliance y GIST',
     'nav.sox':                  'Controles SOX',
     'nav.soxTitle':             'Estado de ejecución de controles SOX IT — datos en tiempo real desde Jira',
