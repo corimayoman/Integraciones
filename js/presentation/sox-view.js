@@ -233,21 +233,17 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
   }
 
   async function handleSendReport(btn) {
-    // Show modal to collect recipient email
-    showSendReportModal(async (to) => {
+    const payload = getReportPayload();
+    const today   = new Date().toISOString().slice(0, 10);
+    const sender  = getGoogleUser()?.email ?? '';
+    const defaultSubject = `SOX Controls Report - ${today}`;
+    const defaultBody = buildEmailBody(payload.actionSummary, today, sender);
+
+    showSendReportModal({ defaultSubject, defaultBody }, async ({ to, subject, bodyHtml }) => {
       btn.disabled = true;
       btn.textContent = t('sox.sendingReport');
       try {
-        const payload = getReportPayload();
-        const ab      = await generateSOXReportPDF(payload);
-        const today   = new Date().toISOString().slice(0, 10);
-        const subject = `SOX Controls Report - ${today}`;
-        const bodyHtml = `
-          <p>Please find attached the SOX Controls Report generated on ${today}.</p>
-          <p>This report includes the current control execution status, trend analysis, and recommended actions based on the priority matrix.</p>
-          <p>→ <a href="https://prj-istsecintegration-gp-5s.web.app/#/sox">View live dashboard</a></p>
-          <p>Sent from the IST Security Integration Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
-        `;
+        const ab = await generateSOXReportPDF(payload);
         await sendSOXReportEmail({
           to, subject, bodyHtml,
           pdfArrayBuffer: ab,
@@ -262,9 +258,18 @@ export function renderSOXView(container, soxData, isLive, snapshotDate) {
       }
     });
   }
+
+  function buildEmailBody(actionSummary, today, sender) {
+    const lines = actionSummary.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+    return `<p>Please find attached the SOX Controls Report generated on ${today}.</p>
+${lines}
+<p>The full report with trend charts and control detail is attached as a PDF.</p>
+<p>→ <a href="https://prj-istsecintegration-gp-5s.web.app/#/sox">View live dashboard</a></p>
+<p style="color:#6b7280;font-size:0.9em;">Sent from the IST Security Integration Dashboard by ${sender}.</p>`;
+  }
 }
 
-function showSendReportModal(onSend) {
+function showSendReportModal({ defaultSubject, defaultBody }, onSend) {
   document.getElementById('sox-send-modal')?.remove();
 
   const overlay = document.createElement('div');
@@ -272,30 +277,112 @@ function showSendReportModal(onSend) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
 
   const modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);border-radius:10px;border:1px solid var(--border,#45475a);width:100%;max-width:440px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,.5);';
+  modal.style.cssText = `
+    background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);
+    border-radius:10px;border:1px solid var(--border,#45475a);
+    width:100%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;
+  `;
 
-  modal.innerHTML = `
-    <h3 style="margin:0 0 16px;font-size:1rem;">Send SOX Controls Report</h3>
-    <p style="font-size:.85rem;color:var(--text-muted,#6c7086);margin:0 0 12px;">The report will be generated with current filters and sent as a PDF attachment.</p>
-    <label style="font-size:.85rem;display:block;margin-bottom:6px;">Recipient email</label>
-    <input id="sox-send-to" type="email" placeholder="recipient@globant.com"
-      style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:6px;border:1px solid var(--border,#45475a);background:var(--bg-sidebar,#181825);color:inherit;font-size:.9rem;margin-bottom:16px;">
-    <div style="display:flex;justify-content:flex-end;gap:10px;">
-      <button id="sox-send-cancel" style="padding:8px 20px;border-radius:6px;border:1px solid var(--border,#45475a);background:none;color:inherit;cursor:pointer;">Cancel</button>
-      <button id="sox-send-confirm" style="padding:8px 20px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:600;cursor:pointer;">Send Report</button>
+  const fieldStyle = 'width:100%;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid var(--border,#45475a);background:var(--bg-sidebar,#181825);color:inherit;font-size:.85rem;';
+  const labelStyle = 'font-size:.78rem;color:var(--text-muted,#6c7086);display:block;margin-bottom:4px;';
+  const rowStyle   = 'padding:8px 20px;border-bottom:1px solid var(--border,#45475a);background:var(--bg-sidebar,#181825);';
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:16px 20px;border-bottom:1px solid var(--border,#45475a);display:flex;justify-content:space-between;align-items:center;';
+  header.innerHTML = `<strong style="font-size:1rem;">Send SOX Controls Report</strong>`;
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;color:inherit;font-size:1.1rem;cursor:pointer;padding:4px 8px;';
+  closeBtn.addEventListener('click', () => overlay.remove());
+  header.appendChild(closeBtn);
+
+  // Meta fields
+  const meta = document.createElement('div');
+  meta.innerHTML = `
+    <div style="${rowStyle}">
+      <label style="${labelStyle}">To:</label>
+      <input id="sox-to" type="email" placeholder="recipient@globant.com" style="${fieldStyle}">
+    </div>
+    <div style="${rowStyle}">
+      <label style="${labelStyle}">Subject:</label>
+      <input id="sox-subject" type="text" value="${defaultSubject}" style="${fieldStyle}">
     </div>
   `;
 
+  // Body — toggle between edit and preview
+  const bodyWrap = document.createElement('div');
+  bodyWrap.style.cssText = 'flex:1;overflow-y:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px;';
+
+  const tabBar = document.createElement('div');
+  tabBar.style.cssText = 'display:flex;gap:8px;margin-bottom:4px;';
+  const tabEdit    = document.createElement('button');
+  const tabPreview = document.createElement('button');
+  const tabBtnBase = 'padding:4px 14px;border-radius:4px;border:1px solid var(--border,#45475a);font-size:.8rem;cursor:pointer;';
+  tabEdit.style.cssText    = tabBtnBase + 'background:#89b4fa;color:#1e1e2e;font-weight:600;';
+  tabPreview.style.cssText = tabBtnBase + 'background:none;color:inherit;';
+  tabEdit.textContent    = 'Edit';
+  tabPreview.textContent = 'Preview';
+  tabBar.appendChild(tabEdit);
+  tabBar.appendChild(tabPreview);
+
+  // Strip HTML tags to plain text for the textarea
+  const bodyPlain = defaultBody
+    .replace(/<p>/gi, '\n').replace(/<\/p>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '')
+    .trim();
+
+  const textarea = document.createElement('textarea');
+  textarea.value = bodyPlain;
+  textarea.style.cssText = 'flex:1;min-height:220px;padding:10px;border-radius:6px;border:1px solid var(--border,#45475a);background:var(--bg-sidebar,#181825);color:inherit;font-size:.85rem;resize:vertical;font-family:inherit;';
+
+  const preview = document.createElement('iframe');
+  preview.style.cssText = 'flex:1;min-height:220px;border:none;background:#fff;border-radius:6px;display:none;';
+
+  tabEdit.addEventListener('click', () => {
+    textarea.style.display = '';
+    preview.style.display  = 'none';
+    tabEdit.style.background    = '#89b4fa'; tabEdit.style.color    = '#1e1e2e'; tabEdit.style.fontWeight = '600';
+    tabPreview.style.background = 'none';    tabPreview.style.color = 'inherit'; tabPreview.style.fontWeight = 'normal';
+  });
+  tabPreview.addEventListener('click', () => {
+    const html = textarea.value.replace(/\n/g, '<br>');
+    preview.srcdoc = `<html><body style="font-family:sans-serif;font-size:14px;color:#333;padding:12px;">${html}</body></html>`;
+    textarea.style.display = 'none';
+    preview.style.display  = '';
+    tabPreview.style.background = '#89b4fa'; tabPreview.style.color = '#1e1e2e'; tabPreview.style.fontWeight = '600';
+    tabEdit.style.background    = 'none';    tabEdit.style.color    = 'inherit'; tabEdit.style.fontWeight    = 'normal';
+  });
+
+  bodyWrap.appendChild(tabBar);
+  bodyWrap.appendChild(textarea);
+  bodyWrap.appendChild(preview);
+
+  // Footer
+  const footer = document.createElement('div');
+  footer.style.cssText = 'padding:14px 20px;border-top:1px solid var(--border,#45475a);display:flex;justify-content:flex-end;gap:10px;';
+  footer.innerHTML = `
+    <button id="sox-send-cancel" style="padding:8px 20px;border-radius:6px;border:1px solid var(--border,#45475a);background:none;color:inherit;cursor:pointer;font-size:.9rem;">Cancel</button>
+    <button id="sox-send-confirm" style="padding:8px 20px;border-radius:6px;border:none;background:#89b4fa;color:#1e1e2e;font-weight:600;cursor:pointer;font-size:.9rem;">Send Report</button>
+  `;
+
+  modal.appendChild(header);
+  modal.appendChild(meta);
+  modal.appendChild(bodyWrap);
+  modal.appendChild(footer);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  modal.querySelector('#sox-send-cancel').addEventListener('click', () => overlay.remove());
-  modal.querySelector('#sox-send-confirm').addEventListener('click', () => {
-    const to = modal.querySelector('#sox-send-to').value.trim();
-    if (!to) { modal.querySelector('#sox-send-to').style.border = '1px solid #f38ba8'; return; }
+  footer.querySelector('#sox-send-cancel').addEventListener('click', () => overlay.remove());
+  footer.querySelector('#sox-send-confirm').addEventListener('click', () => {
+    const to      = meta.querySelector('#sox-to').value.trim();
+    const subject = meta.querySelector('#sox-subject').value.trim();
+    if (!to) { meta.querySelector('#sox-to').style.border = '1px solid #f38ba8'; meta.querySelector('#sox-to').focus(); return; }
+    const bodyHtml = textarea.value.replace(/\n/g, '<br>');
     overlay.remove();
-    onSend(to);
+    onSend({ to, subject, bodyHtml });
   });
 }
 
