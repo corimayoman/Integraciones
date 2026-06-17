@@ -183,13 +183,20 @@ export function transformComplianceData(rawIssues) {
   const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);
   sox.stats = computeStats(allSoxTasks);
 
-  // Offense sections: flat list of issues filtered by project key.
-  // The API now returns only issues with label Offense-Discovered-Vuln
-  // across the three target projects.
+  // Offense sections: flat list of issues filtered by project key and label rules.
+  // GBN980 + GLO815X: Offense-Discovered-Vuln only
+  // GL1404: Offense-Discovered-Vuln OR External-Pentest
   const byProject = { [PROJECT_INTERNAL]: [], [PROJECT_EXTERNAL]: [], [PROJECT_SOX_INFRA]: [] };
   for (const issue of rawIssues) {
-    const pk = issue.fields.project?.key;
-    if (pk && pk in byProject) byProject[pk].push(toTask(issue));
+    const pk     = issue.fields.project?.key;
+    const labels = issue.fields.labels ?? [];
+    if (!pk || !(pk in byProject)) continue;
+    if (pk === PROJECT_EXTERNAL) {
+      if (!labels.includes('Offense-Discovered-Vuln') && !labels.includes('External-Pentest')) continue;
+    } else {
+      if (!labels.includes('Offense-Discovered-Vuln')) continue;
+    }
+    byProject[pk].push(toTask(issue));
   }
 
   const internal  = buildOffenseSection(byProject[PROJECT_INTERNAL]);
