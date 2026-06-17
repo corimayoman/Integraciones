@@ -39,12 +39,9 @@ async function fetchAllIssues() {
   return allIssues;
 }
 
-// Projects and label that define the three offense/infrastructure sections
-const OFFENSE_PROJECTS = ['GBN980', 'GL1404', 'GLO815X'];
-const OFFENSE_LABEL    = 'Offense-Discovered-Vuln';
-
-// JQL: vulnerabilities in the three projects with the required label
-const JQL_OFFENSE = `project in (${OFFENSE_PROJECTS.join(', ')}) AND type = Vulnerability AND labels = "${OFFENSE_LABEL}" ORDER BY created DESC`;
+// Projects and labels that define the three offense/infrastructure sections
+// GL1404 (External Infrastructure) also includes External-Pentest label
+const JQL_OFFENSE = `(project in (GBN980, GLO815X) AND type = Vulnerability AND labels = "Offense-Discovered-Vuln") OR (project = GL1404 AND type = Vulnerability AND labels in ("Offense-Discovered-Vuln", "External-Pentest")) ORDER BY created DESC`;
 
 async function runJql(jql) {
   let allIssues = [];
