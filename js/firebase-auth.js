@@ -10,7 +10,7 @@
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInWithPopup, reauthenticateWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getDatabase, ref, get, set, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const ALLOWED_DOMAIN = 'globant.com';
@@ -69,6 +69,20 @@ export async function refreshCurrentUserSections() {
 let googleAccessToken = sessionStorage.getItem('gat') ?? null;
 
 export function getGoogleAccessToken() {
+  return googleAccessToken;
+}
+
+/**
+ * Re-authenticates silently with Google to get a fresh OAuth access token.
+ * Called automatically by sendGmailEmail when it gets a 401.
+ */
+export async function refreshGoogleToken() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No user signed in');
+  const result = await reauthenticateWithPopup(user, provider);
+  const credential = GoogleAuthProvider.credentialFromResult(result);
+  googleAccessToken = credential?.accessToken ?? null;
+  if (googleAccessToken) sessionStorage.setItem('gat', googleAccessToken);
   return googleAccessToken;
 }
 

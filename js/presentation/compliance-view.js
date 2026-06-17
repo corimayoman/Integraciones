@@ -9,7 +9,7 @@
 
 import { computeStats, transformComplianceData, groupTasksByStatus } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
-import { getGoogleUser, isAdmin, getGoogleAccessToken } from '../firebase-auth.js';
+import { getGoogleUser, isAdmin, getGoogleAccessToken, refreshGoogleToken } from '../firebase-auth.js';
 import { parseComplianceCSV } from '../data/compliance-csv.js';
 import { PROXY_BASE_URL } from '../constants.js';
 
@@ -45,21 +45,28 @@ function buildMimeEmail({ from, to, cc, subject, body }) {
 }
 
 
+async function callGmailSend(accessToken, raw) {
+  return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw }),
+  });
+}
+
 async function sendGmailEmail({ subject, htmlBody, to, cc }) {
   const senderEmail = getGoogleUser()?.email;
-  const accessToken  = getGoogleAccessToken();
+  let accessToken   = getGoogleAccessToken();
   if (!senderEmail || !accessToken) throw new Error('Not signed in');
 
   const raw = buildMimeEmail({ from: senderEmail, to, cc: cc ?? senderEmail, subject, body: htmlBody });
 
-  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ raw }),
-  });
+  let res = await callGmailSend(accessToken, raw);
+
+  // Token expired — refresh silently and retry once
+  if (res.status === 401) {
+    accessToken = await refreshGoogleToken();
+    res = await callGmailSend(accessToken, raw);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
