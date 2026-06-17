@@ -46,7 +46,7 @@ function toTask(issue) {
     assignee:        issue.fields.assignee?.displayName ?? null,
     assigneeAccountId: issue.fields.assignee?.accountId ?? null,
     priority:        issue.fields.priority?.name ?? null,
-    severity:        issue.fields.customfield_10124 ?? null,
+    severity:        issue.fields.customfield_10124?.value ?? null,
     isVulnerability: issue.fields.issuetype?.name === 'Vulnerability',
   };
 }
