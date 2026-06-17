@@ -1427,6 +1427,46 @@
   gap: var(--space-4);
 }
 
+.compliance-priority-bar {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.compliance-priority-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--priority-color, var(--color-border));
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.compliance-priority-btn::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--priority-color);
+}
+
+.compliance-priority-btn--active {
+  background: var(--priority-color);
+  color: #fff;
+}
+
+.compliance-priority-btn:hover:not(.compliance-priority-btn--active) {
+  background: color-mix(in srgb, var(--priority-color) 15%, transparent);
+  color: var(--color-text-primary);
+}
+
 .compliance-pie-task-panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);

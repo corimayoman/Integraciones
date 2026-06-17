@@ -590,12 +590,45 @@ function buildPieCard(label, bucket, variant, onClick, isActive) {
  * @param {boolean} showPriority - pass true to show priority column in task table
  * @returns {HTMLElement}
  */
+const ALL_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
+const DEFAULT_PRIORITIES = new Set(['Critical', 'High']);
+
 function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
   const wrap = document.createElement('div');
   wrap.className = 'compliance-clickable-pie-section';
 
-  let activeFilter = 'open';
+  let activeFilter   = 'open';
+  let activePriorities = new Set(DEFAULT_PRIORITIES);
 
+  // ── Priority filter bar ──────────────────────────────────────────────
+  const priorityBar = document.createElement('div');
+  priorityBar.className = 'compliance-priority-bar';
+
+  const priorityBtns = {};
+  for (const p of ALL_PRIORITIES) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'compliance-priority-btn';
+    btn.dataset.priority = p;
+    btn.style.setProperty('--priority-color', PRIORITY_COLORS[p]);
+    btn.textContent = p;
+    if (activePriorities.has(p)) btn.classList.add('compliance-priority-btn--active');
+    btn.addEventListener('click', () => {
+      if (activePriorities.has(p)) {
+        // Don't allow deselecting all
+        if (activePriorities.size > 1) activePriorities.delete(p);
+      } else {
+        activePriorities.add(p);
+      }
+      btn.classList.toggle('compliance-priority-btn--active', activePriorities.has(p));
+      renderTasks();
+    });
+    priorityBtns[p] = btn;
+    priorityBar.appendChild(btn);
+  }
+  wrap.appendChild(priorityBar);
+
+  // ── Pie charts row ───────────────────────────────────────────────────
   const chartsRow = document.createElement('div');
   chartsRow.className = 'compliance-vuln-charts';
   wrap.appendChild(chartsRow);
@@ -604,7 +637,7 @@ function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
   taskPanel.className = 'compliance-pie-task-panel';
   wrap.appendChild(taskPanel);
 
-  const filterTasks = (filter) => {
+  const filterByStatus = (filter) => {
     if (filter === 'open')    return tasks.filter(t => t.status !== 'Completado' && t.status !== 'Bloqueado' && t.status !== 'Rechazado');
     if (filter === 'blocked') return tasks.filter(t => t.status === 'Bloqueado');
     if (filter === 'closed')  return tasks.filter(t => t.status === 'Completado' || t.status === 'Rechazado');
@@ -630,7 +663,8 @@ function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
 
   const renderTasks = () => {
     taskPanel.textContent = '';
-    const filtered = filterTasks(activeFilter);
+    const byStatus   = filterByStatus(activeFilter);
+    const filtered   = byStatus.filter(t => activePriorities.has(t.priority));
     if (filtered.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'compliance-pie-task-empty';
