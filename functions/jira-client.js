@@ -67,15 +67,14 @@ async function runJql(jql) {
 async function fetchComplianceIssues() {
   const issues = await runJql(JQL_OFFENSE);
   console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
-  // Log all field keys from the first issue so we can identify the severity custom field ID
+  // Log all customfield_ keys from the first few issues to identify the severity field ID
   if (issues.length > 0) {
-    const fieldKeys = Object.keys(issues[0].fields).filter(k => {
-      const v = issues[0].fields[k];
-      return v !== null && typeof v === 'object' && (v.value || v.name);
-    });
-    console.log(`[severity debug] First issue ${issues[0].key} — non-null object fields:`, JSON.stringify(
-      Object.fromEntries(fieldKeys.map(k => [k, issues[0].fields[k]]))
-    ));
+    for (let i = 0; i < Math.min(3, issues.length); i++) {
+      const issue = issues[i];
+      const cfKeys = Object.keys(issue.fields).filter(k => k.startsWith('customfield_'));
+      const cfData = Object.fromEntries(cfKeys.map(k => [k, issue.fields[k]]));
+      console.log(`[severity debug] Issue ${issue.key} customfields:`, JSON.stringify(cfData));
+    }
   }
   return issues;
 }
