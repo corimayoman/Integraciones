@@ -67,13 +67,16 @@ async function runJql(jql) {
 async function fetchComplianceIssues() {
   const issues = await runJql(JQL_OFFENSE);
   console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
-  // Log all customfield_ keys from the first few issues to identify the severity field ID
+  // One-shot: fetch the first issue with all fields to find the severity custom field ID
   if (issues.length > 0) {
-    for (let i = 0; i < Math.min(3, issues.length); i++) {
-      const issue = issues[i];
-      const cfKeys = Object.keys(issue.fields).filter(k => k.startsWith('customfield_'));
-      const cfData = Object.fromEntries(cfKeys.map(k => [k, issue.fields[k]]));
-      console.log(`[severity debug] Issue ${issue.key} customfields:`, JSON.stringify(cfData));
+    const firstKey = issues[0].key;
+    const debugRes = await jiraFetch(`/issue/${firstKey}?fields=*all`, { method: 'GET' });
+    if (debugRes.ok) {
+      const debugIssue = await debugRes.json();
+      const cfNonNull = Object.entries(debugIssue.fields)
+        .filter(([k, v]) => k.startsWith('customfield_') && v !== null)
+        .map(([k, v]) => [k, typeof v === 'object' ? (v.value ?? v.name ?? JSON.stringify(v).slice(0, 60)) : v]);
+      console.log(`[severity debug] Issue ${firstKey} non-null customfields:`, JSON.stringify(Object.fromEntries(cfNonNull)));
     }
   }
   return issues;
