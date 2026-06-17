@@ -10,19 +10,21 @@
 
 import { STATUS_MAP } from '../constants.js';
 
-// Single shared initiative for all areas
+// Shared initiative for SOX (kept for the SOX tab)
 const INITIATIVE_KEY = 'GLO220-13083';
 
 const SOX_EPIC_KEYS = {
-  sap:  'GLO220-13077',
-  ssff: 'GLO220-13080',
-  glow: 'GLO220-13078',
-  aws:  'GLO220-13079',
+  sap:   'GLO220-13077',
+  ssff:  'GLO220-13080',
+  glow:  'GLO220-13078',
+  aws:   'GLO220-13079',
   other: 'GLO220-13081',
 };
 
-const COMPLIANCE_EPIC_KEY = 'GLO220-13086';
-const GIST_EPIC_KEY       = 'GLO220-13087';
+// Project keys for the three offense/infrastructure sections
+const PROJECT_INTERNAL  = 'GBN980';   // Internal Infrastructure
+const PROJECT_EXTERNAL  = 'GL1404';   // External Infrastructure
+const PROJECT_SOX_INFRA = 'GLO815X';  // SOX Infrastructure
 
 function mapStatus(jiraStatus) {
   if (!jiraStatus) return 'No Iniciado';
@@ -127,6 +129,17 @@ export function computeStats(tasks) {
  * @param {Array} rawIssues
  * @returns {object} ComplianceModel
  */
+/**
+ * Build a section object from a flat list of tasks (no epic hierarchy needed).
+ */
+function buildOffenseSection(tasks) {
+  return {
+    tasks,
+    stats:      computeStats(tasks),
+    vulnGroups: groupTasksByStatus(tasks),
+  };
+}
+
 export function transformComplianceData(rawIssues) {
   const byKey = new Map(rawIssues.map(i => [i.key, i]));
 
@@ -154,36 +167,32 @@ export function transformComplianceData(rawIssues) {
 
   const sharedInitiative = buildInitiative(INITIATIVE_KEY);
 
+  // SOX tab: unchanged — hierarchy-based, uses epic keys
   const sox = {
     initiative: sharedInitiative,
     dimensions: {
-      sap:  buildEpicEntry(SOX_EPIC_KEYS.sap),
-      ssff: buildEpicEntry(SOX_EPIC_KEYS.ssff),
-      glow: buildEpicEntry(SOX_EPIC_KEYS.glow),
-      aws:  buildEpicEntry(SOX_EPIC_KEYS.aws),
+      sap:   buildEpicEntry(SOX_EPIC_KEYS.sap),
+      ssff:  buildEpicEntry(SOX_EPIC_KEYS.ssff),
+      glow:  buildEpicEntry(SOX_EPIC_KEYS.glow),
+      aws:   buildEpicEntry(SOX_EPIC_KEYS.aws),
       other: buildEpicEntry(SOX_EPIC_KEYS.other),
     },
   };
-
-  // SOX aggregate stats (all tasks across all 5 dimensions)
   const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);
   sox.stats = computeStats(allSoxTasks);
 
-  const complianceEntry = buildEpicEntry(COMPLIANCE_EPIC_KEY);
-  const compliance = {
-    initiative: sharedInitiative,
-    ...complianceEntry,
-    vulnGroups: groupTasksByStatus(complianceEntry.tasks),
-  };
+  // Offense sections: flat list of issues filtered by project key.
+  // The API now returns only issues with label Offense-Discovered-Vuln
+  // across the three target projects.
+  const byProject = { [PROJECT_INTERNAL]: [], [PROJECT_EXTERNAL]: [], [PROJECT_SOX_INFRA]: [] };
+  for (const issue of rawIssues) {
+    const pk = issue.fields.project?.key;
+    if (pk && pk in byProject) byProject[pk].push(toTask(issue));
+  }
 
-  const gistEpicEntry = buildEpicEntry(GIST_EPIC_KEY);
-  const gist = {
-    initiative: sharedInitiative,
-    epic: gistEpicEntry.epic,
-    tasks: gistEpicEntry.tasks,
-    stats: gistEpicEntry.stats,
-    vulnGroups: groupVulnerabilities(gistEpicEntry.tasks),
-  };
+  const internal  = buildOffenseSection(byProject[PROJECT_INTERNAL]);
+  const external  = buildOffenseSection(byProject[PROJECT_EXTERNAL]);
+  const soxInfra  = buildOffenseSection(byProject[PROJECT_SOX_INFRA]);
 
-  return { sox, compliance, gist };
+  return { sox, internal, external, soxInfra };
 }

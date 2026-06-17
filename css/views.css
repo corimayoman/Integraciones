@@ -1414,6 +1414,34 @@
 .compliance-pie-card--blocked { border-top: 3px solid var(--color-error); }
 .compliance-pie-card--closed  { border-top: 3px solid var(--color-success); }
 
+.compliance-pie-card--active {
+  background: var(--color-bg-secondary);
+  box-shadow: 0 0 0 2px var(--color-primary);
+  transform: translateY(-2px);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.compliance-clickable-pie-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.compliance-pie-task-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  padding: var(--space-3);
+}
+
+.compliance-pie-task-empty {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  padding: var(--space-4) 0;
+  margin: 0;
+}
+
 .compliance-pie-title {
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-bold);

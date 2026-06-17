@@ -5,8 +5,8 @@
 
 import { PROXY_BASE_URL } from '../constants.js';
 
-const CACHE_KEY = 'compliance_issues_v1';
-const CACHE_DATE_KEY = 'compliance_issues_date_v1';
+const CACHE_KEY = 'compliance_issues_v2';
+const CACHE_DATE_KEY = 'compliance_issues_date_v2';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 let memCache = null;

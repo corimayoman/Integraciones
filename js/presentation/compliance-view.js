@@ -284,9 +284,10 @@ const SOX_DIM_LABELS = {
  */
 function getTabs() {
   return [
-    { id: 'sox',        label: 'SOX' },
-    { id: 'compliance', label: 'Offense' },
-    { id: 'gist',       label: t('compliance.gistLabel') },
+    { id: 'sox',       label: 'SOX' },
+    { id: 'internal',  label: t('compliance.internalLabel') },
+    { id: 'external',  label: t('compliance.externalLabel') },
+    { id: 'soxInfra',  label: t('compliance.soxInfraLabel') },
   ];
 }
 
@@ -411,9 +412,10 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
   tabBar.setAttribute('role', 'tablist');
 
   const panels = {
-    sox:        buildSoxSection(complianceModel.sox),
-    compliance: buildDimensionCard('Offense', complianceModel.compliance.initiative, complianceModel.compliance.epic, complianceModel.compliance.tasks, complianceModel.compliance.stats, 'compliance', complianceModel.compliance.vulnGroups ?? groupTasksByStatus(complianceModel.compliance.tasks)),
-    gist:       buildGistSection(complianceModel.gist),
+    sox:      buildSoxSection(complianceModel.sox),
+    internal: buildOffenseTabSection(t('compliance.internalLabel'), complianceModel.internal),
+    external: buildOffenseTabSection(t('compliance.externalLabel'), complianceModel.external),
+    soxInfra: buildOffenseTabSection(t('compliance.soxInfraLabel'), complianceModel.soxInfra),
   };
 
   const tabEls = {};
@@ -466,10 +468,21 @@ function buildSoxSection(sox) {
   titleEl.textContent = 'SOX Compliance';
   header.appendChild(titleEl);
 
-
   header.appendChild(buildStatsBar(sox.stats, 'sox-aggregate'));
 
   section.appendChild(header);
+
+  // Aggregate pie charts for all SOX tasks
+  const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);
+  const soxVulnGroups = groupTasksByStatus(allSoxTasks);
+  if (soxVulnGroups.total > 0) {
+    const note = document.createElement('p');
+    note.className = 'compliance-vuln-note';
+    note.textContent = t('compliance.taskCount', { total: soxVulnGroups.total });
+    section.appendChild(note);
+
+    section.appendChild(buildClickablePieSection(soxVulnGroups, allSoxTasks));
+  }
 
   const dimGrid = document.createElement('div');
   dimGrid.className = 'compliance-sox-dims';
@@ -509,65 +522,45 @@ function buildSoxDimCard(label, dim) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GIST section — vulnerability pie charts                           */
+/*  Offense tab section (Internal / External / SOX Infrastructure)    */
 /* ------------------------------------------------------------------ */
 
-function buildGistSection(gist) {
+function buildOffenseTabSection(label, model) {
   const section = document.createElement('div');
-  section.className = 'compliance-section compliance-section--gist';
+  section.className = 'compliance-section compliance-section--offense';
 
-  // Header row
   const header = document.createElement('div');
   header.className = 'compliance-section-header';
 
   const titleEl = document.createElement('h3');
   titleEl.className = 'compliance-section-title';
-  titleEl.textContent = t('compliance.gistLabel');
+  titleEl.textContent = label;
   header.appendChild(titleEl);
 
   section.appendChild(header);
+  section.appendChild(buildStatsBar(model.stats, 'offense'));
 
-  const epicEl = document.createElement('div');
-  epicEl.className = 'compliance-epic-name';
-  epicEl.textContent = gist.epic.summary;
-  epicEl.title = gist.epic.key;
-  section.appendChild(epicEl);
-
-  section.appendChild(buildStatsBar(gist.stats, 'gist'));
-
-  // Vulnerability charts row
-  const vg = gist.vulnGroups;
-  if (vg.total > 0) {
+  const vg = model.vulnGroups;
+  if (vg && vg.total > 0) {
     const note = document.createElement('p');
     note.className = 'compliance-vuln-note';
-    note.textContent = t('compliance.vulns', { total: vg.total });
+    note.textContent = t('compliance.taskCount', { total: vg.total });
     section.appendChild(note);
 
-    const chartsRow = document.createElement('div');
-    chartsRow.className = 'compliance-vuln-charts';
-    chartsRow.appendChild(buildPieCard(t('compliance.open'), vg.open, 'open'));
-    chartsRow.appendChild(buildPieCard(t('compliance.blocked'), vg.blocked, 'blocked'));
-    chartsRow.appendChild(buildPieCard(t('compliance.closed'), vg.closed, 'closed'));
-    section.appendChild(chartsRow);
-  }
-
-  // Task table — sorted by status (Blocked first, then Open, then Closed)
-  if (gist.tasks.length > 0) {
-    const taskSection = document.createElement('details');
-    taskSection.className = 'compliance-tasks-details';
-    const summary = document.createElement('summary');
-    summary.textContent = t('compliance.showTasks', { n: gist.tasks.length });
-    taskSection.appendChild(summary);
-    taskSection.appendChild(buildTaskList(sortTasksByStatus(gist.tasks), true));
-    section.appendChild(taskSection);
+    section.appendChild(buildClickablePieSection(vg, model.tasks, true));
+  } else {
+    const empty = document.createElement('p');
+    empty.className = 'compliance-vuln-note';
+    empty.textContent = t('compliance.noTasksInFilter');
+    section.appendChild(empty);
   }
 
   return section;
 }
 
-function buildPieCard(label, bucket, variant) {
+function buildPieCard(label, bucket, variant, onClick, isActive) {
   const card = document.createElement('div');
-  card.className = `compliance-pie-card compliance-pie-card--${variant}`;
+  card.className = `compliance-pie-card compliance-pie-card--${variant}${isActive ? ' compliance-pie-card--active' : ''}`;
 
   const cardTitle = document.createElement('div');
   cardTitle.className = 'compliance-pie-title';
@@ -577,7 +570,81 @@ function buildPieCard(label, bucket, variant) {
   card.appendChild(buildDonutSVG(bucket));
   card.appendChild(buildPieLegend(bucket));
 
+  if (onClick) {
+    card.style.cursor = 'pointer';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.addEventListener('click', onClick);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') onClick(); });
+  }
+
   return card;
+}
+
+/**
+ * Renders three clickable pie cards (Open/Blocked/Closed) with a task panel
+ * below that updates on click. Defaults to showing Open tasks.
+ *
+ * @param {object} vulnGroups - { open, blocked, closed, total }
+ * @param {Array}  tasks      - all tasks for this section
+ * @param {boolean} showPriority - pass true to show priority column in task table
+ * @returns {HTMLElement}
+ */
+function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
+  const wrap = document.createElement('div');
+  wrap.className = 'compliance-clickable-pie-section';
+
+  let activeFilter = 'open';
+
+  const chartsRow = document.createElement('div');
+  chartsRow.className = 'compliance-vuln-charts';
+  wrap.appendChild(chartsRow);
+
+  const taskPanel = document.createElement('div');
+  taskPanel.className = 'compliance-pie-task-panel';
+  wrap.appendChild(taskPanel);
+
+  const filterTasks = (filter) => {
+    if (filter === 'open')    return tasks.filter(t => t.status !== 'Completado' && t.status !== 'Bloqueado' && t.status !== 'Rechazado');
+    if (filter === 'blocked') return tasks.filter(t => t.status === 'Bloqueado');
+    if (filter === 'closed')  return tasks.filter(t => t.status === 'Completado' || t.status === 'Rechazado');
+    return [];
+  };
+
+  const renderCards = () => {
+    chartsRow.textContent = '';
+    for (const [filter, label, bucket] of [
+      ['open',    t('compliance.open'),    vulnGroups.open],
+      ['blocked', t('compliance.blocked'), vulnGroups.blocked],
+      ['closed',  t('compliance.closed'),  vulnGroups.closed],
+    ]) {
+      const isActive = filter === activeFilter;
+      const card = buildPieCard(label, bucket, filter, () => {
+        activeFilter = filter;
+        renderCards();
+        renderTasks();
+      }, isActive);
+      chartsRow.appendChild(card);
+    }
+  };
+
+  const renderTasks = () => {
+    taskPanel.textContent = '';
+    const filtered = filterTasks(activeFilter);
+    if (filtered.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'compliance-pie-task-empty';
+      empty.textContent = t('compliance.noTasksInFilter');
+      taskPanel.appendChild(empty);
+      return;
+    }
+    taskPanel.appendChild(buildTaskList(sortTasksByStatus(filtered), showPriority));
+  };
+
+  renderCards();
+  renderTasks();
+
+  return wrap;
 }
 
 /* ------------------------------------------------------------------ */
@@ -703,55 +770,6 @@ function buildPieLegend(bucket) {
 /* ------------------------------------------------------------------ */
 /*  Generic dimension card (Compliance, GIST)                         */
 /* ------------------------------------------------------------------ */
-
-function buildDimensionCard(sectionLabel, initiative, epic, tasks, stats, colorClass, vulnGroups) {
-  const section = document.createElement('div');
-  section.className = `compliance-section compliance-section--${colorClass}`;
-
-  const header = document.createElement('div');
-  header.className = 'compliance-section-header';
-
-  const titleEl = document.createElement('h3');
-  titleEl.className = 'compliance-section-title';
-  titleEl.textContent = sectionLabel;
-  header.appendChild(titleEl);
-
-  section.appendChild(header);
-
-  const epicEl = document.createElement('div');
-  epicEl.className = 'compliance-epic-name';
-  epicEl.textContent = epic.summary;
-  epicEl.title = epic.key;
-  section.appendChild(epicEl);
-
-  section.appendChild(buildStatsBar(stats, colorClass));
-
-  if (vulnGroups && vulnGroups.total > 0) {
-    const note = document.createElement('p');
-    note.className = 'compliance-vuln-note';
-    note.textContent = t('compliance.taskCount', { total: vulnGroups.total });
-    section.appendChild(note);
-
-    const chartsRow = document.createElement('div');
-    chartsRow.className = 'compliance-vuln-charts';
-    chartsRow.appendChild(buildPieCard(t('compliance.open'),    vulnGroups.open,    'open'));
-    chartsRow.appendChild(buildPieCard(t('compliance.blocked'), vulnGroups.blocked, 'blocked'));
-    chartsRow.appendChild(buildPieCard(t('compliance.closed'),  vulnGroups.closed,  'closed'));
-    section.appendChild(chartsRow);
-  }
-
-  if (tasks.length > 0) {
-    const taskSection = document.createElement('details');
-    taskSection.className = 'compliance-tasks-details';
-    const summary = document.createElement('summary');
-    summary.textContent = t('compliance.showTasks', { n: tasks.length });
-    taskSection.appendChild(summary);
-    taskSection.appendChild(buildTaskList(sortTasksByStatus(tasks)));
-    section.appendChild(taskSection);
-  }
-
-  return section;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Reusable sub-components                                            */

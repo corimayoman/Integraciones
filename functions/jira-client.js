@@ -39,30 +39,12 @@ async function fetchAllIssues() {
   return allIssues;
 }
 
-const COMPLIANCE_INITIATIVE_KEYS = [
-  'GLO220-13082', // Compliance
-  'GLO220-13083', // GIST Compliance
-  'GLO220-13076', // SOX Compliance
-];
+// Projects and label that define the three offense/infrastructure sections
+const OFFENSE_PROJECTS = ['GBN980', 'GL1404', 'GLO815X'];
+const OFFENSE_LABEL    = 'Offense-Discovered-Vuln';
 
-const COMPLIANCE_EPIC_KEYS = [
-  'GLO220-13086', // Compliance epic
-  'GLO220-13087', // GIST epic
-  'GLO220-13077', // SOX - SAP
-  'GLO220-13078', // SOX - Glow
-  'GLO220-13079', // SOX - AWS
-  'GLO220-13080', // SOX - SSFF
-  'GLO220-13081', // SOX - Other
-];
-
-const ALL_COMPLIANCE_KEYS = [...COMPLIANCE_INITIATIVE_KEYS, ...COMPLIANCE_EPIC_KEYS];
-
-// Query 1: the known anchors + their direct children via parent field
-const JQL_PARENT = `key in (${ALL_COMPLIANCE_KEYS.join(', ')}) OR parent in (${ALL_COMPLIANCE_KEYS.join(', ')})`;
-
-// Query 2: children linked via Epic Link custom field (cf[10014]) — used by
-// some issue types (Vulnerability, Story) in company-managed Jira projects
-const JQL_EPIC_LINK = `cf[10014] in (${COMPLIANCE_EPIC_KEYS.join(', ')})`;
+// JQL: any issue in the three projects with the required label
+const JQL_OFFENSE = `project in (${OFFENSE_PROJECTS.join(', ')}) AND labels = "${OFFENSE_LABEL}" ORDER BY created DESC`;
 
 async function runJql(jql) {
   let allIssues = [];
@@ -83,25 +65,9 @@ async function runJql(jql) {
 }
 
 async function fetchComplianceIssues() {
-  // Run both queries; Epic Link query is optional — ignore if the field doesn't exist
-  const [parentResult, epicLinkResult] = await Promise.allSettled([
-    runJql(JQL_PARENT),
-    runJql(JQL_EPIC_LINK),
-  ]);
-
-  if (parentResult.status === 'rejected') {
-    throw parentResult.reason; // main query must succeed
-  }
-
-  const parentIssues   = parentResult.value;
-  const epicLinkIssues = epicLinkResult.status === 'fulfilled' ? epicLinkResult.value : [];
-
-  // Deduplicate by key
-  const seen = new Set(parentIssues.map(i => i.key));
-  const extra = epicLinkIssues.filter(i => !seen.has(i.key));
-
-  console.log(`Compliance fetch: ${parentIssues.length} via parent, ${extra.length} via epicLink`);
-  return [...parentIssues, ...extra];
+  const issues = await runJql(JQL_OFFENSE);
+  console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
+  return issues;
 }
 
 module.exports = { fetchAllIssues, fetchComplianceIssues, I4G_JQL };
