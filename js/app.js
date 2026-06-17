@@ -757,6 +757,12 @@ function bootApp() {
   // Register connection change listener
   onConnectionChange(handleConnectionChange);
 
+  // Session expired after 2 hours — sign out and show login screen
+  window.addEventListener('ams:session-expired', async () => {
+    await signOutGoogle();
+    renderGoogleLoginView(() => {});
+  });
+
   // When the admin changes sections for the current user, re-render nav immediately
   window.addEventListener('ams:sections-changed', () => {
     renderNav();

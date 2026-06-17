@@ -68,6 +68,30 @@ export async function refreshCurrentUserSections() {
 /** @type {string|null} Google OAuth access token (includes Gmail send scope) */
 let googleAccessToken = sessionStorage.getItem('gat') ?? null;
 
+const SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+const SESSION_START_KEY  = 'ams_session_start';
+let _sessionTimer = null;
+
+function startSessionTimer() {
+  clearTimeout(_sessionTimer);
+  const now = Date.now();
+  const started = parseInt(sessionStorage.getItem(SESSION_START_KEY) ?? '0', 10);
+  const elapsed = started ? now - started : 0;
+  const remaining = Math.max(0, SESSION_TIMEOUT_MS - elapsed);
+
+  _sessionTimer = setTimeout(async () => {
+    sessionStorage.removeItem(SESSION_START_KEY);
+    await signOutGoogle();
+    window.dispatchEvent(new CustomEvent('ams:session-expired'));
+  }, remaining);
+}
+
+function clearSessionTimer() {
+  clearTimeout(_sessionTimer);
+  _sessionTimer = null;
+  sessionStorage.removeItem(SESSION_START_KEY);
+}
+
 export function getGoogleAccessToken() {
   return googleAccessToken;
 }
@@ -137,6 +161,9 @@ export async function signInWithGoogle() {
   const credential = GoogleAuthProvider.credentialFromResult(result);
   googleAccessToken = credential?.accessToken ?? null;
   if (googleAccessToken) sessionStorage.setItem('gat', googleAccessToken);
+  // Record session start and arm the 2-hour timeout
+  sessionStorage.setItem(SESSION_START_KEY, String(Date.now()));
+  startSessionTimer();
   const user = result.user;
   const email = user.email;
 
@@ -161,6 +188,7 @@ export async function signInWithGoogle() {
  * Signs out the current user.
  */
 export async function signOutGoogle() {
+  clearSessionTimer();
   googleAccessToken = null;
   sessionStorage.removeItem('gat');
   await signOut(auth);
@@ -277,6 +305,8 @@ export function waitForAuthState(onChange) {
       }
       currentUserRole     = whitelistResult.role;
       currentUserSections = whitelistResult.sections;
+      // Resume session timer (handles page reloads within the 2-hour window)
+      if (sessionStorage.getItem(SESSION_START_KEY)) startSessionTimer();
       done(user);
     });
   });
