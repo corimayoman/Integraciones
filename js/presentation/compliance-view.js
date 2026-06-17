@@ -576,7 +576,7 @@ function buildOffenseTabSection(label, model) {
     note.textContent = t('compliance.taskCount', { total: vg.total });
     section.appendChild(note);
 
-    section.appendChild(buildClickablePieSection(vg, model.tasks, true));
+    section.appendChild(buildClickablePieSection(vg, model.tasks, true, true));
   } else {
     const empty = document.createElement('p');
     empty.className = 'compliance-vuln-note';
@@ -622,7 +622,7 @@ function buildPieCard(label, bucket, variant, onClick, isActive) {
 const ALL_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 const DEFAULT_PRIORITIES = new Set(['Critical', 'High']);
 
-function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
+function buildClickablePieSection(vulnGroups, tasks, showPriority = false, useSeverity = false) {
   const wrap = document.createElement('div');
   wrap.className = 'compliance-clickable-pie-section';
 
@@ -693,7 +693,7 @@ function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
   const renderTasks = () => {
     taskPanel.textContent = '';
     const byStatus   = filterByStatus(activeFilter);
-    const filtered   = byStatus.filter(t => activePriorities.has(t.priority));
+    const filtered   = byStatus.filter(t => activePriorities.has(useSeverity ? (t.severity ?? t.priority) : t.priority));
     if (filtered.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'compliance-pie-task-empty';
@@ -701,7 +701,7 @@ function buildClickablePieSection(vulnGroups, tasks, showPriority = false) {
       taskPanel.appendChild(empty);
       return;
     }
-    taskPanel.appendChild(buildTaskList(sortTasksByStatus(filtered), showPriority));
+    taskPanel.appendChild(buildTaskList(sortTasksByStatus(filtered), showPriority, useSeverity));
   };
 
   renderCards();
@@ -901,14 +901,14 @@ function makePill(text, variant) {
 
 const PAGE_SIZE = 10;
 
-function buildTaskList(tasks, showPriority = false) {
+function buildTaskList(tasks, showPriority = false, useSeverity = false) {
   const today = new Date().toISOString().slice(0, 10);
 
   const wrap = document.createElement('div');
   wrap.className = 'compliance-task-table-wrap';
 
   const cols = [t('compliance.colId'), t('compliance.colTitle'), t('compliance.colAssignedTo'), t('compliance.colCreated'), t('compliance.colAging'), t('compliance.colDueDate'), t('compliance.colStatus'), ''];
-  if (showPriority) cols.splice(6, 0, t('compliance.colPriority'));
+  if (showPriority) cols.splice(6, 0, useSeverity ? t('compliance.colSeverity') : t('compliance.colPriority'));
 
   // --- build table (just thead + empty tbody to be filled per page) ---
   const table = document.createElement('table');
@@ -1032,11 +1032,12 @@ function buildTaskList(tasks, showPriority = false) {
       if (showPriority) {
         const tdPriority = document.createElement('td');
         tdPriority.className = 'compliance-task-td';
-        if (task.priority) {
+        const displayVal = useSeverity ? (task.severity ?? task.priority) : task.priority;
+        if (displayVal) {
           const pb = document.createElement('span');
           pb.className = 'compliance-priority-badge';
-          pb.style.color = PRIORITY_COLORS[task.priority] ?? 'inherit';
-          pb.textContent = task.priority;
+          pb.style.color = PRIORITY_COLORS[displayVal] ?? 'inherit';
+          pb.textContent = displayVal;
           tdPriority.appendChild(pb);
         } else {
           tdPriority.textContent = '—';

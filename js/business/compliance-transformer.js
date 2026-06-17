@@ -46,6 +46,7 @@ function toTask(issue) {
     assignee:        issue.fields.assignee?.displayName ?? null,
     assigneeAccountId: issue.fields.assignee?.accountId ?? null,
     priority:        issue.fields.priority?.name ?? null,
+    severity:        issue.fields.customfield_10124 ?? null,
     isVulnerability: issue.fields.issuetype?.name === 'Vulnerability',
   };
 }
@@ -65,10 +66,11 @@ export function groupTasksByStatus(tasks) {
     const b = task.status === 'Completado' ? closed
             : task.status === 'Bloqueado'  ? blocked
             : open;
-    if      (task.priority === 'Critical') b.critical++;
-    else if (task.priority === 'High')     b.high++;
-    else if (task.priority === 'Medium')   b.medium++;
-    else                                   b.low++;
+    const level = task.severity ?? task.priority;
+    if      (level === 'Critical') b.critical++;
+    else if (level === 'High')     b.high++;
+    else if (level === 'Medium')   b.medium++;
+    else                           b.low++;
     b.total++;
   }
 

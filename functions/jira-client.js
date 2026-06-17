@@ -10,7 +10,7 @@ const I4G_JQL = `(issuetype = Theme AND labels IN (AcquiredCompanies) AND compon
 const FIELDS = [
   'summary', 'status', 'issuetype', 'priority', 'labels',
   'components', 'parent', 'assignee', 'created', 'updated',
-  'description', 'customfield_10014', 'project', 'duedate', 'severity',
+  'description', 'customfield_10014', 'project', 'duedate', 'customfield_10124',
 ];
 
 async function fetchAllIssues() {
@@ -67,18 +67,6 @@ async function runJql(jql) {
 async function fetchComplianceIssues() {
   const issues = await runJql(JQL_OFFENSE);
   console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
-  // One-shot: fetch the first issue with all fields to find the severity custom field ID
-  if (issues.length > 0) {
-    const firstKey = issues[0].key;
-    const debugRes = await jiraFetch(`/issue/${firstKey}?fields=*all`, { method: 'GET' });
-    if (debugRes.ok) {
-      const debugIssue = await debugRes.json();
-      const cfNonNull = Object.entries(debugIssue.fields)
-        .filter(([k, v]) => k.startsWith('customfield_') && v !== null)
-        .map(([k, v]) => [k, typeof v === 'object' ? (v.value ?? v.name ?? JSON.stringify(v).slice(0, 60)) : v]);
-      console.log(`[severity debug] Issue ${firstKey} non-null customfields:`, JSON.stringify(Object.fromEntries(cfNonNull)));
-    }
-  }
   return issues;
 }
 
