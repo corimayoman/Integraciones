@@ -41,7 +41,7 @@ async function fetchAllIssues() {
 
 // GL1404 (External Infrastructure) also accepts External-Pentest label.
 // Filtering per-project label rules is done in the transformer.
-const JQL_OFFENSE = `project in (GBN980, GL1404, GLO815X) AND type = Vulnerability AND labels in ("Offense-Discovered-Vuln", "External-Pentest") ORDER BY created DESC`;
+const JQL_OFFENSE = `project in (GBN980, GL1404, GLO815X) AND type = Vulnerability AND (labels = "Offense-Discovered-Vuln" OR labels = "External-Pentest") ORDER BY created DESC`;
 
 async function runJql(jql) {
   let allIssues = [];
