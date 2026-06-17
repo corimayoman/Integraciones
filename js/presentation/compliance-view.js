@@ -123,9 +123,30 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
   }
 
   meta.appendChild(toRow);
+
+  const ccInput = document.createElement('input');
+  ccInput.type = 'text';
+  ccInput.value = ccEmail;
+  ccInput.placeholder = 'cc1@globant.com, cc2@globant.com';
+  ccInput.style.cssText = `
+    background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);
+    border:1px solid var(--border,#45475a);
+    border-radius:4px;padding:3px 8px;font-size:.85rem;width:340px;
+  `;
+
+  const ccRow = document.createElement('div');
+  ccRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:4px;';
+  ccRow.innerHTML = `<span style="color:var(--text-muted,#6c7086);min-width:60px;">CC:</span>`;
+  ccRow.appendChild(ccInput);
+
+  const ccHint = document.createElement('span');
+  ccHint.textContent = 'separate multiple with commas';
+  ccHint.style.cssText = 'color:var(--text-muted,#6c7086);font-size:.75rem;';
+  ccRow.appendChild(ccHint);
+
+  meta.appendChild(ccRow);
   meta.insertAdjacentHTML('beforeend', `
-    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">CC:</span> ${ccEmail}</div>
-    <div><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">Subject:</span> <strong>${subject}</strong></div>
+    <div style="margin-top:4px;"><span style="color:var(--text-muted,#6c7086);min-width:60px;display:inline-block;">Subject:</span> <strong>${subject}</strong></div>
   `);
 
   const body = document.createElement('div');
@@ -149,8 +170,9 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
   sendBtn.addEventListener('click', () => {
     const finalTo = toInput.value.trim();
     if (!finalTo) { toInput.style.border = '1px solid #f38ba8'; toInput.focus(); return; }
+    const finalCc = ccInput.value.trim() || undefined;
     overlay.remove();
-    onSend(finalTo);
+    onSend(finalTo, finalCc);
   });
 
   footer.appendChild(cancelBtn);
@@ -189,11 +211,11 @@ async function sendReminder(btn, task) {
     toEmail: assigneeEmail,
     ccEmail: senderEmail,
     onCancel: () => {},
-    onSend: async (finalTo) => {
+    onSend: async (finalTo, finalCc) => {
       btn.disabled = true;
       btn.textContent = t('compliance.remindSending');
       try {
-        await sendGmailEmail({ subject, htmlBody, to: finalTo });
+        await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
         btn.textContent = t('compliance.remindSent');
         btn.classList.add('compliance-remind-btn--sent');
       } catch (err) {
@@ -238,11 +260,11 @@ async function sendEscalation(btn, task) {
     toEmail: assigneeEmail,
     ccEmail: senderEmail,
     onCancel: () => {},
-    onSend: async (finalTo) => {
+    onSend: async (finalTo, finalCc) => {
       btn.disabled = true;
       btn.textContent = t('compliance.escalateSending');
       try {
-        await sendGmailEmail({ subject, htmlBody, to: finalTo });
+        await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
         btn.textContent = t('compliance.escalateSent');
         btn.classList.add('compliance-escalate-btn--sent');
       } catch (err) {
