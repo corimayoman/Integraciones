@@ -10,7 +10,7 @@ const I4G_JQL = `(issuetype = Theme AND labels IN (AcquiredCompanies) AND compon
 const FIELDS = [
   'summary', 'status', 'issuetype', 'priority', 'labels',
   'components', 'parent', 'assignee', 'created', 'updated',
-  'description', 'customfield_10014', 'project', 'duedate',
+  'description', 'customfield_10014', 'project', 'duedate', 'severity',
 ];
 
 async function fetchAllIssues() {
@@ -67,6 +67,16 @@ async function runJql(jql) {
 async function fetchComplianceIssues() {
   const issues = await runJql(JQL_OFFENSE);
   console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
+  // Log all field keys from the first issue so we can identify the severity custom field ID
+  if (issues.length > 0) {
+    const fieldKeys = Object.keys(issues[0].fields).filter(k => {
+      const v = issues[0].fields[k];
+      return v !== null && typeof v === 'object' && (v.value || v.name);
+    });
+    console.log(`[severity debug] First issue ${issues[0].key} — non-null object fields:`, JSON.stringify(
+      Object.fromEntries(fieldKeys.map(k => [k, issues[0].fields[k]]))
+    ));
+  }
   return issues;
 }
 
