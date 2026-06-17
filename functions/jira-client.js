@@ -63,7 +63,7 @@ async function runJql(jql) {
 
 async function fetchComplianceIssues() {
   const issues = await runJql(JQL_OFFENSE);
-  console.log(`Compliance fetch: ${issues.length} offense issues across projects ${OFFENSE_PROJECTS.join(', ')}`);
+  console.log(`Compliance fetch: ${issues.length} offense issues`);
   return issues;
 }
 
