@@ -44,7 +44,7 @@ const OFFENSE_PROJECTS = ['GBN980', 'GL1404', 'GLO815X'];
 const OFFENSE_LABEL    = 'Offense-Discovered-Vuln';
 
 // JQL: vulnerabilities in the three projects with the required label
-const JQL_OFFENSE = `project in (${OFFENSE_PROJECTS.join(', ')}) AND issuetype = Vulnerability AND labels = "${OFFENSE_LABEL}" ORDER BY created DESC`;
+const JQL_OFFENSE = `project in (${OFFENSE_PROJECTS.join(', ')}) AND type = Vulnerability AND labels = "${OFFENSE_LABEL}" ORDER BY created DESC`;
 
 async function runJql(jql) {
   let allIssues = [];
