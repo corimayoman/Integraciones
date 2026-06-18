@@ -1908,6 +1908,26 @@
   color: var(--color-text-secondary);
 }
 
+/* --- Email history badge -------------------------------------------------- */
+.compliance-history-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #45475a);
+  background: none;
+  color: var(--text-muted, #6c7086);
+  font-size: .75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.compliance-history-badge:hover {
+  border-color: #89b4fa;
+  color: #89b4fa;
+}
+
 /* --- Compliance CSV Upload ------------------------------------------------ */
 .compliance-upload-wrap {
   display: flex;

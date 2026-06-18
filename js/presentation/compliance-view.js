@@ -9,7 +9,7 @@
 
 import { computeStats, transformComplianceData, groupTasksByStatus } from '../business/compliance-transformer.js';
 import { t } from '../i18n.js';
-import { getGoogleUser, isAdmin, getGoogleAccessToken, refreshGoogleToken } from '../firebase-auth.js';
+import { getGoogleUser, isAdmin, getGoogleAccessToken, refreshGoogleToken, saveEmailHistory, getEmailHistory } from '../firebase-auth.js';
 import { parseComplianceCSV } from '../data/compliance-csv.js';
 import { PROXY_BASE_URL } from '../constants.js';
 
@@ -196,6 +196,70 @@ function showEmailPreviewModal({ subject, htmlBody, toEmail, ccEmail, onSend, on
   document.body.appendChild(overlay);
 }
 
+async function showEmailHistoryModal(issueKey, issueSummary) {
+  document.getElementById('email-history-modal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'email-history-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg-card,#1e1e2e);color:var(--text-primary,#cdd6f4);border-radius:10px;border:1px solid var(--border,#45475a);width:100%;max-width:560px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.5);overflow:hidden;';
+
+  const header = document.createElement('div');
+  header.style.cssText = 'padding:16px 20px;border-bottom:1px solid var(--border,#45475a);display:flex;justify-content:space-between;align-items:center;';
+  header.innerHTML = `<div><strong style="font-size:1rem">Email History</strong><div style="font-size:.8rem;color:var(--text-muted,#6c7086);margin-top:2px;">${issueKey} · ${issueSummary}</div></div>`;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;color:inherit;font-size:1.1rem;cursor:pointer;padding:4px 8px;';
+  closeBtn.addEventListener('click', () => overlay.remove());
+  header.appendChild(closeBtn);
+
+  const body = document.createElement('div');
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:20px;';
+  body.innerHTML = '<p style="color:var(--text-muted,#6c7086);font-size:.85rem;">Loading…</p>';
+
+  modal.appendChild(header);
+  modal.appendChild(body);
+  overlay.appendChild(modal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  try {
+    const records = await getEmailHistory(issueKey);
+    body.textContent = '';
+    if (records.length === 0) {
+      body.innerHTML = '<p style="color:var(--text-muted,#6c7086);font-size:.85rem;text-align:center;margin-top:20px;">No emails sent yet.</p>';
+      return;
+    }
+    const timeline = document.createElement('div');
+    timeline.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+    for (const r of [...records].reverse()) {
+      const isEscalate = r.type === 'escalate';
+      const dot = isEscalate ? '#f38ba8' : '#89b4fa';
+      const label = isEscalate ? 'Escalate' : 'Remind';
+      const date = r.sentAt ? r.sentAt.slice(0, 10) + ' ' + r.sentAt.slice(11, 16) + ' UTC' : '—';
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;gap:12px;align-items:flex-start;';
+      item.innerHTML = `
+        <div style="margin-top:4px;width:10px;height:10px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+        <div style="font-size:.85rem;line-height:1.6;">
+          <span style="font-weight:600;color:${dot};">${label}</span>
+          <span style="color:var(--text-muted,#6c7086);margin-left:8px;">${date}</span>
+          <div>To: <strong>${r.to}</strong></div>
+          ${r.cc ? `<div style="color:var(--text-muted,#6c7086);">CC: ${r.cc}</div>` : ''}
+          <div style="color:var(--text-muted,#6c7086);">Sent by: ${r.sentBy}</div>
+        </div>
+      `;
+      timeline.appendChild(item);
+    }
+    body.appendChild(timeline);
+  } catch {
+    body.innerHTML = '<p style="color:#f38ba8;font-size:.85rem;">Failed to load history.</p>';
+  }
+}
+
 async function sendReminder(btn, task) {
   const jiraUrl  = `https://globant.atlassian.net/browse/${task.key}`;
   const subject  = `Reminder: ${task.key} - ${task.summary} - due ${task.duedate}`;
@@ -223,6 +287,7 @@ async function sendReminder(btn, task) {
       btn.textContent = t('compliance.remindSending');
       try {
         await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
+        await saveEmailHistory(task.key, 'remind', finalTo, finalCc);
         btn.textContent = t('compliance.remindSent');
         btn.classList.add('compliance-remind-btn--sent');
       } catch (err) {
@@ -272,6 +337,7 @@ async function sendEscalation(btn, task) {
       btn.textContent = t('compliance.escalateSending');
       try {
         await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
+        await saveEmailHistory(task.key, 'escalate', finalTo, finalCc);
         btn.textContent = t('compliance.escalateSent');
         btn.classList.add('compliance-escalate-btn--sent');
       } catch (err) {
@@ -1082,6 +1148,20 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
         }
         tdAction.appendChild(escalateBtn);
       }
+
+      // Email history badge — shown for all users, loaded async
+      const historyBadge = document.createElement('button');
+      historyBadge.className = 'compliance-history-badge compliance-history-badge--loading';
+      historyBadge.title = 'Email history';
+      historyBadge.textContent = '✉';
+      historyBadge.style.display = 'none';
+      historyBadge.addEventListener('click', () => showEmailHistoryModal(task.key, task.summary));
+      tdAction.appendChild(historyBadge);
+      getEmailHistory(task.key).then(records => {
+        if (records.length === 0) return;
+        historyBadge.textContent = `✉ ${records.length}`;
+        historyBadge.style.display = '';
+      }).catch(() => {});
 
       tr.appendChild(tdAction);
 

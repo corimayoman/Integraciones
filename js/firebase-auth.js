@@ -11,7 +11,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, signInWithPopup, reauthenticateWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getDatabase, ref, get, set, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, get, set, push, remove } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const ALLOWED_DOMAIN = 'globant.com';
 
@@ -258,6 +258,36 @@ export async function saveAllowedUser(email, role, active = true, sections = nul
  */
 export async function deleteAllowedUser(key) {
   await remove(ref(db, `allowedUsers/${key}`));
+}
+
+/**
+ * Save an email send record to /emailHistory/{issueKey}.
+ * @param {string} issueKey  - e.g. "GLO815X-8450"
+ * @param {'remind'|'escalate'} type
+ * @param {string} to        - primary recipient
+ * @param {string|undefined} cc - comma-separated CC addresses
+ */
+export async function saveEmailHistory(issueKey, type, to, cc) {
+  const safeKey = issueKey.replace(/[.#$/[\]]/g, '_');
+  await push(ref(db, `emailHistory/${safeKey}`), {
+    type,
+    to,
+    cc: cc ?? null,
+    sentBy: auth.currentUser?.email ?? 'unknown',
+    sentAt: new Date().toISOString(),
+  });
+}
+
+/**
+ * Load all email history records for an issue.
+ * @param {string} issueKey
+ * @returns {Promise<Array>} sorted oldest-first
+ */
+export async function getEmailHistory(issueKey) {
+  const safeKey = issueKey.replace(/[.#$/[\]]/g, '_');
+  const snap = await get(ref(db, `emailHistory/${safeKey}`));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val()).sort((a, b) => a.sentAt.localeCompare(b.sentAt));
 }
 
 /**
