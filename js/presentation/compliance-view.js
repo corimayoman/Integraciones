@@ -1181,8 +1181,8 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
       tdAction.className = 'compliance-task-td compliance-task-td--action';
       const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
 
-      // Remind button — tasks with a due date, not closed, admin only
-      if (isAdmin() && task.duedate && !isClosed) {
+      // Remind button — all non-closed tasks, admin only
+      if (isAdmin() && !isClosed) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
