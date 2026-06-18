@@ -3,6 +3,10 @@
     "allowedUsers": {
       ".read": "auth != null",
       ".write": "auth != null"
+    },
+    "emailHistory": {
+      ".read": "auth != null",
+      ".write": "auth != null"
     }
   }
 }
