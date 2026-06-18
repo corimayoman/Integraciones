@@ -1125,7 +1125,7 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
       const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
 
       // Remind button — tasks with a due date, not closed, admin only
-      if (isAdmin() && task.duedate && !isClosed && task.assigneeAccountId) {
+      if (isAdmin() && task.duedate && !isClosed) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
@@ -1135,7 +1135,7 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
       }
 
       // Escalate button — all non-closed tasks, admin only; enabled only when overdue
-      if (isAdmin() && !isClosed && task.assigneeAccountId) {
+      if (isAdmin() && !isClosed) {
         const escalateBtn = document.createElement('button');
         escalateBtn.className = 'compliance-escalate-btn';
         escalateBtn.textContent = t('compliance.escalate');
