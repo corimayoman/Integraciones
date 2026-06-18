@@ -261,21 +261,78 @@ async function showEmailHistoryModal(issueKey, issueSummary) {
 }
 
 async function sendReminder(btn, task) {
-  const jiraUrl  = `https://globant.atlassian.net/browse/${task.key}`;
-  const subject  = `Reminder: ${task.key} - ${task.summary} - due ${task.duedate}`;
-  const htmlBody = `
-    <p>Hi ${task.assignee ?? 'there'},</p>
-    <p>This is a friendly reminder that <a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
-    has a due date of <strong>${task.duedate}</strong> and is currently
-    in status <strong>${task.status}</strong>.</p>
-    <p>Could you please confirm the steps you have in place to meet this deadline,
-    or flag any blockers that may affect delivery?</p>
-    <p>→ <a href="${jiraUrl}">View ticket in Jira</a></p>
-    <p>Sent from the Compliance Dashboard by ${getGoogleUser()?.email ?? ''}.</p>
-  `;
-
+  const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
   const senderEmail = getGoogleUser()?.email ?? '';
-  const assigneeEmail = await lookupAssigneeEmail(task.assigneeAccountId) ?? '(could not resolve)';
+  const hasAssignee = !!task.assigneeAccountId;
+  const hasDueDate  = !!task.duedate;
+
+  let subject, htmlBody;
+
+  if (hasAssignee && hasDueDate) {
+    // Standard reminder
+    subject  = `Reminder: ${task.key} - ${task.summary} - due ${task.duedate}`;
+    htmlBody = `
+      <p>Hi ${task.assignee},</p>
+      <p>This is a friendly reminder that <a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
+      has a due date of <strong>${task.duedate}</strong> and is currently
+      in status <strong>${task.status}</strong>.</p>
+      <p>Could you please confirm the steps you have in place to meet this deadline,
+      or flag any blockers that may affect delivery?</p>
+      <p>→ <a href="${jiraUrl}">View ticket in Jira</a></p>
+      <p>Sent from the Compliance Dashboard by ${senderEmail}.</p>
+    `;
+  } else if (!hasAssignee && hasDueDate) {
+    // Missing assignee
+    subject  = `Action Required: ${task.key} - ${task.summary} - No assignee defined`;
+    htmlBody = `
+      <p>Hi,</p>
+      <p>The following vulnerability has a due date of <strong>${task.duedate}</strong> but currently
+      has <strong>no assignee</strong>:</p>
+      <p><a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
+      — Status: <strong>${task.status}</strong></p>
+      <p>Please assign this ticket to the appropriate team member as soon as possible
+      to ensure it is resolved before the deadline.</p>
+      <p>→ <a href="${jiraUrl}">Assign ticket in Jira</a></p>
+      <p>Sent from the Compliance Dashboard by ${senderEmail}.</p>
+    `;
+  } else if (hasAssignee && !hasDueDate) {
+    // Missing due date
+    subject  = `Action Required: ${task.key} - ${task.summary} - No due date defined`;
+    htmlBody = `
+      <p>Hi ${task.assignee},</p>
+      <p>You are assigned to the following vulnerability which currently has
+      <strong>no due date</strong> defined:</p>
+      <p><a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
+      — Status: <strong>${task.status}</strong></p>
+      <p>Please set a due date in Jira as soon as possible so this item can be
+      properly tracked within the compliance program.</p>
+      <p>→ <a href="${jiraUrl}">Set due date in Jira</a></p>
+      <p>Sent from the Compliance Dashboard by ${senderEmail}.</p>
+    `;
+  } else {
+    // Missing both assignee and due date
+    subject  = `Action Required: ${task.key} - ${task.summary} - No assignee or due date defined`;
+    htmlBody = `
+      <p>Hi,</p>
+      <p>The following vulnerability has <strong>no assignee</strong> and <strong>no due date</strong>
+      defined, and requires immediate attention:</p>
+      <p><a href="${jiraUrl}"><strong>${task.key} · ${task.summary}</strong></a>
+      — Status: <strong>${task.status}</strong></p>
+      <p>Please take the following actions as soon as possible:</p>
+      <ol>
+        <li><strong>Assign this ticket</strong> to the team member responsible for its remediation.</li>
+        <li><strong>Set a due date</strong> with a realistic and committed remediation deadline.</li>
+      </ol>
+      <p>Untracked vulnerabilities represent a risk to the compliance program and must be
+      properly owned and scheduled.</p>
+      <p>→ <a href="${jiraUrl}">Update ticket in Jira</a></p>
+      <p>Sent from the Compliance Dashboard by ${senderEmail}.</p>
+    `;
+  }
+
+  const assigneeEmail = hasAssignee
+    ? (await lookupAssigneeEmail(task.assigneeAccountId) ?? '(could not resolve)')
+    : '';
 
   showEmailPreviewModal({
     subject, htmlBody,
