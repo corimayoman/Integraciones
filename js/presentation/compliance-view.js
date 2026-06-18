@@ -260,7 +260,7 @@ async function showEmailHistoryModal(issueKey, issueSummary) {
   }
 }
 
-async function sendReminder(btn, task) {
+async function sendReminder(btn, task, onEmailSent) {
   const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
   const senderEmail = getGoogleUser()?.email ?? '';
   const hasAssignee = !!task.assigneeAccountId;
@@ -345,6 +345,7 @@ async function sendReminder(btn, task) {
       try {
         await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
         await saveEmailHistory(task.key, 'remind', finalTo, finalCc);
+        onEmailSent?.();
         btn.textContent = t('compliance.remindSent');
         btn.classList.add('compliance-remind-btn--sent');
       } catch (err) {
@@ -357,7 +358,7 @@ async function sendReminder(btn, task) {
   });
 }
 
-async function sendEscalation(btn, task) {
+async function sendEscalation(btn, task, onEmailSent) {
   const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
   const today       = new Date().toISOString().slice(0, 10);
   const msPerDay    = 86_400_000;
@@ -395,6 +396,7 @@ async function sendEscalation(btn, task) {
       try {
         await sendGmailEmail({ subject, htmlBody, to: finalTo, cc: finalCc });
         await saveEmailHistory(task.key, 'escalate', finalTo, finalCc);
+        onEmailSent?.();
         btn.textContent = t('compliance.escalateSent');
         btn.classList.add('compliance-escalate-btn--sent');
       } catch (err) {
@@ -1181,13 +1183,32 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
       tdAction.className = 'compliance-task-td compliance-task-td--action';
       const isClosed = task.status === 'Completado' || task.status === 'Rechazado';
 
+      // Email history badge — shown for all users, loaded async
+      const historyBadge = document.createElement('button');
+      historyBadge.className = 'compliance-history-badge';
+      historyBadge.title = 'Email history';
+      historyBadge.style.display = 'none';
+      historyBadge.addEventListener('click', () => showEmailHistoryModal(task.key, task.summary));
+      let historyCount = 0;
+      const refreshHistoryBadge = () => {
+        historyCount++;
+        historyBadge.textContent = `✉ ${historyCount}`;
+        historyBadge.style.display = '';
+      };
+      getEmailHistory(task.key).then(records => {
+        if (records.length === 0) return;
+        historyCount = records.length;
+        historyBadge.textContent = `✉ ${historyCount}`;
+        historyBadge.style.display = '';
+      }).catch(() => {});
+
       // Remind button — all non-closed tasks, admin only
       if (isAdmin() && !isClosed) {
         const remindBtn = document.createElement('button');
         remindBtn.className = 'compliance-remind-btn';
         remindBtn.textContent = t('compliance.remind');
         remindBtn.title = t('compliance.remindTitle');
-        remindBtn.addEventListener('click', () => sendReminder(remindBtn, task));
+        remindBtn.addEventListener('click', () => sendReminder(remindBtn, task, refreshHistoryBadge));
         tdAction.appendChild(remindBtn);
       }
 
@@ -1198,7 +1219,7 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
         escalateBtn.textContent = t('compliance.escalate');
         if (overdue) {
           escalateBtn.title = t('compliance.escalateTitle');
-          escalateBtn.addEventListener('click', () => sendEscalation(escalateBtn, task));
+          escalateBtn.addEventListener('click', () => sendEscalation(escalateBtn, task, refreshHistoryBadge));
         } else {
           escalateBtn.disabled = true;
           escalateBtn.title = t('compliance.escalateNotOverdue');
@@ -1206,19 +1227,7 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
         tdAction.appendChild(escalateBtn);
       }
 
-      // Email history badge — shown for all users, loaded async
-      const historyBadge = document.createElement('button');
-      historyBadge.className = 'compliance-history-badge compliance-history-badge--loading';
-      historyBadge.title = 'Email history';
-      historyBadge.textContent = '✉';
-      historyBadge.style.display = 'none';
-      historyBadge.addEventListener('click', () => showEmailHistoryModal(task.key, task.summary));
       tdAction.appendChild(historyBadge);
-      getEmailHistory(task.key).then(records => {
-        if (records.length === 0) return;
-        historyBadge.textContent = `✉ ${records.length}`;
-        historyBadge.style.display = '';
-      }).catch(() => {});
 
       tr.appendChild(tdAction);
 
