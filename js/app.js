@@ -738,6 +738,42 @@ function handleConnectionChange(newIsLive) {
 /*  Initialization                                                     */
 /* ------------------------------------------------------------------ */
 
+async function autoConnect() {
+  try {
+    const result = await checkAuth();
+    if (!result.authenticated) return;
+
+    showLoadingOverlay(t('app.fetchingJira'));
+
+    const [rawResult, complianceResult, soxResult] = await Promise.allSettled([
+      fetchRawIssues(),
+      fetchComplianceIssues(),
+      fetchSOXControls(),
+    ]);
+
+    const rawIssues = rawResult.status === 'fulfilled' ? rawResult.value : [];
+    model = transformJiraData(rawIssues);
+    model.metadata.mode = 'live';
+    model.metadata.snapshotDate = getSnapshotDate();
+    saveModelSnapshot(model);
+    isLive = true;
+
+    if (complianceResult.status === 'fulfilled' && complianceResult.value?.length > 0) {
+      complianceModel = transformComplianceData(complianceResult.value);
+    }
+    if (soxResult.status === 'fulfilled') {
+      soxModel = soxResult.value;
+    }
+
+    hideLoadingOverlay();
+    renderAppHeader();
+    renderCurrentView(getCurrentRoute());
+  } catch (err) {
+    console.warn('[autoConnect] Jira session check failed:', err.message);
+    hideLoadingOverlay();
+  }
+}
+
 function bootApp() {
   // Load last known model snapshot (or empty model if none)
   const savedModel = loadModelSnapshot();
@@ -840,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!appBooted) {
         appBooted = true;
         bootApp();
+        autoConnect();
       } else {
         renderAppHeader();
         renderNav();
