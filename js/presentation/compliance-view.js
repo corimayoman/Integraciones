@@ -612,67 +612,89 @@ export function renderComplianceView(container, complianceModel, isRefreshing, e
 
 function buildSoxSection(sox) {
   const section = document.createElement('div');
-  section.className = 'compliance-sox-section';
+  section.className = 'compliance-section compliance-section--sox';
 
+  // Header with aggregate stats
   const header = document.createElement('div');
-  header.className = 'compliance-sox-header';
-
+  header.className = 'compliance-section-header';
   const titleEl = document.createElement('h3');
   titleEl.className = 'compliance-section-title';
   titleEl.textContent = 'SOX Compliance';
   header.appendChild(titleEl);
-
-  header.appendChild(buildStatsBar(sox.stats, 'sox-aggregate'));
-
   section.appendChild(header);
+  section.appendChild(buildStatsBar(sox.stats, 'sox-aggregate'));
 
-  // Aggregate pie charts for all SOX tasks
-  const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);
-  const soxVulnGroups = groupTasksByStatus(allSoxTasks);
-  if (soxVulnGroups.total > 0) {
-    const note = document.createElement('p');
-    note.className = 'compliance-vuln-note';
-    note.textContent = t('compliance.taskCount', { total: soxVulnGroups.total });
-    section.appendChild(note);
+  // Sub-tab bar
+  const subTabBar = document.createElement('div');
+  subTabBar.className = 'compliance-tab-bar compliance-tab-bar--sub';
 
-    section.appendChild(buildClickablePieSection(soxVulnGroups, allSoxTasks));
-  }
+  const subPanelWrap = document.createElement('div');
+  subPanelWrap.className = 'compliance-tab-panel';
 
-  const dimGrid = document.createElement('div');
-  dimGrid.className = 'compliance-sox-dims';
+  let activeSubTab = 'sap';
+  const subTabEls = {};
+  const subPanels = {};
 
   for (const [dimId, dimLabel] of Object.entries(SOX_DIM_LABELS)) {
     const dim = sox.dimensions[dimId];
-    dimGrid.appendChild(buildSoxDimCard(dimLabel, dim));
+
+    // Build panel for this dimension
+    const panel = document.createElement('div');
+    panel.className = 'compliance-section compliance-section--sox-dim';
+
+    const dimHeader = document.createElement('div');
+    dimHeader.className = 'compliance-section-header';
+    const dimTitle = document.createElement('h4');
+    dimTitle.className = 'compliance-section-title';
+    dimTitle.textContent = dim.epic.summary || dimLabel;
+    dimHeader.appendChild(dimTitle);
+    panel.appendChild(dimHeader);
+    panel.appendChild(buildStatsBar(dim.stats, `sox-${dimId}`));
+
+    const vulnGroups = groupTasksByStatus(dim.tasks);
+    if (vulnGroups.total > 0) {
+      const note = document.createElement('p');
+      note.className = 'compliance-vuln-note';
+      note.textContent = t('compliance.taskCount', { total: vulnGroups.total });
+      panel.appendChild(note);
+      panel.appendChild(buildClickablePieSection(vulnGroups, dim.tasks));
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'compliance-vuln-note';
+      empty.textContent = t('compliance.noTasksInFilter');
+      panel.appendChild(empty);
+    }
+
+    subPanels[dimId] = panel;
+
+    // Sub-tab button
+    const btn = document.createElement('button');
+    btn.className = 'compliance-tab-btn';
+    btn.setAttribute('role', 'tab');
+    btn.dataset.tab = dimId;
+    btn.textContent = dimLabel;
+    btn.addEventListener('click', () => {
+      activeSubTab = dimId;
+      for (const [tid, b] of Object.entries(subTabEls)) {
+        b.classList.toggle('compliance-tab-btn--active', tid === dimId);
+        b.setAttribute('aria-selected', tid === dimId ? 'true' : 'false');
+      }
+      subPanelWrap.textContent = '';
+      subPanelWrap.appendChild(subPanels[dimId]);
+    });
+    subTabBar.appendChild(btn);
+    subTabEls[dimId] = btn;
   }
 
-  section.appendChild(dimGrid);
+  section.appendChild(subTabBar);
+  section.appendChild(subPanelWrap);
+
+  // Activate first sub-tab
+  subTabEls[activeSubTab].classList.add('compliance-tab-btn--active');
+  subTabEls[activeSubTab].setAttribute('aria-selected', 'true');
+  subPanelWrap.appendChild(subPanels[activeSubTab]);
+
   return section;
-}
-
-function buildSoxDimCard(label, dim) {
-  const card = document.createElement('div');
-  card.className = 'compliance-dim-card';
-
-  const cardTitle = document.createElement('div');
-  cardTitle.className = 'compliance-dim-title';
-  cardTitle.textContent = label;
-  card.appendChild(cardTitle);
-
-  const epicName = document.createElement('div');
-  epicName.className = 'compliance-dim-epic';
-  epicName.textContent = dim.epic.summary;
-  epicName.title = dim.epic.key;
-  card.appendChild(epicName);
-
-  card.appendChild(buildProgressBar(dim.stats.pctComplete, dim.stats));
-  card.appendChild(buildStatsPills(dim.stats));
-
-  if (dim.tasks.length > 0) {
-    card.appendChild(buildTaskList(sortTasksByStatus(dim.tasks)));
-  }
-
-  return card;
 }
 
 /* ------------------------------------------------------------------ */
