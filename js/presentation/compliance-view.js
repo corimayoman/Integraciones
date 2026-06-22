@@ -652,18 +652,11 @@ function buildSoxSection(sox) {
     panel.appendChild(buildStatsBar(dim.stats, `sox-${dimId}`));
 
     const vulnGroups = groupTasksByStatus(dim.tasks);
-    if (vulnGroups.total > 0) {
-      const note = document.createElement('p');
-      note.className = 'compliance-vuln-note';
-      note.textContent = t('compliance.taskCount', { total: vulnGroups.total });
-      panel.appendChild(note);
-      panel.appendChild(buildClickablePieSection(vulnGroups, dim.tasks));
-    } else {
-      const empty = document.createElement('p');
-      empty.className = 'compliance-vuln-note';
-      empty.textContent = t('compliance.noTasksInFilter');
-      panel.appendChild(empty);
-    }
+    const note = document.createElement('p');
+    note.className = 'compliance-vuln-note';
+    note.textContent = t('compliance.taskCount', { total: vulnGroups.total });
+    panel.appendChild(note);
+    panel.appendChild(buildClickablePieSection(vulnGroups, dim.tasks));
 
     subPanels[dimId] = panel;
 
@@ -716,20 +709,12 @@ function buildOffenseTabSection(label, model) {
   section.appendChild(header);
   section.appendChild(buildStatsBar(model.stats, 'offense'));
 
-  const vg = model.vulnGroups;
-  if (vg && vg.total > 0) {
-    const note = document.createElement('p');
-    note.className = 'compliance-vuln-note';
-    note.textContent = t('compliance.taskCount', { total: vg.total });
-    section.appendChild(note);
-
-    section.appendChild(buildClickablePieSection(vg, model.tasks, true, true));
-  } else {
-    const empty = document.createElement('p');
-    empty.className = 'compliance-vuln-note';
-    empty.textContent = t('compliance.noTasksInFilter');
-    section.appendChild(empty);
-  }
+  const vg = model.vulnGroups ?? groupTasksByStatus([]);
+  const note = document.createElement('p');
+  note.className = 'compliance-vuln-note';
+  note.textContent = t('compliance.taskCount', { total: vg.total });
+  section.appendChild(note);
+  section.appendChild(buildClickablePieSection(vg, model.tasks ?? [], true, true));
 
   return section;
 }
