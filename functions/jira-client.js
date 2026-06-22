@@ -66,17 +66,26 @@ async function runJql(jql) {
 }
 
 async function fetchComplianceIssues() {
-  const [offenseIssues, headerIssues, subtasks] = await Promise.all([
+  const [offenseIssues, headerIssues, knownSubtasks, otherTasks] = await Promise.all([
     // Offense / infrastructure tabs
     runJql(JQL_OFFENSE),
-    // SOX tab: initiative + 4 parent tasks (for summary/status display)
+    // SOX tab: initiative + 4 known parent tasks (for summary/status display)
     runJql(`issue in (${SOX_INITIATIVE}, ${SOX_TASK_KEYS.join(', ')})`),
-    // SOX tab: all sub-tasks under the 4 parent tasks
+    // SOX tab: sub-tasks under the 4 known parent tasks
     runJql(`parent in (${SOX_TASK_KEYS.join(', ')}) AND issuetype = Sub-task ORDER BY created DESC`),
+    // SOX tab: any other tasks directly under the initiative (will appear in OTHER sub-tab)
+    runJql(`parent = ${SOX_INITIATIVE} AND key not in (${SOX_TASK_KEYS.join(', ')}) ORDER BY created DESC`),
   ]);
 
-  console.log(`Compliance fetch: ${offenseIssues.length} offense, ${subtasks.length} SOX subtasks`);
-  return [...offenseIssues, ...headerIssues, ...subtasks];
+  // Fetch sub-tasks of the "other" tasks discovered above
+  let otherSubtasks = [];
+  if (otherTasks.length > 0) {
+    const otherKeys = otherTasks.map(i => i.key).join(', ');
+    otherSubtasks = await runJql(`parent in (${otherKeys}) AND issuetype = Sub-task ORDER BY created DESC`);
+  }
+
+  console.log(`Compliance fetch: ${offenseIssues.length} offense, ${knownSubtasks.length} SOX subtasks, ${otherTasks.length} other tasks, ${otherSubtasks.length} other subtasks`);
+  return [...offenseIssues, ...headerIssues, ...knownSubtasks, ...otherTasks, ...otherSubtasks];
 }
 
 module.exports = { fetchAllIssues, fetchComplianceIssues, I4G_JQL };

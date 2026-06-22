@@ -169,15 +169,20 @@ export function transformComplianceData(rawIssues) {
   const sharedInitiative = buildInitiative(INITIATIVE_KEY);
 
   // SOX tab: group sub-tasks by their parent task key
-  // Known task keys map to named dimensions; any other parent → OTHER
+  // Known task keys map to named dimensions; any other task/subtask under the initiative → OTHER
   const knownTaskValues = new Set(Object.values(SOX_TASK_KEYS));
-  const otherSubtasks = [];
+  const otherItems = [];
   for (const issue of rawIssues) {
     const pk = issue.fields.parent?.key;
-    if (!pk || knownTaskValues.has(pk)) continue;
-    // Sub-task whose parent is under GLO220-11373 but not a known task → OTHER
-    const grandparent = byKey.get(pk)?.fields?.parent?.key;
-    if (grandparent === INITIATIVE_KEY) otherSubtasks.push(toTask(issue));
+    if (!pk) continue;
+    if (pk === INITIATIVE_KEY && !knownTaskValues.has(issue.key)) {
+      // Direct child of initiative that isn't one of the 4 known tasks → OTHER item
+      otherItems.push(toTask(issue));
+    } else if (!knownTaskValues.has(pk)) {
+      // Sub-task whose parent is a task under the initiative but not a known task → OTHER item
+      const grandparent = byKey.get(pk)?.fields?.parent?.key;
+      if (grandparent === INITIATIVE_KEY) otherItems.push(toTask(issue));
+    }
   }
 
   const sox = {
@@ -189,8 +194,8 @@ export function transformComplianceData(rawIssues) {
       ssff:  buildEpicEntry(SOX_TASK_KEYS.ssff),
       other: {
         epic:  { key: 'other', summary: 'Other', status: 'No Iniciado', duedate: null },
-        tasks: otherSubtasks,
-        stats: computeStats(otherSubtasks),
+        tasks: otherItems,
+        stats: computeStats(otherItems),
       },
     },
   };
