@@ -10,15 +10,14 @@
 
 import { STATUS_MAP } from '../constants.js';
 
-// Shared initiative for SOX (kept for the SOX tab)
-const INITIATIVE_KEY = 'GLO220-13083';
+// SOX tab: initiative epic + 4 parent tasks that define the sub-tabs
+const INITIATIVE_KEY = 'GLO220-11373';
 
-const SOX_EPIC_KEYS = {
-  sap:   'GLO220-13077',
-  ssff:  'GLO220-13080',
-  glow:  'GLO220-13078',
-  aws:   'GLO220-13079',
-  other: 'GLO220-13081',
+const SOX_TASK_KEYS = {
+  sap:   'GLO220-11377',
+  aws:   'GLO220-11383',
+  glow:  'GLO220-11384',
+  ssff:  'GLO220-11385',
 };
 
 // Project keys for the three offense/infrastructure sections
@@ -169,15 +168,30 @@ export function transformComplianceData(rawIssues) {
 
   const sharedInitiative = buildInitiative(INITIATIVE_KEY);
 
-  // SOX tab: unchanged — hierarchy-based, uses epic keys
+  // SOX tab: group sub-tasks by their parent task key
+  // Known task keys map to named dimensions; any other parent → OTHER
+  const knownTaskValues = new Set(Object.values(SOX_TASK_KEYS));
+  const otherSubtasks = [];
+  for (const issue of rawIssues) {
+    const pk = issue.fields.parent?.key;
+    if (!pk || knownTaskValues.has(pk)) continue;
+    // Sub-task whose parent is under GLO220-11373 but not a known task → OTHER
+    const grandparent = byKey.get(pk)?.fields?.parent?.key;
+    if (grandparent === INITIATIVE_KEY) otherSubtasks.push(toTask(issue));
+  }
+
   const sox = {
     initiative: sharedInitiative,
     dimensions: {
-      sap:   buildEpicEntry(SOX_EPIC_KEYS.sap),
-      ssff:  buildEpicEntry(SOX_EPIC_KEYS.ssff),
-      glow:  buildEpicEntry(SOX_EPIC_KEYS.glow),
-      aws:   buildEpicEntry(SOX_EPIC_KEYS.aws),
-      other: buildEpicEntry(SOX_EPIC_KEYS.other),
+      sap:   buildEpicEntry(SOX_TASK_KEYS.sap),
+      aws:   buildEpicEntry(SOX_TASK_KEYS.aws),
+      glow:  buildEpicEntry(SOX_TASK_KEYS.glow),
+      ssff:  buildEpicEntry(SOX_TASK_KEYS.ssff),
+      other: {
+        epic:  { key: 'other', summary: 'Other', status: 'No Iniciado', duedate: null },
+        tasks: otherSubtasks,
+        stats: computeStats(otherSubtasks),
+      },
     },
   };
   const allSoxTasks = Object.values(sox.dimensions).flatMap(d => d.tasks);

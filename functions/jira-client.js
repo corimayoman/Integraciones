@@ -43,6 +43,10 @@ async function fetchAllIssues() {
 // Filtering per-project label rules is done in the transformer.
 const JQL_OFFENSE = `project in (GBN980, GL1404, GLO815X) AND type = Vulnerability AND (labels = "Offense-Discovered-Vuln" OR labels = "External-Pentest") ORDER BY created DESC`;
 
+// SOX Compliance tab hierarchy
+const SOX_INITIATIVE    = 'GLO220-11373';
+const SOX_TASK_KEYS     = ['GLO220-11377', 'GLO220-11383', 'GLO220-11384', 'GLO220-11385'];
+
 async function runJql(jql) {
   let allIssues = [];
   let nextPageToken = null;
@@ -62,9 +66,17 @@ async function runJql(jql) {
 }
 
 async function fetchComplianceIssues() {
-  const issues = await runJql(JQL_OFFENSE);
-  console.log(`Compliance fetch: ${issues.length} offense issues`);
-  return issues;
+  const [offenseIssues, headerIssues, subtasks] = await Promise.all([
+    // Offense / infrastructure tabs
+    runJql(JQL_OFFENSE),
+    // SOX tab: initiative + 4 parent tasks (for summary/status display)
+    runJql(`issue in (${SOX_INITIATIVE}, ${SOX_TASK_KEYS.join(', ')})`),
+    // SOX tab: all sub-tasks under the 4 parent tasks
+    runJql(`parent in (${SOX_TASK_KEYS.join(', ')}) AND issuetype = Sub-task ORDER BY created DESC`),
+  ]);
+
+  console.log(`Compliance fetch: ${offenseIssues.length} offense, ${subtasks.length} SOX subtasks`);
+  return [...offenseIssues, ...headerIssues, ...subtasks];
 }
 
 module.exports = { fetchAllIssues, fetchComplianceIssues, I4G_JQL };
