@@ -171,16 +171,22 @@ export function transformComplianceData(rawIssues) {
   // SOX tab: group sub-tasks by their parent task key
   // Known task keys map to named dimensions; any other task/subtask under the initiative → OTHER
   const knownTaskValues = new Set(Object.values(SOX_TASK_KEYS));
+
+  // Helper: returns the effective parent key (parent field OR Epic Link)
+  const effectiveParent = issue =>
+    issue.fields.parent?.key ?? issue.fields.customfield_10014 ?? null;
+
   const otherItems = [];
   for (const issue of rawIssues) {
-    const pk = issue.fields.parent?.key;
+    const pk = effectiveParent(issue);
     if (!pk) continue;
-    if (pk === INITIATIVE_KEY && !knownTaskValues.has(issue.key)) {
-      // Direct child of initiative that isn't one of the 4 known tasks → OTHER item
+    if ((pk === INITIATIVE_KEY) && !knownTaskValues.has(issue.key)) {
+      // Task directly under the initiative that isn't one of the 4 known tasks → OTHER
       otherItems.push(toTask(issue));
     } else if (!knownTaskValues.has(pk)) {
-      // Sub-task whose parent is a task under the initiative but not a known task → OTHER item
-      const grandparent = byKey.get(pk)?.fields?.parent?.key;
+      // Sub-task whose parent task is under the initiative but not a known task → OTHER
+      const parentIssue = byKey.get(pk);
+      const grandparent = parentIssue ? effectiveParent(parentIssue) : null;
       if (grandparent === INITIATIVE_KEY) otherItems.push(toTask(issue));
     }
   }

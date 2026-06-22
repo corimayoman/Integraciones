@@ -73,8 +73,8 @@ async function fetchComplianceIssues() {
     runJql(`issue in (${SOX_INITIATIVE}, ${SOX_TASK_KEYS.join(', ')})`),
     // SOX tab: sub-tasks under the 4 known parent tasks
     runJql(`parent in (${SOX_TASK_KEYS.join(', ')}) AND issuetype = Sub-task ORDER BY created DESC`),
-    // SOX tab: any other tasks directly under the initiative (will appear in OTHER sub-tab)
-    runJql(`parent = ${SOX_INITIATIVE} AND key not in (${SOX_TASK_KEYS.join(', ')}) ORDER BY created DESC`),
+    // SOX tab: any other tasks linked to the initiative (via parent or Epic Link) → OTHER sub-tab
+    runJql(`(parent = ${SOX_INITIATIVE} OR "Epic Link" = ${SOX_INITIATIVE}) AND key not in (${SOX_TASK_KEYS.join(', ')}) ORDER BY created DESC`),
   ]);
 
   // Fetch sub-tasks of the "other" tasks discovered above
