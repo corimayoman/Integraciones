@@ -134,8 +134,11 @@ const versionTable = new Table({
   columnWidths: [1200, 1800, 2500, PAGE_W - 5500],
   rows: [
     new TableRow({ children: [headerCell('Version', 1200), headerCell('Date', 1800), headerCell('Author', 2500), headerCell('Changes', PAGE_W - 5500)] }),
-    new TableRow({ children: [dataCell('0.1', 1200), dataCell('2026-06-09', 1800), dataCell('Martin Moresco', 2500), dataCell('Initial version', PAGE_W - 5500)] }),
-    new TableRow({ children: [dataCell('0.2', 1200), dataCell('2026-06-22', 1800), dataCell('Martin Moresco', 2500), dataCell('Updated SOX hierarchy (GLO220-11373, Tasks GLO220-11377/11383/11384/11385), Vulnerability issue type for infrastructure tabs, External-Pentest label for External Infrastructure, severity field replacing priority', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.1', 1200), dataCell('2026-06-09', 1800), dataCell('Martin Moresco', 2500), dataCell('Initial draft', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.2', 1200), dataCell('2026-06-09', 1800), dataCell('Martin Moresco', 2500), dataCell('Added Jira Initiative/Epic IDs, SOX multi-epic structure', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.3', 1200), dataCell('2026-06-11', 1800), dataCell('Martin Moresco', 2500), dataCell('Unified Initiative root; manager role generalized; removed task naming prefixes', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.4', 1200), dataCell('2026-06-17', 1800), dataCell('Martin Moresco', 2500), dataCell('Replaced GIST and Compliance sections with Internal Infrastructure (GBN980), External Infrastructure (GL1404), and SOX Infrastructure (GLO815X); tracking now based on label Offense-Discovered-Vuln per project', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.5', 1200), dataCell('2026-06-22', 1800), dataCell('Martin Moresco', 2500), dataCell('Updated SOX hierarchy to Initiative (GLO220-11373) -> Task -> Sub-task with tasks GLO220-11377 (SAP), GLO220-11383 (AWS), GLO220-11384 (GLOW), GLO220-11385 (SSFF); issue type changed to Vulnerability for infrastructure tabs; External-Pentest label added for External Infrastructure; severity field replaces priority; Other sub-tab captures tasks and subtasks not mapped to the 4 known systems', PAGE_W - 5500)] }),
   ],
 });
 
