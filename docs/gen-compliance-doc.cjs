@@ -139,6 +139,7 @@ const versionTable = new Table({
     new TableRow({ children: [dataCell('0.3', 1200), dataCell('2026-06-11', 1800), dataCell('Martin Moresco', 2500), dataCell('Unified Initiative root; manager role generalized; removed task naming prefixes', PAGE_W - 5500)] }),
     new TableRow({ children: [dataCell('0.4', 1200), dataCell('2026-06-17', 1800), dataCell('Martin Moresco', 2500), dataCell('Replaced GIST and Compliance sections with Internal Infrastructure (GBN980), External Infrastructure (GL1404), and SOX Infrastructure (GLO815X); tracking now based on label Offense-Discovered-Vuln per project', PAGE_W - 5500)] }),
     new TableRow({ children: [dataCell('0.5', 1200), dataCell('2026-06-22', 1800), dataCell('Martin Moresco', 2500), dataCell('Updated SOX hierarchy to Initiative (GLO220-11373) -> Task -> Sub-task with tasks GLO220-11377 (SAP), GLO220-11383 (AWS), GLO220-11384 (GLOW), GLO220-11385 (SSFF); issue type changed to Vulnerability for infrastructure tabs; External-Pentest label added for External Infrastructure; severity field replaces priority; Other sub-tab captures tasks and subtasks not mapped to the 4 known systems', PAGE_W - 5500)] }),
+    new TableRow({ children: [dataCell('0.6', 1200), dataCell('2026-06-23', 1800), dataCell('Martin Moresco', 2500), dataCell('Updated Jira base URL to globant-services.atlassian.net', PAGE_W - 5500)] }),
   ],
 });
 

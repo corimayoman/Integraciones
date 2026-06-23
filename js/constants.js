@@ -135,6 +135,11 @@ export const RETRY_CONFIG = {
 export const PROXY_BASE_URL = '';
 
 /**
+ * Jira browse base URL — used to build issue links throughout the UI.
+ */
+export const JIRA_BROWSE_URL = 'https://globant-services.atlassian.net/browse';
+
+/**
  * All valid Jira statuses (for validation).
  */
 export const JIRA_STATUSES = [

@@ -7,8 +7,9 @@
 
 import { t } from '../i18n.js';
 import { getGoogleUser, getGoogleAccessToken } from '../firebase-auth.js';
+import { JIRA_BROWSE_URL } from '../constants.js';
 
-const JIRA_BASE = 'https://globant.atlassian.net/browse';
+const JIRA_BASE = JIRA_BROWSE_URL;
 const DASHBOARD_URL = 'https://prj-istsecintegration-gp-5s.web.app/#/sox';
 
 const STATUS_SCORE = { ok: 3, tiempo: 2, pending: 1, alert: -1, delayed: -2, failed: -3, na: 0 };

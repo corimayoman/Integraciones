@@ -11,7 +11,7 @@ import { computeStats, transformComplianceData, groupTasksByStatus } from '../bu
 import { t } from '../i18n.js';
 import { getGoogleUser, isAdmin, getGoogleAccessToken, refreshGoogleToken, saveEmailHistory, getEmailHistory } from '../firebase-auth.js';
 import { parseComplianceCSV } from '../data/compliance-csv.js';
-import { PROXY_BASE_URL } from '../constants.js';
+import { PROXY_BASE_URL, JIRA_BROWSE_URL } from '../constants.js';
 
 async function lookupAssigneeEmail(accountId) {
   const res = await fetch(`/api/jira/user-email?accountId=${encodeURIComponent(accountId)}`);
@@ -261,7 +261,7 @@ async function showEmailHistoryModal(issueKey, issueSummary) {
 }
 
 async function sendReminder(btn, task, onEmailSent) {
-  const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
+  const jiraUrl     = `${JIRA_BROWSE_URL}/${task.key}`;
   const senderEmail = getGoogleUser()?.email ?? '';
   const hasAssignee = !!task.assigneeAccountId;
   const hasDueDate  = !!task.duedate;
@@ -359,7 +359,7 @@ async function sendReminder(btn, task, onEmailSent) {
 }
 
 async function sendEscalation(btn, task, onEmailSent) {
-  const jiraUrl     = `https://globant.atlassian.net/browse/${task.key}`;
+  const jiraUrl     = `${JIRA_BROWSE_URL}/${task.key}`;
   const today       = new Date().toISOString().slice(0, 10);
   const msPerDay    = 86_400_000;
   const daysOverdue = Math.floor((Date.parse(today) - Date.parse(task.duedate)) / msPerDay);
@@ -1098,7 +1098,7 @@ function buildTaskList(tasks, showPriority = false, useSeverity = false) {
       const tdKey = document.createElement('td');
       tdKey.className = 'compliance-task-td compliance-task-td--key';
       const keyLink = document.createElement('a');
-      keyLink.href = `https://globant.atlassian.net/browse/${task.key}`;
+      keyLink.href = `${JIRA_BROWSE_URL}/${task.key}`;
       keyLink.target = '_blank';
       keyLink.rel = 'noopener noreferrer';
       keyLink.textContent = task.key;
