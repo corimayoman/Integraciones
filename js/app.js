@@ -25,7 +25,7 @@ import { fetchComplianceIssues, loadComplianceCachedIssues, clearComplianceCache
 import { fetchSOXControls, loadSOXCachedData, getSOXCacheDate, clearSOXCache } from './data/sox-api.js';
 import { transformComplianceData } from './business/compliance-transformer.js';
 import { initRouter, onRouteChange, getCurrentRoute, navigate } from './presentation/router.js';
-import { login, logout, checkAuth, fetchRawIssues, onConnectionChange, saveModelSnapshot, loadModelSnapshot, getSnapshotDate, clearCache } from './data/api-client.js';
+import { login, logout, checkAuth, checkSession, fetchRawIssues, onConnectionChange, saveModelSnapshot, loadModelSnapshot, getSnapshotDate, clearCache } from './data/api-client.js';
 import { isAuthenticated, getCurrentUser as getDCUser, loginWithGoogle } from './data/dc-api-client.js';
 import { clearToken } from './business/auth-logic.js';
 import { renderCompanyListView } from './presentation/dc/company-list-view.js';
@@ -740,7 +740,7 @@ function handleConnectionChange(newIsLive) {
 
 async function autoConnect() {
   try {
-    const result = await checkAuth();
+    const result = await checkSession();
     if (!result.authenticated) return;
 
     showLoadingOverlay(t('app.fetchingJira'));

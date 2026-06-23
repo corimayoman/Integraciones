@@ -415,8 +415,15 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
+// Full check: validates token against Jira /myself (used after OAuth flow)
 app.get('/auth/status', async (req, res) => {
   const authenticated = await jiraAuth.isAuthenticated();
+  res.json({ authenticated });
+});
+
+// Lightweight check: only reads RTDB session, no Jira call (used on page load)
+app.get('/auth/session', async (req, res) => {
+  const authenticated = await jiraAuth.hasSession();
   res.json({ authenticated });
 });
 

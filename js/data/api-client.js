@@ -187,12 +187,28 @@ export async function logout() {
 }
 
 /**
- * Check authentication status via the Proxy.
+ * Full auth check — validates token against Jira /myself.
+ * Use after the OAuth flow to confirm the token is live.
  * @returns {Promise<{ authenticated: boolean }>}
  */
 export async function checkAuth() {
   try {
     const res = await fetchWithTimeout(`${PROXY_BASE_URL}/auth/status`);
+    if (!res.ok) return { authenticated: false };
+    return await res.json();
+  } catch {
+    return { authenticated: false };
+  }
+}
+
+/**
+ * Lightweight session check — only reads RTDB, no Jira call.
+ * Use on page load to avoid cold-start timeouts blocking auto-connect.
+ * @returns {Promise<{ authenticated: boolean }>}
+ */
+export async function checkSession() {
+  try {
+    const res = await fetchWithTimeout(`${PROXY_BASE_URL}/auth/session`);
     if (!res.ok) return { authenticated: false };
     return await res.json();
   } catch {

@@ -112,8 +112,14 @@ async function isAuthenticated() {
   }
 }
 
+// Lightweight check: only verifies a session exists in RTDB, no Jira call.
+async function hasSession() {
+  const session = await getSession();
+  return !!(session?.tokens?.access_token && session?.cloudId);
+}
+
 async function logout() {
   await getDb().ref(SESSION_PATH).remove();
 }
 
-module.exports = { getAuthUrl, exchangeCode, jiraFetch, isAuthenticated, getSiteUrl, logout };
+module.exports = { getAuthUrl, exchangeCode, jiraFetch, isAuthenticated, hasSession, getSiteUrl, logout };
